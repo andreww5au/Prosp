@@ -9,7 +9,7 @@ from globals import *
 try:
   import Numeric
   from Numeric import *
-  import MLab
+  import Numeric.MLab
   GotNum=1
 except ImportError:
   GotNum=0
