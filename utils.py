@@ -51,21 +51,39 @@ def gord(n=1):
   return resfiles
 
 
-def getdarks(n=1, et=900):
+def getbiases(n=1, name='bias'):
+  """Get n bias images of exposure time 'et', then process them to 'bias.fits'.
+     Any existing 'bias.fits' is deleted first, so this command can be run more
+     than once to add to any existing dark frames.
+
+     Original file and object names are restored after the bias images are
+     gathered.
+
+     eg: getbiases(20)
+         (take 20 bias images)
+  """
+  exptime(0.02)
+  bias(name)
+  fn=status.nextfile[:-8]
+  filename('bias')
+  files=go(n)
+  filename(fn)   #Restore filename to orig, stripping counter
+  object(fn)  #Swap to object type, not dark type
+  dobias(files)
+
+
+def getdarks(n=1, et=900, name='dark'):
   """Get n dark images of exposure time 'et', then process them to 'dark.fits'.
      Any existing 'dark.fits' is deleted first, so this command can be run more
      than once to add to any existing dark frames.
 
      Original file and object names are restored after the dark images are 
      gathered.
-
-     If the reduction process does not complete, type 'dodarks' from the
-     command line to process the dark field images manually.
      eg: getdarks(6,600)
          (take 6 dark images with a 600 second exposure time)
   """
   exptime(et)
-  dark('dark')
+  dark(name)
   fn=status.nextfile[:-8]
   filename('dark')
   files=go(n)
@@ -289,3 +307,30 @@ def threads():
   """
   return threading.enumerate()
 
+
+def newdir():
+  """Create a new working directory based on the current date, and copy in
+     bias and dark frames appropriate for the current CCD temperature.
+  """
+  t=time.localtime(time.time())
+  if t[3]<12:
+    t=time.localtime(time.time() - (t[3]+1)*3600 )
+  dirname='/data/rd'+time.strftime('%y%m%d',t)
+  print "Making directory: "+dirname
+  os.system('mkdir '+dirname)
+  os.chdir(dirname)
+  path(dirname)
+  darks=glob.glob('/data/dark-??Cmaster.fits')
+  temps=[]
+  for n in darks:
+    mpos=string.find(n,'-')
+    temps.append(int(n[mpos:mpos+3]))
+  tempnow=ccdtemp(5)
+  print "Current temperature: "+`tempnow`
+  besttemp=100
+  for t in temps:
+    if abs(tempnow-t) < abs(tempnow-besttemp):
+      besttemp=t
+  print "Using bias+dark images for "+`besttemp`+"C."
+  os.system("cp /data/bias"+`besttemp`+"Cmaster.fits "+dirname+"/bias.fits")
+  os.system("cp /data/dark"+`besttemp`+"Cmaster.fits "+dirname+"/dark.fits")
