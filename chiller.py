@@ -9,9 +9,14 @@ import threading
 import globals
 from BeautifulSoup import BeautifulSoup
 
+headroom = 50.0    #Try and maintain chiller setpoint temp this far above CCD settemp
+dewheadroom = 2.0  #Make sure to keep chiller setpoint this far above dewpoint
+
 os.environ["http_proxy"]="http://proxy.calm.wa.gov.au:8080"
 
 ser = serial.Serial('/dev/ttyS2', 9600, timeout=1)
+
+logfile = open('/data/templog','a')
 
 ReadSetpoint = [0x01,0x03,0x00,0x7F,0x00,0x01]
 ReadTemp = [0x01,0x03,0x00,0x1C,0x00,0x01]
@@ -77,6 +82,18 @@ def _background():
     else:
       globals.ewrite('Unable to get watertemp, settemp from chiller unit')
       lastchillerchecktime = time.time() - 120       #If there was an error, try again in 2 minutes
+    logfile.write("%12.2f %4.1f %4.1f %4.1f %4.1f \n" % (time.time(), airtemp, watertemp, setpoint, dewpoint) )
+
+  try:
+    desired = status.settemp + headroom      #Temperature to try and keep chiller setpoint near
+    if desired > airtemp:
+      desired = airtemp
+    if desired < (dewpoint + dewheadroom):
+      desired = dewpoint + dewheadroom
+
+    if (abs(desired-setpoint) > 5.0) or (setpoint < (dewpoint + dewheadroom)):
+      newSetpoint(desired)
+      print "Changing chiller setpoint to ",round(desired,1)
 
 
 def crc(message=[]):
@@ -202,4 +219,4 @@ lastchillerchecktime = 0
 watertemp = -99.9
 setpoint = -99.9
 
-#_background()        #This will block for ~10 seconds every time it downloads the BOM web page
+#_background()
