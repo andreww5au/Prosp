@@ -45,10 +45,11 @@ def email():
   while 1:     #log in loop
 #   connect to the email server
     try:
-       M=poplib.POP3("galaxy.calm.wa.gov.au")
+#      M=poplib.POP3("galaxy.calm.wa.gov.au")
+       M=poplib.POP3("webmail.calm.wa.gov.au")
 #      M=poplib.POP3("mail.iinet.net.au")
     except:
-       print "Error establishing a link to the email server", detail
+       print "Error establishing a link to the email server"
        time.sleep(7)
        continue
 
@@ -56,7 +57,9 @@ def email():
        M.user("perthobs")
 #      M.user("ralphm")
 #      M.pass_(getpass.getpass("Password for CALM email server:"))
-       M.pass_("1asteroid")
+       M.pass_("2asteroid")
+#      M.pass_("password1")
+#      M.pass_("stargaze")
     except poplib.error_proto, detail:
        print "Error logging into the CALM email server", detail
        try:
