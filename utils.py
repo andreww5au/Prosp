@@ -101,6 +101,7 @@ def getflats(filt='R', n=1, et=1):
      eg: getflats('R',5,0.7)
          getflats(filt='I', n=5, et=3)
   """
+  oet=status.exptime
   exptime(et)
   flat('flat'+filt)
   fn=status.nextfile[:-8]
@@ -109,6 +110,7 @@ def getflats(filt='R', n=1, et=1):
   files=go(n)
   filename(fn) #Restore filename to orig, stripping counter
   object(fn)  #Swap to object type, not dark type
+  exptime(oet)  #restore original exposure time
   doflat(files)
 
 
@@ -285,6 +287,8 @@ def newdir():
   """Create a new working directory based on the current date, and copy in
      bias and dark frames appropriate for the current CCD temperature.
   """
+  obsname=raw_input("Enter Observers Name: ")
+  observer(obsname)          #Set tonights observer name in FITS headers
   t=time.localtime(time.time())
   if t[3]<12:
     t=time.localtime(time.time() - (t[3]+1)*3600 )
