@@ -48,7 +48,9 @@ class Object:
     self.LastObs=0.0
     self.errors=''
 
-  def __init__(self,str=''):
+  def __init__(self, str='', curs=None):
+    if not curs:
+      curs=db.cursor()
     if str=='':
       self.empty()
     else:
@@ -104,7 +106,9 @@ class Object:
     self.period=_getn('Period', self.period)
     self.comment=_gets('Comment',self.comment)
 
-  def updatetime(self):
+  def updatetime(self, curs=None):
+    if not curs:
+      curs=db.cursor()
     curs.execute("update objects set lastobs=NOW() where ObjID='"+self.ObjID+"'")
 
   def display(self):
@@ -131,7 +135,9 @@ class Object:
              self.type)
  
 
-  def save(self,ask=1,force=0):
+  def save(self,ask=1,force=0, curs=None):
+    if not curs:
+      curs=db.cursor()
     if self.ObjID=='':
       print "Empty ObjID, can't save object."
       return 0
@@ -183,7 +189,10 @@ class Object:
     print "Object "+self.ObjID+" saved."
     return 1
 
-  def delete(self,ask=1):
+
+  def delete(self, ask=1, curs=None):
+    if not curs:
+      curs=db.cursor()
     if self.ObjID=='':
       print "Empty ObjID, can't delete object."
       return 0
@@ -202,17 +211,21 @@ class Object:
     return 1
 
 
-def ZapPeriods(period=0, type=''):
+def ZapPeriods(period=0, type='', curs=None):
   """Take an object type and set the desired observing interval for all objects of that
      type to the specified period, in days.
   """
+  if not curs:
+    curs=db.cursor()
   if type:
     curs.execute("update objects set period="+`period`+" where type='"+type+"'")
    
 
 
-def allobjects():
+def allobjects(curs=None):
   "Return a list of all objects in the Object database."
+  if not curs:
+    curs=db.cursor()
   curs.execute("select ObjID from objects")
   c=curs.fetchallDict()
   olist=[]
@@ -237,6 +250,5 @@ def sorttype(o,p):
 #print 'connecting to database for objects database access'
 db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor)
-curs=db.cursor()
 #print 'connected'
 

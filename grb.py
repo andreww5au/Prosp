@@ -5,6 +5,16 @@ import poplib,getpass
 import threading
 import objects
 
+import MySQLdb
+import safecursor
+DictCursor=safecursor.SafeCursor
+
+#Create a new database connection to use in the background email-monitoring thread
+b_db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+                        db='teljoy', cursorclass=DictCursor)
+grb_curs=b_db.cursor()
+
+
 # Process incoming GRB emails and place the results into the MySQLdb
 # Written by Ralph Martin
 def self():
@@ -251,7 +261,7 @@ def grbDB(self):
 #  Put this information into the data base.
    try:
      print self.obj
-     newob=objects.Object(self.obj)
+     newob=objects.Object(self.obj, curs=grb_curs)
      print self.errorbox
 #    if newob.ObjRA:
 #      print "GRB already in data base - updating."
@@ -273,7 +283,7 @@ def grbDB(self):
 #  force the database to accept this object
 #  as more accurate information vcomes in the data base is updated
      try:
-       newob.save(ask=0,force=1)
+       newob.save(ask=0,force=1, curs=grb_curs)
      except:
        print "object not saved in data base."
        M.quit()
