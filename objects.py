@@ -46,7 +46,9 @@ class Object:
     self.exptime=1
     self.XYpos=(0,0)
     self.type=''
+    self.period=0.0
     self.comment=''
+    self.LastObs=0.0
     self.errors=''
 
   def __init__(self,str=''):
@@ -71,7 +73,15 @@ class Object:
       self.exptime=float(c['exptime'])
       self.XYpos=(int(c['XYpos_X']),int(c['XYpos_Y']))
       self.type=c['type']
+      try:
+        self.period=float(c['period'])
+      except TypeError:
+        self.period=0.0
       self.comment=c['comment']
+      try:
+        self.LastObs=float(c['LastObs'])
+      except TypeError:
+        self.lastobs=0
       if not self.ObjRA:
         self.ObjRA=''
       if not self.ObjDec:
@@ -94,7 +104,11 @@ class Object:
     self.exptime=_getn('ExpTime',self.exptime)
     self.XYpos=_gett('XY pos',self.XYpos)
     self.type=_gets('Type',self.type)
+    self.period=_getn('Period', self.period)
     self.comment=_gets('Comment',self.comment)
+
+  def updatetime(self):
+    curs.execute("update objects set lastobs=NOW() where ObjID='"+self.ObjID+"'")
 
   def display(self):
     print '%9s:%11s %11s (%6.1f)%8s%6.5g (%5d,%5d)%8s' % (self.ObjID,
@@ -106,6 +120,20 @@ class Object:
              self.XYpos[0],self.XYpos[1],
              self.type)
 
+  def __repr__(self):
+    return "Object[" + self.ObjID + "]"
+
+  def __str__(self):
+    return 'O[%9s:%11s %11s (%6.1f)%8s%6.5g (%5d,%5d)%8s]' % (self.ObjID,
+             self.ObjRA,
+             self.ObjDec,
+             self.ObjEpoch,
+             self.filtname,
+             self.exptime,
+             self.XYpos[0],self.XYpos[1],
+             self.type)
+ 
+
   def save(self,ask=1,force=0):
     if self.ObjID=='':
       print "Empty ObjID, can't save object."
@@ -113,7 +141,7 @@ class Object:
     if not curs.execute("select * from objects where ObjID='"+self.ObjID+"'"):
       curs.execute("insert into objects (ObjID,name,ObjRA,ObjDec,ObjEpoch,filtname,"+
          "exptime,"+
-         "XYpos_X,XYpos_Y,type,comment) values ("+
+         "XYpos_X,XYpos_Y,type,period,comment) values ("+
          "'"+self.ObjID+"', "+
          "'"+self.name+"', "+
          "'"+self.ObjRA+"', "+
@@ -124,7 +152,9 @@ class Object:
          `self.XYpos[0]`+", "+
          `self.XYpos[1]`+", "+
          "'"+self.type+"', "+
-         "'"+self.comment+"' ) ")
+         `self.period`+", "+
+         "'"+self.comment+"', "+
+         `self.LastObs`+" ) ")
       if string.upper(self.origid)<>string.upper(self.ObjID):
         if self.origid<>'':
           curs.execute("delete from objects where ObjID='"+self.origid+"'")
@@ -150,6 +180,7 @@ class Object:
          "XYpos_X="+`self.XYpos[0]`+", "+
          "XYpos_Y="+`self.XYpos[1]`+", "+
          "type='"+self.type+"', "+
+         "period='"+self.period+"', "+
          "comment='"+self.comment+"' "+
          "where ObjID='"+self.ObjID+"'")
 

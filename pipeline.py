@@ -33,6 +33,19 @@ TryNames= [ ]  #List of functions that map from abbreviated names to full names,
 class dObject(objects.Object):
   "A new object class with dynamic methods, like 'jump'."
 
+  def __repr__(self):
+    return "Pipeline[" + self.ObjID + "]"
+
+  def __str__(self):
+    return 'P[%9s:%11s %11s (%6.1f)%8s%6.5g (%5d,%5d)%8s]\n' % (self.ObjID,
+             self.ObjRA,
+             self.ObjDec,
+             self.ObjEpoch,
+             self.filtname,
+             self.exptime,
+             self.XYpos[0],self.XYpos[1],
+             self.type)
+
   def jump(self):
     "Move the telescope to the object coordinates"
     while teljoy.status.paused:
@@ -91,9 +104,21 @@ class dObject(objects.Object):
       self.set()
       self.get()
       self.reduce()
+      self.updatetime()
       self.log()
     else:
       print "Errors: "+self.errors
+
+
+def allobjects():
+  "Return a list of pipeline objects for everything in the Object database."
+  plist=[]
+  for o in objects.allobjects():
+    if Pipelines.has_key(string.upper(o.type)):
+      plist.append(Pipelines[string.upper(o.type)](o.ObjID))
+    else:
+      plist.append(dObject(o.ObjID))
+  return plist
 
 
 def getobject(str):
