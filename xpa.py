@@ -59,7 +59,6 @@ def getregions():
   #Call the xpaget command, get the output, and split it into a list of lines
   if viewer=='ds9':
     out=string.split(commands.getoutput('xpaget ds9 regions'),'\n')
-    print out
     label=''
     mlist=[]
     for r in out:       #For each line
