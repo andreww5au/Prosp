@@ -75,11 +75,22 @@ def precess(ra=0.0, dec=-0.5587):
   return pra,pdec
 
 
+
+def altaz(ra=0.0, dec=-0.5587, epoch=2000):
+  obj=ephem.Obj()
+  obj.any.type=ephem.FIXED
+  obj.f.ra=ra
+  obj.f.dec=dec
+  obj.f.epoch=epoch
+  ephem.computeLocation(herenow(), obj)
+  return obj.any.altitude, obj.any.azimuth
+
+
 def alaz(ra=0.0,dec=-0.5587):
 # written by Ralph Martin April 2003
 # calculate an altitude and azimuth for a given ra and dec
   c=herenow()
-  pra,pdec=precess(ra,dec)  #precess ra and dec
+  pra,pdec=precess(float(ra),float(dec))  #precess ra and dec
 # input ra and dec in radians 
   st=ephem.computeSiderealTime(c)  #sidereal time (hours)
   stRadians=pi*st/12.0
