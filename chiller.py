@@ -12,13 +12,6 @@ from BeautifulSoup import BeautifulSoup
 headroom = 50.0    #Try and maintain chiller setpoint temp this far above CCD settemp
 dewheadroom = 2.0  #Make sure to keep chiller setpoint this far above dewpoint
 
-os.environ["http_proxy"]="http://proxy.calm.wa.gov.au:8080"
-
-ser = serial.Serial('/dev/ttyS2', 9600, timeout=1)
-
-logfile = open('/data/templog','a')
-logfile.write("%s\t%s\t%s\t%s\t%s \n" % (time.asctime(),"Airtemp","Watertemp","Setpoint",'Dewpoint") )
-
 ReadSetpoint = [0x01,0x03,0x00,0x7F,0x00,0x01]
 ReadTemp = [0x01,0x03,0x00,0x1C,0x00,0x01]
 
@@ -89,7 +82,7 @@ def _background():
                                                      status.setpoint, status.dewpoint) )
     logfile.flush()
 
-    if goodBOM:
+    if status.goodBOM:
       try:
         desired = status.CCDsettemp + headroom      #Temperature to try and keep chiller setpoint near
         if desired > status.airtemp:
@@ -231,10 +224,15 @@ class _Chiller:
     getTemp()
     getSetpoint()
   def display(self):
-    return "Air:%4.1f  Water:%4.1f  Setpoint:%4.1f  Dewpoint:%4.1f" % (status.airtemp, status.watertemp,
-                                                                       status.setpoint, status.dewpoint) 
-  
+    return "Air:%4.1f  Water:%4.1f  Setpoint:%4.1f  Dewpoint:%4.1f" % (self.airtemp, self.watertemp,
+                                                                       self.setpoint, self.dewpoint) 
 
-status = _Chiller()
+def init():   #Initialise at runtime, including connection to chiller and downloading initial BOM data
+  global status, ser, logfile  
+  os.environ["http_proxy"]="http://proxy.calm.wa.gov.au:8080"
+  ser = serial.Serial('/dev/ttyS2', 9600, timeout=1)
+  logfile = open('/data/templog','a')
+  logfile.write("%s\t%s\t%s\t%s\t%s \n" % (time.asctime(),"Air","Water","Set","Dew") )
 
-_background()
+  status = _Chiller()
+  _background()
