@@ -15,6 +15,7 @@ pi=math.pi
 obslat=ephem.scanSexagesimal('-32:00:29.1')/180.0*pi
 obslong=ephem.scanSexagesimal('116:8:6.1')/180.0*pi
 twilight=12/180.0*pi    #Nautical Twilight, 12 degrees below horizon
+fullday=-6/180.0*pi     #Full daytime, sun 6 degrees above horizon
 
 
 def mjdnow():
@@ -56,6 +57,15 @@ def isdark():
     return 1
   else:
     return 0
+
+def isday():
+  h=herenow()
+  tw=ephem.computeTwilight(h,fullday)
+  if h.mjd>tw[1] or h.mjd<tw[0]:
+    return 0
+  else:
+    return 1
+
 
 
 def elements(name=None):
