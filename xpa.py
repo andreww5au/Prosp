@@ -30,7 +30,7 @@ class marker:
         cmd="regions '#"+self.label+"; "+self.type+" "+`self.x`+" "+`self.y`+"'"
         commands.getoutput('echo "'+cmd+'" | xpaset '+viewer)
       else:
-        cmd="regions '"+self.type+" "+`self.x`+" "+`self.y`+' text="'+self.label+'" font="system 8 normal" '+"'"
+        cmd="regions '"+self.type+" "+`self.x`+" "+`self.y`+" # text={"+self.label+"} '"
         commands.getoutput('echo '+cmd+' | xpaset '+viewer)
     print cmd
 
@@ -38,7 +38,10 @@ class marker:
 def deleteregions():
   """Send an XPA message to the viewer to delete all markers.
   """
-  commands.getoutput('echo "regions delete" | xpaset '+viewer)
+  if viewer=='SAOtng':
+    commands.getoutput('echo "regions delete" | xpaset '+viewer)
+  else:
+    commands.getoutput('echo "regions deleteall" | xpaset '+viewer)
 
 
 def showmlist(mlist=[]):
@@ -54,46 +57,76 @@ def getregions():
      return a list of marker objects.
   """
   #Call the xpaget command, get the output, and split it into a list of lines
-  out=string.split(commands.getoutput('xpaget SAOtng regions'),'\n')
-  label=''
-  mlist=[]
-  for r in out:       #For each line
-    if r[0]=='#':     #This line is a label that refers to the next region
-      label=r[1:]
-    else:
-      ob=string.find(r,'(')
-      cb=string.find(r,')')
-      type=r[1:ob]     #type is the string between the leading + and the (
-      if type=='point':
-        x,y=eval(r[ob+1:cb])  #Grab the X and Y values for a point
-        m=marker(x,y,label,type)  #Create a marker object
+  if viewer=='ds9':
+    out=string.split(commands.getoutput('xpaget ds9 regions'),'\n')
+    label=''
+    mlist=[]
+    for r in out:       #For each line
+      if r[0]=='#' or r[:6]=='global':
+        pass
       else:
-        x,y,size=eval(r[ob+1:cb]) #Grab X,Y, and Size for a circle, etc
-        m=marker(x,y,label,type,size)  #Create a marker object
-      label=''     #Clear label so it won't get attached to the next marker
-      mlist.append(m)   #Add the object to the list
-  return mlist
+        sc=string.find(r,';')
+        ob=string.find(r,'(')
+        cb=string.find(r,')')
+        type=r[sc+1:ob]     #type is the string between the ; and the (
+        ocb=string.find(r,'{')
+        ccb=string.find(r,'}')
+        label=r[ocb+1:ccb]   #The label is between curly brackets
+        if type=='point':
+          x,y=eval(r[ob+1:cb])  #Grab the X and Y values for a point
+          m=marker(x,y,label,type)  #Create a marker object
+        else:
+          x,y,size=eval(r[ob+1:cb]) #Grab X,Y, and Size for a circle, etc
+          m=marker(x,y,label,type,size)  #Create a marker object
+        mlist.append(m)   #Add the object to the list
+    return mlist
+  else:
+    out=string.split(commands.getoutput('xpaget SAOtng regions'),'\n')
+    label=''
+    mlist=[]
+    for r in out:       #For each line
+      if r[0]=='#':     #This line is a label that refers to the next region
+        label=r[1:]
+      else:
+        ob=string.find(r,'(')
+        cb=string.find(r,')')
+        type=r[1:ob]     #type is the string between the leading + and the (
+        if type=='point':
+          x,y=eval(r[ob+1:cb])  #Grab the X and Y values for a point
+          m=marker(x,y,label,type)  #Create a marker object
+        else:
+          x,y,size=eval(r[ob+1:cb]) #Grab X,Y, and Size for a circle, etc
+          m=marker(x,y,label,type,size)  #Create a marker object
+        label=''     #Clear label so it won't get attached to the next marker
+        mlist.append(m)   #Add the object to the list
+    return mlist
 
 
-def _displayfile(fname, histeq=1):
+def _displayfile(fname, iraf=0):
   """Usage: display(fname, histeq=1)
-     Send an image to SAOtng for display with optional histogram equalisation.
+     Send an image to SAOtng or DS9 for display - if iraf=1 then send in 8-bit IRAF format..
   """
   fullfilename=os.path.abspath(os.path.expanduser(fname))
-  os.system('echo file '+fullfilename+' | xpaset '+viewer)
-  if histeq:
+  if iraf:
+    os.system('/usr/local/dts/bin/display '+fullfilename)
+  else:
+    os.system('echo file '+fullfilename+' | xpaset '+viewer)
+    os.system('echo orient y | xpaset '+viewer)
     if viewer=='ds9':
       os.system('echo scale zscale | xpaset '+viewer)
     else:
       os.system('echo scale histeq | xpaset '+viewer)
 
-def display(fpat, histeq=1):
+
+def display(fpat, iraf=0):
   """Display the specified file/s on the viewer program (eg SAOtng).
       If no filename is given, display the last image taken.
+      if iraf=1 then the image is displayed in 8-bit IRAF format (so 'imexam' will work)
       eg: display('/data/junk001.fits')
+          display('/data/junk002.fits',iraf=1)
           display( reduce('/data/comet*.fits') )
           display()
   """
-  globals.distribute(fpat,_displayfile,histeq)
+  globals.distribute(fpat,_displayfile,iraf)
 
 
