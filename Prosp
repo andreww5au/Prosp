@@ -31,9 +31,11 @@ import pipeline
 import snsearch
 import scheduler
 import grb
+import chiller
 
 backgrounds.append(teljoy._background)
 backgrounds.append(weather._background)
+backgrounds.append(chiller._background)
 
 from globals import *
 import utils
