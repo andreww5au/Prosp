@@ -1,10 +1,7 @@
 
 import MySQLdb
-try:
-  DictCursor=MySQLdb.DictCursor
-except AttributeError:     #New version of MySQLdb puts cursors in a seperate module
-  import MySQLdb.cursors
-  DictCursor=MySQLdb.cursors.DictCursor
+import safecursor
+DictCursor=safecursor.SafeCursor
 
 from globals import *
 

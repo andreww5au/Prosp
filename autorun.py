@@ -22,11 +22,8 @@ from ftplib import FTP     #Import the FTP object class
 import time                #Time handler functions
 
 import MySQLdb
-try:
-  DictCursor=MySQLdb.DictCursor
-except AttributeError:     #New version of MySQLdb puts cursors in a seperate module
-  import MySQLdb.cursors
-  DictCursor=MySQLdb.cursors.DictCursor
+import safecursor
+DictCursor=safecursor.SafeCursor
 
 import improc
 import planet
