@@ -1,3 +1,4 @@
+#!/usr/bin/python
 
 #Written by Andrew Williams, Perth Observatory, 1999
 
@@ -241,3 +242,6 @@ def sendall(host='', username='',
       ftp.close()
       time.sleep(300)    #Wait for 5 minutes and start the loop again
  
+
+if __name__ == '__main__':
+  sendall()
