@@ -5,6 +5,7 @@ import glob
 import types
 import operator
 import time
+import math
 
 statusfile='/tmp/ProspLog'
 errorfile='/tmp/ProspErrors'
@@ -94,3 +95,71 @@ def ewrite(s='ewrite called with null string.'):
   sfile.write(time.strftime("%Y%m%d%H%M%S:",time.localtime(time.time()))+s+'\n')
   efile.write(time.strftime("%Y%m%d%H%M%S:",time.localtime(time.time()))+s+'\n')
   print s
+
+
+def julday(data=None):
+  "Return full Julian Day for a given time tuple. Use current date/time if no arg given"
+  if data:
+    year,month,day,hour,minute,second,wd,dnum,dst = data
+  else:
+    year,month,day,hour,minute,second,wd,dnum,dst = time.gmtime(time.time())
+
+  if (month == 1) or (month == 2):
+    year = year - 1
+    month = month + 12
+
+  A = math.floor(year/100.0);
+  B = 2 - A + math.floor(A/4.0);
+  jd = math.floor(365.25 * year) + math.floor(30.6001 * (month + 1))
+  jd = jd + day + (hour + (minute/60.0) + (second/360.0)) / 24.0
+  jd = jd + 1720994 + B + 0.5;
+  return jd
+  
+
+def pjd(data=None):
+  return julday(data) - 2450000.0
+
+
+def caldate(JD=0):
+  "Return tuple (year,month,day) for full Julian Day. Use current date/time if no arg given"
+  if not JD:
+    JD=julday()
+  Z = int(JD + 0.5)
+  F = (JD + 0.5) - int(JD + 0.5)
+  if Z<2299161:
+    A = Z
+  else:
+    alpha = int( (Z - 1867216.25)/36524.25 )
+    A = Z + 1 + alpha - int(alpha/4)
+  B = A + 1524
+  C = int( (B - 122.1)/365.25 )
+  D = int( 365.25*C )
+  E = int( (B - D)/30.6001 )
+  day = B - D - int(30.6001*E) + F
+  if E<13.5:
+    month = E - 1
+  else:
+    month = E - 13
+  if month>2.5:
+    year = C - 4716
+  else:
+    year = C - 4715
+  return (year,month,day)
+
+
+
+def formatpjd(lpjd=None):
+  """Returns a formatted string for a given PJD. Use the current date if arg=None
+     if the argument can not be converted to a float, return it unchanged.
+  """
+  if lpjd==None:
+    lpjd=pjd()
+  try:
+    lpjd=round(float(lpjd), 1)
+  except:
+    return `lpjd`
+  year,month,day=caldate(lpjd+2450000)
+  month=month-1  #List elements numbered from 0 not 1
+  months=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct',
+          'Nov','Dec']
+  return `round(lpjd,1)`+" ("+months[month]+" "+`round(day,1)`+")"
