@@ -154,8 +154,9 @@ def monitor(arg=None, close=None, open=None, delay=None):
     if type(delay)==types.FloatType or type(delay)==types.IntType:
       status.weather.WeatherOpenDelay=int(delay)
 
-    if not teljoy.Active.isSet():
-      teljoy.unpause()
+#Don't open up dome again if we switch off monitoring after it's paused due to bad weather
+#    if not teljoy.Active.isSet():
+#      teljoy.unpause()
   elif arg=='ON':
     status.weather.__init__()
     status.lastact=time.time()   #In case it's been a while since an image
