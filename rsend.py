@@ -12,6 +12,8 @@
 import os
 import string
 import urllib
+import threading
+import os
 import types
 import operator
 import glob
@@ -27,15 +29,17 @@ import fits
 os.environ["http_proxy"]="http://proxy.calm.wa.gov.au:8080"
 
 #Uncomment the correct site= line, comment out the rest
+#site="NotSet"
 #site="Canopus"
 site="Perth"
 #site="SAAO"
-#site="ESO"
+#site="Boyden"
+#site="Danish"
 
 #################End of section that needs customising######################
 
 #URL for the CGI script that receives the data
-base="http://mplanet.anu.edu.au/cgi-bin/rlogs.cgi"
+base="http://planet.iap.fr/cgi-bin/rlogs.cgi"
 
 
 def ntranslate(name="HB-2K-060"):
@@ -54,7 +58,7 @@ def ntranslate(name="HB-2K-060"):
     if ( (team=='M' or team=='E' or team=='O' or team=='K') and
          (place=='B' or place=='L' or place=='S') and
          (year=='98' or year=='99' or year=='2K' or year=='01' or year=='02'
-          or year=='03') and
+          or year=='03' or year=='04') and
          (num[0] in string.digits and num[1] in string.digits and
           num[2] in string.digits)):
       return name    #return (translated?) version of name
