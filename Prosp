@@ -50,7 +50,7 @@ def help(func):
 
 
 def _background():
-  "Call each of the registered background functions every 5 seconds"
+  "Call each of the registered background functions every 6 seconds"
   while 1:
 
     if status.MonitorActive:
@@ -86,7 +86,7 @@ def _background():
 
     for f in backgrounds:    #Call all the registered background functions
       f()
-    time.sleep(5)            #Wait 5 seconds, then repeat
+    time.sleep(6)            #Wait 6 seconds, then repeat
 
 
 class Prompt:
