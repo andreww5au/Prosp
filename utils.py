@@ -298,6 +298,7 @@ def skyview(posn='', equinox=2000):
 
 def threads():
   """Lists all active threads.
+     This is a test.
   """
   return threading.enumerate()
 
