@@ -129,11 +129,11 @@ def UpdateCandidates():
       _types=map(string.upper, types.keys())
       _weights={}
       for t in types.keys():
-        _weights[string.upper(t)]=float(types(t))
+        _weights[string.upper(t)]=float(types[t])
     elif type(types)==type([]):
       _types=map(string.upper, types)
       _weights=None
-    for ty in types:
+    for ty in _types:
       curs.execute("select ObjID from objects where lastmod > '"+
                     str(cantimestamp)+"' and "+
                     "upper(type) = '"+ty+"'")
@@ -168,7 +168,7 @@ def UpdateCandidates():
     al,az=ephemint.altaz(o.RA/12*math.pi, o.DEC/180*math.pi)
     o.ALT, o.AZ = al/math.pi*180,  az/math.pi*180
     if _weights:
-      o.PRIORITY = Pfunction(o) * _weights(string.upper(o.type))
+      o.PRIORITY = Pfunction(o) * _weights[string.upper(o.type)]
     else:
       o.PRIORITY = Pfunction(o)
     try:
