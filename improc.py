@@ -587,6 +587,9 @@ def _reducefile(fname=''):
   img.bias()                      #Subtract bias and trim overscan
   img.dark()                      #Subtract scaled dark image
   img.flat()                      #Divide by appropriate flatfield
+
+  img.data[511]=ones(512)*-2000   #Hack to force dud row to an ignored value
+
   fwhm,sky=img.fwhmsky()
   img.save(outfile,Int16)   #Save in Int16 format
   _rlog(fname)
