@@ -54,9 +54,10 @@ def _background():
       if (not status.weather.clear) and teljoy.Active.isSet():
         teljoy.pause()
       if (not ephemint.isdark()) and teljoy.Active.isSet():
-        print "End of the night, pausing forever. To resume,"
-        print "type 'status.MonitorActive=0', then 'teljoy.unpause()'"
+        print "End of the night, pausing forever. To resume "
+        print "and open dome, type 'teljoy.unpause()'"
         teljoy.pause()
+        status.MonitorActive=0
 
     status.isdark=ephemint.isdark()
 
@@ -83,27 +84,25 @@ class Prompt:
 
 def monitor(arg=None, close=None, open=None, delay=None):
   """Usage: monitor('ON') or monitor('OFF')
-     Turns weather monitoring on or off. Uses default cloud parameters, or the
-     values previously set if the command has been used previously in a session.
-     or:
-     monitor('ON', close=6000, open=5900, delay=1800)
-     If the 'close', 'open' and 'delay' parameters are given, uses these for
-     CloudCloseLevel, CloudOpenLevel and WeatherOpenDelay respectively.
+  Turns weather monitoring on or off. Uses default cloud parameters, or the
+  values previously set if the command has been used previously in a session.
+    or:
+  monitor('ON', close=150, open=100, delay=1800)
+  Use monitor() with no arguments to get the current weather status.
 
-     These parameters are:
-     CloudCloseLevel:  When the clouds reach this level, the dome closes and
-                       the system pauses.
-     CloudOpenLevel:   If the system is paused, the cloud level needs to be
-                       below this (and not raining) for it to be 'clear'.
-     WeatherOpenDelay: If the system is paused, the weather needs to be 'clear'
-                       (see above) for this many seconds before the system is
-                       un-paused.
-    To change the parameters, just use another monitor('ON',....) command with
-    different parameter values.
-    Note that even if the command aborts when you try and turn monitoring on,
-    any parameters given are still parsed, and will be used later unless
-    overriden! 
-    Use monitor() with no arguments to get the current weather status.
+  If the 'close', 'open' and 'delay' parameters are given, uses these for
+  CloudCloseLevel, CloudOpenLevel and WeatherOpenDelay respectively.
+  These parameters are:
+  CloudCloseLevel:  When the current cloud level is this much above the 
+                    'clear sky' value, the dome closes and the system pauses.
+  CloudOpenLevel:   If the system is paused, the cloud level needs to be less
+                    than the 'clear sky' plus this value for it to be 'clear'.
+  WeatherOpenDelay: If the system is paused, the weather needs to be 'clear'
+                    (see above) for this many seconds before the system is
+                    un-paused.
+  Both CloudOpenLevel and CloudCloseLevel are relative to the 'clear sky' value,
+  which is equal to the lowest cloud level since monitoring started. DO NOT TURN
+  ON MONITORING WHEN IT'S ALREADY CLOUDY!!!
   """
   if type(arg)==types.StringType:
     arg=string.upper(arg)
@@ -119,23 +118,20 @@ def monitor(arg=None, close=None, open=None, delay=None):
       status.weather.CloudOpenLevel=int(open)
     if type(delay)==types.FloatType or type(delay)==types.IntType:
       status.weather.WeatherOpenDelay=int(delay) 
-    status.weather.clear=1
-    status.weather.checkweather()
+    status.weather.__init__()
     if not isdark():
       print "It's not dark yet, monitoring mode would pause immediately."
       print "Monitor mode aborted."
       return 0
-    if status.weather.cloud > status.weather.CloudCloseLevel:
-      print "It's too cloudy, monitoring mode would pause immediately."
-      print "Monitor mode aborted."
+    if not status.weather.clear:
+      print "Monitor mode aborted:\n",
+      if status.weathererror:
+        print status.weathererror
+      else:
+        print "Wather unstable"
+      status.weather.display()
       return 0
-    if status.weather.lastmod > 120:
-      print "It's been too long since the cloud detector was updated,"
-      print "something must be wrong. Monitor mode aborted."
-      return 0
-    status.weather.clear=1
-    status.weather.OKforsec=86400
-    status.weather.checkweather()
+
     status.MonitorActive=1
     print "Monitoring ON, 'clear' delay timer reset to force immediate unpausing\n"
     status.weather.display()
