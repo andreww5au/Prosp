@@ -103,8 +103,9 @@ def getregions():
 
 
 def _displayfile(fname, iraf=0):
-  """Usage: display(fname, histeq=1)
-     Send an image to SAOtng or DS9 for display - if iraf=1 then send in 8-bit IRAF format..
+  """Usage: display(fname, iraf=0)
+     Send an image to SAOtng or DS9 for display - if iraf=1 then send in 8-bit
+     IRAF format.
   """
   fullfilename=os.path.abspath(os.path.expanduser(fname))
   if iraf:
@@ -121,7 +122,8 @@ def _displayfile(fname, iraf=0):
 def display(fpat, iraf=0):
   """Display the specified file/s on the viewer program (eg SAOtng).
       If no filename is given, display the last image taken.
-      if iraf=1 then the image is displayed in 8-bit IRAF format (so 'imexam' will work)
+      if iraf=1 then the image is displayed in 8-bit IRAF format (so 'imexam'
+      will work)
       eg: display('/data/junk001.fits')
           display('/data/junk002.fits',iraf=1)
           display( reduce('/data/comet*.fits') )

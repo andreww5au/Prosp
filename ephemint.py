@@ -1,4 +1,9 @@
 
+"""Interface to PyEphem, which must be installed into your python site-packages
+   directory. You can get PyEphem from http://www.rhodesmill.org/pyephem/
+   (Python version 1.5.x only). For later Python versions, use the source code
+   and compile, or I have an RPM I've made up for 2.x).
+"""
 import time
 import math
 import ephem

@@ -1,3 +1,9 @@
+
+"""File to handle Psuedo-FITS files - byte-swapped and with funny headers
+   These were produced by old version of Perth Vista and are still floating
+   around for images taken with the PARG-UWA camera
+"""
+
 import string        #load string handling library
 import types
 import os
