@@ -196,7 +196,8 @@ sys.ps1=Prompt()
 status=Ariel.ArielStatus()  #Define a status variable using the new class
 status.TJ=teljoy.status
 status.TJ.updated=status.updated  #Flag main status updated when TJ changes
-status.weather=weather.status
+status.weather = weather.status
+status.chiller = chiller.status
 status.MonitorActive=0
 status.isdark=1
 status.lastact=time.time()
@@ -206,9 +207,9 @@ Ariel.status=status        #Make it the interface libraries status global
 ArCommands.status=status   #And the Ariel commands module
 autorun.status=status     #And the AutoRun libraries status global too
 utils.status=status       #And the utility commands module
-chiller.status=status     #And the chiller module, so it has the CCD temps
 sys.path=sys.path+['.']   #Allow user-written modules in current dir to load
 
+chiller.status.CCDsettemp = status.settemp     #Add the CCD set temp to the chiller module status
 
 try:
 #  raise Ariel.ArielError("Ariel interface disabled in Prosp, camera missing.")
