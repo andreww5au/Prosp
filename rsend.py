@@ -37,7 +37,7 @@ site="Perth"
 #################End of section that needs customising######################
 
 #URL for the CGI script that receives the data
-base="http://www.astro.rug.nl/~planet/cgi-bin/rlogs.cgi"
+base="http://mplanet.anu.edu.au/cgi-bin/rlogs.cgi"
 
 
 def ntranslate(name="HB-2K-060"):
