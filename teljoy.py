@@ -164,6 +164,7 @@ def jump(id='', ra='', dec='', epoch=0):
         epoch>2100):
     ewrite("Invalid RA, Dec, or Epoch provided to teljoy.jump")
   else:
+    curs=db.cursor()
     while existsTJbox(curs):
       print "Waiting for teljoy to become free"
       time.sleep(5)
