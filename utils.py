@@ -297,3 +297,38 @@ def newdir():
   os.system("cp /data/dark"+`besttemp`+"Cmaster.fits "+dirname+"/dark.fits")
 
 
+def readlist(fname=''):
+  """Read a list of object names from the file specified. If no path is given,
+     the file is assumed to be in /tmp. The file format is flexible, simply 
+     requiring the object names to be seperated by whitespace (spaces, tabs,
+     or newlines in any combination), any number of objects per line. 
+
+     Returns the list as a string (space seperated, 6 objects per line),
+     which can be assigned to a variable if needed: 
+
+     EG:
+
+     mylist=readlist('/tmp/test.lis')
+     take(mylist + eo2to8r)
+
+     or
+
+     take( readlist('test.lis') + eo2to8r)
+  """
+  if not os.path.dirname(fname):
+    fname=os.path.join('/tmp',fname)
+  try:
+    tmplist=open(fname,'r').read().split()
+  except IOError:
+    ewrite('File: '+fname+' not found')
+
+  out=''
+  i=0
+  for o in tmplist:
+    out=out+o.ljust(10)
+    i=i+1
+    if (i/6.0)==(i/6):
+      out=out+'\n'
+  return out
+    
+
