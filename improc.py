@@ -42,9 +42,9 @@ def dodark(files=[]):
   if not nfiles:
     swrite("dodark - No images to process.")
     return 0
-  if len(nfiles)>8:
+  if len(nfiles)>10:
     swrite("dodark - Too many files to median, truncating to first 8 images.")
-    nfiles=nfiles[:8]
+    nfiles=nfiles[:10]
   di=[]
   for d in nfiles:
     im=fits.FITS(d,'r')
