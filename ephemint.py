@@ -11,6 +11,8 @@ import string
 
 
 pi=math.pi
+halfpi=math.pi/2.0
+twopi=math.pi*2.0
 
 obslat=ephem.scanSexagesimal('-32:00:29.1')/180.0*pi
 obslong=ephem.scanSexagesimal('116:8:6.1')/180.0*pi
@@ -22,6 +24,24 @@ def mjdnow():
   year,month,day,hour,minute,second,wkday,daynum,dsf=time.gmtime(time.time())
   fday=day+hour/24.0+minute/1440.0+second/86400.0
   return ephem.fromGregorian(month,fday,year)
+
+
+def radRA(raString):
+# convert RA string in hours minutes and seconds to radians
+  try:
+    RAradians=ephem.scanSexagesimal(raString)/12.0*pi
+    return RAradians 
+  except:
+    return -1
+
+
+def radDec(decString):
+# convert dec string in degrees minutes and seconds to radians
+  try:
+    Decradians=ephem.scanSexagesimal(decString)/180.0*pi
+    return Decradians 
+  except:
+    return -1
 
 
 def tosecs(mjd):
@@ -58,6 +78,7 @@ def isdark():
   else:
     return 0
 
+
 def isday():
   h=herenow()
   tw=ephem.computeTwilight(h,fullday)
@@ -73,7 +94,6 @@ def precess(ra=0.0, dec=-0.5587):
   mjd=c.mjd
   pra,pdec = ephem.ap_as(c,mjd,ra,dec)
   return pra,pdec
-
 
 
 def altaz(ra=0.0, dec=-0.5587, epoch=2000):
@@ -102,6 +122,32 @@ def alaz(ra=0.0,dec=-0.5587):
   alt=math.asin(altSin)
   return alt,azi
 
+
+def seperation (ra=0.0,deltara=0.0008,dec=-0.5587,deltadec=0.0008):
+# written by Ralph Martin April 2003
+# calculate a newra and newdec for a given ra/deltara and dec/deltadec
+# all angles are radians. deltara and deltadec are assumed to be small(<10 arcminutes)
+
+# near the pole the dec is small and the value of deltara is large
+  if dec == halfpi or dec == -halfpi:
+      newra=ra
+  else:
+      newra=ra+deltara/math.cos(dec)
+  newdec=dec+deltadec
+# check that the declination is between -90 degrees and 90 degrees
+# if it isn't add 180 degrees to the ra and correct th3.14e declination
+  if newdec > halfpi:   # is greater than 90 degrees
+    newdec=pi-newdec
+    newra=pi+newra      # add 180 degrees to the ra
+  elif newdec < -halfpi: # is less than -90 degrees
+    newdec=-pi-newdec
+    newra=newra+pi
+# check that the ra of the object is between 0 degrees and <360 degrees
+  fracra,intra=math.modf(newra/twopi)
+  newra=fracra*twopi
+  if newra < 0.0:
+    newra=twopi+newra
+  return newra,newdec 
 
 
 def elements(name=None):
@@ -156,7 +202,6 @@ def elements(name=None):
     eps=raw_input("Epoch of Perihelion (YYYY/M/D.dd or YYYY.yyyy): ")
     d,m,y=ephem.scanDate(eps,ephem.YMD)
     obj.e.cepoch=ephem.fromGregorian(d,m,y)
-
     
   elif tp=='h':
     obj.any.type=ephem.HYPERBOLIC
@@ -186,7 +231,6 @@ def elements(name=None):
     return None
 
   return obj
-
 
 
 def ephempos(o=None):
