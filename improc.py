@@ -531,6 +531,20 @@ def doflat(files=[], filt=None):
   im.save(outfile, Float32)
 
 
+
+
+def to8bit(img=None):
+  """Return an array of floats in the range 0-255 given a FITS image object. 
+     Sorts the data, and uses the 5th and 95th percentile as low and high
+     cutoffs.
+  """
+  sdata = Numeric.sort(Numeric.ravel(img.data))
+  lcut = sdata[int(sdata.shape[0]*0.05)]
+  hcut = sdata[int(sdata.shape[0]*0.95)]
+
+  return 255 * (Numeric.clip(img.data, lcut, hcut) - lcut) / (hcut - lcut)
+
+
 #
 # Utility functions used internally, probably not useful elsewhere.
 #
