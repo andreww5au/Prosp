@@ -81,7 +81,7 @@ class Object:
       try:
         self.LastObs=float(c['LastObs'])
       except TypeError:
-        self.lastobs=0
+        self.LastObs=0
       if not self.ObjRA:
         self.ObjRA=''
       if not self.ObjDec:
