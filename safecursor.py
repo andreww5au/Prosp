@@ -5,7 +5,7 @@ try:
   DictCursor=MySQLdb.DictCursor
 except AttributeError:     #New version of MySQLdb puts cursors in a seperate module
   import MySQLdb.cursors
-  DictCursor=MySQLdb.cursors.DictCursor
+  DictCursor=MySQLdb.cursors.DictCursorNW
 
 
 class SafeCursor(DictCursor):
@@ -14,14 +14,14 @@ class SafeCursor(DictCursor):
      exception.
   """
 
-  def execute(self, *args, **kws):
+  def execute(self, query, args=None):
     "wrapper around the base class execute method"
     try:
-      DictCursor.execute(self, *args, **kws)
+      return DictCursor.execute(self, query, args)
     except MySQLdb.OperationalError:
      ewrite("One OperationalError exception in MySQL call")
      try:
-       DictCursor.execute(self, *args, **kws)
+       return DictCursor.execute(self, query, args)
      except MySQLdb.OperationalError:
        ewrite("Two OperationalError exceptions in MySQL call, giving up")
        raise
