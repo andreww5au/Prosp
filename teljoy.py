@@ -279,27 +279,18 @@ def shutter(action='CLOSE'):
   tmpthread.run()
 
 
-def _backgroundloop():
-  """Run in the background, updating the status object.
+def _background():
+  """Function to be run in the background, updates the status object.
   """
-  if not weather.Background.isAlive():
-    weather.Background.start()
-  while 1:
-    try:
-      status.update()
-      if weather.WeatherActive:
-        if weather.Clear.isSet() and (not Active.isSet()):
-          unpause()
-        if (not weather.Clear.isSet()) and Active.isSet():
-          pause()
-      time.sleep(5)
-    except:
-      print "a teljoy exception"
-      time.sleep(5)
-
-
-Background=threading.Thread(name='TeljoyBackground', target=_backgroundloop)
-Background.setDaemon(1)
+  try:
+    status.update()
+    if weather.WeatherActive:
+      if weather.Clear.isSet() and (not Active.isSet()):
+        unpause()
+      if (not weather.Clear.isSet()) and Active.isSet():
+        pause()
+  except:
+    print "a teljoy exception"
 
 
 db=MySQLdb.Connection(host='lear', user='honcho', passwd='',

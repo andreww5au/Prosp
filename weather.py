@@ -90,21 +90,14 @@ def _CheckWeather():
         OKforsec=0
 
 
-def _backgroundloop():
-  """Run in the background, updating the status object.
+def _background():
+  """Function to be run in the background, updates the status object.
   """
-  while 1:
-    try:
-      status.update()
-      _CheckWeather()
-      time.sleep(5)
-    except:
-      print "a weather exception"
-      time.sleep(5)
-
-
-Background=threading.Thread(name='WeatherBackground', target=_backgroundloop)
-Background.setDaemon(1)
+  try:
+    status.update()
+    _CheckWeather()
+  except:
+    print "a weather exception"
 
 
 db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
