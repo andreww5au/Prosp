@@ -52,40 +52,47 @@ def help(func):
 def _background():
   "Call each of the registered background functions every 6 seconds"
   while 1:
+    try:
+      if status.MonitorActive:
+        if status.weather.clear and isdark() and (not teljoy.Active.isSet()):
+          swrite("Conditions clear, resuming observing.")
+          teljoy.unpause()
+          status.lastact=time.time()   #Reset the last image time so we don't
+                                       #trip the inactivity timeout right away
+        if (not status.weather.clear) and teljoy.Active.isSet():
+          swrite("Conditions Cloudy, pausing observing.")
+          teljoy.pause()
+        if (not ephemint.isdark()) and teljoy.Active.isSet():
+          swrite("End of the night, pausing forever. To resume "+
+                 "and open dome, type 'teljoy.unpause()'")
+          teljoy.pause()
+          status.MonitorActive=0
+        try:
+          Alt=float(status.TJ.Alt)
+          if status.TJ.RawHourAngle>0:
+            Alt=90        #Don't worry about low altitudes east of the zenith
+        except:
+          Alt=0           #If there's an error getting Alt, don't risk it, close up
+        if ( ((not status.shutter) and (time.time()-status.lastact > 3600)) or
+             ((not status.shutter) and (time.time()-status.lastact > 300) and (Alt<20)) or
+             ((not status.shutter) and (Alt<15)) or
+             (Alt<12) ) and teljoy.Active.isSet():
+          swrite("System Inactive or below Alt limits, pausing forever. To "+
+                 "resume and open dome, type 'teljoy.unpause()'")
+          teljoy.pause()
+          status.MonitorActive=0
+  
+      status.isdark=ephemint.isdark()
+  
+      for f in backgrounds:    #Call all the registered background functions
+        try:
+          f()
+        except:
+          print "Exception in background function"
 
-    if status.MonitorActive:
-      if status.weather.clear and isdark() and (not teljoy.Active.isSet()):
-        swrite("Conditions clear, resuming observing.")
-        teljoy.unpause()
-        status.lastact=time.time()   #Reset the last image time so we don't
-                                     #trip the inactivity timeout right away
-      if (not status.weather.clear) and teljoy.Active.isSet():
-        swrite("Conditions Cloudy, pausing observing.")
-        teljoy.pause()
-      if (not ephemint.isdark()) and teljoy.Active.isSet():
-        swrite("End of the night, pausing forever. To resume "+
-               "and open dome, type 'teljoy.unpause()'")
-        teljoy.pause()
-        status.MonitorActive=0
-      try:
-        Alt=float(status.TJ.Alt)
-        if status.TJ.RawHourAngle>0:
-          Alt=90        #Don't worry about low altitudes east of the zenith
-      except:
-        Alt=0           #If there's an error getting Alt, don't risk it, close up
-      if ( ((not status.shutter) and (time.time()-status.lastact > 3600)) or
-           ((not status.shutter) and (time.time()-status.lastact > 300) and (Alt<20)) or
-           ((not status.shutter) and (Alt<15)) or
-           (Alt<12) ) and teljoy.Active.isSet():
-        swrite("System Inactive or below Alt limits, pausing forever. To "+
-               "resume and open dome, type 'teljoy.unpause()'")
-        teljoy.pause()
-        status.MonitorActive=0
+    except:
+      print "Exception in main Prosp background thread"
 
-    status.isdark=ephemint.isdark()
-
-    for f in backgrounds:    #Call all the registered background functions
-      f()
     time.sleep(6)            #Wait 6 seconds, then repeat
 
 
