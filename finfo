@@ -44,30 +44,41 @@ if (not args) or (flag=='h') or (flag=='?'):
   help()
   sys.exit()            #Print usage and exit
 
+                    #Initial assumptions:
 dostat=0            #Don't do any image statistics
+dofwhmsky=0         #Don't calculate FWHM and Sky
+needimage=0         #Don't need to load image data
+
+
 if flag=='i':
   fmt="%(filename)-20s %(object)-9s %(filterid)1s %(pjd)8.5f  %(ccdtemp)5.1f  %(fwhm)5.2f %(sky)5d"
-else flag=='d':
+  needimage=1
+  dofwhmsky=1
+elif flag=='d':
   fmt="%(filename)-20s %(pjd)9.5f %(fwhm)5.2f"
+  needimage=1
+  dofwhmsky=1
 elif flag=='s':
   fmt="%(filename)-20s %(mean)7.1f %(noise)8.3f %(min)8.3f %(max)8.3f"
+  needimage=1
   dostat=1
+else:
+  help()
+  sys.exit()
 
 #Add extra flags and format strings here for more output variations
 
 for f in args:
-  if dostat:
-    img=improc.FITS(f,'r')     #Load image
+  if needimage:
+    img=improc.FITS(f,'r')     #Load full image
   else:
-    img=improc.FITS(f,'h')     #Only load image header
-  if not img.headers.has_key('FWHM'):
+    img=improc.FITS(f,'h')     #Load FITS headers only
+  if dofwhmsky and (not img.headers.has_key('FWHM')):
     img.fwhmsky()        #If there's no FWHM card, calculate FWHM and sky now
 
 #Calculate or grab any params we might want to print from the image header
   
   filename=os.path.basename(f)
-  fwhm=float(img.headers['FWHM'])
-  sky=float(img.headers['SKY'])
   object=string.strip(img.headers['OBJECT'][1:-1])
   exptime=float(img.headers['EXPTIME'])
   dateobs=string.strip(img.headers['DATE-OBS'][1:-1])
@@ -81,6 +92,10 @@ for f in args:
     mean=img.mean()
     max=img.max()
     min=img.min()
+  if dofwhmsky:
+    fwhm=float(img.headers['FWHM'])
+    sky=float(img.headers['SKY'])
+
   
   print fmt % vars()      #Print the data using the format string
 
