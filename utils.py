@@ -15,7 +15,7 @@ import improc
 from improc import reduce,dobias,dodark,doflat
 import planet
 from planet import *
-from dobjects import Object
+from pipeline import dObject, getobject
 import teljoy
 from xpa import display
 from globals import *
@@ -112,19 +112,6 @@ def getflats(filt='R', n=1, et=1):
 
 
 
-def offset(x,y):
-  """Moves telescope to center whatever is now at pixel coordinates X,Y
-     eg: offset(259,312)
-  """
-  scale=0.60    #0.58 for 23micron pixels, AP7 is 24micron
-  dx=x-256
-  dy=y-256
-  oh=-dx*scale
-  od=dy*scale
-  swrite("Offset - Del RA =  "+`oh`+"arcsec\nDel Dec = "+`od`+"arcsec")
-  print "Moving telescope - remember to do a reset position after this."
-  teljoy.jumpoff(oh,od)
-
 
 def set(obj=''):
   """Look up object data for from objects.dat and set up AP7.
@@ -137,7 +124,7 @@ def set(obj=''):
   """
   if obj=='':
     obj=status.TJ.name
-  res=Object(obj)
+  res=pipeline.getobject(obj)
   res.set()
 
 
@@ -146,23 +133,23 @@ def pgo():
      eg: pgo()
   """
   preduced(go())
-  p=Pobject(status.TJ.name)
+  p=Pevent(status.TJ.name)
   if p.good:
     process(p.root)
     archive(p.root)
 
 
-def take(objs=[],wait=0):
+def take(objs=[]):
   """Moves telescope to and takes an image for each object specified.
      Does everything required for an image of each of object, in the order
      given. The object names are looked up in the objects database, and the
      RA, Dec, filter, exposure time, and guider position are found. The
      telescope is moved to each object, the filter,exptime, etc are set,
-     and after the telescope and dome stop moving, there is a delay to wait
-     for the automatic tracker system to lock in. If the 'wait' parameter is
-     true, it waits for a keypress, otherwise it delays for 10 seconds.
-     An image is then taken and reduced (including PLANET processing for
-     PLANET type object names) and then the next object is handled.
+     and after the telescope and dome stop moving, an image is taken and 
+     fully reduced, then the next object is handled.
+
+     Object names are looked up in the object database for observing parameters
+     and the type of image (used to choose the reduction pipeline).
 
      The objects can be specified as either a list of strings, or as one string
      with a list of object names seperated by spaces.
@@ -174,35 +161,11 @@ def take(objs=[],wait=0):
     objs=string.replace(objs, ',', ' ')
     objs=string.split(objs)
   for ob in objs:
-    p=Pobject(ob)
-    if p.valid:
-      o=Object(p.root)
+    p=pipeline.getobject(ob)
+    if not p:
+      ewrite("Object: "+ob+" not in database, or has unknown reduction pipeline type.")
     else:
-      o=Object(ob)
-    if o.ObjRA<>'':
-      while status.TJ.paused:
-        print "Waiting for weather to clear"
-        sleep(60)
-      swrite("take - Moving to object "+o.ObjID)
-      o.jump()
-      print "Waiting for telescope and optical coupler."
-      o.set()
-      status.TJ.update()
-      while status.TJ.moving or status.TJ.DomeInUse:
-        time.sleep(1)
-        status.TJ.update()
-      if string.upper(status.TJ.name) <> string.upper(o.ObjID):   #Teljoy hasn't jumped to this object
-        ewrite("Teljoy hasn't jumped to "+o.ObjID+" - possibly too low")
-        continue
-      if wait:
-        raw_input("Press enter when tracker camera is tracking")
-      else:
-        print "Waiting for tracker camera to start tracking."
-        time.sleep(10)
-      if p.valid:
-        pgo()
-      else:
-        gord()
+      p.take()
 
 
 def foc():
@@ -241,7 +204,7 @@ def doall(yrs=['99','2K','01','02']):
 #    os.remove(planet.PipeHome+'/outgoing/'+f)
   for o in counts.keys():
     swrite("Object "+o+": "+`counts[o]`+" images.")
-#    ob=planet.Pobject(o)
+#    ob=planet.Pevent(o)
 #    if ob.good:
 #      os.system('cp '+ob.archivedir+'/'+planet.site+ob.root+'I '+ 
 #           planet.PipeHome+'/outgoing/'+planet.site+ob.root+'I ;'+

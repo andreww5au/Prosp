@@ -25,7 +25,10 @@ import planet
 from planet import *
 import teljoy
 from teljoy import *
+from snlists import *
 import weather
+import pipeline
+import snsearch
 
 backgrounds.append(teljoy._background)
 backgrounds.append(weather._background)

@@ -168,8 +168,8 @@ def _dosname(uname):
 
 
 def _modplanet(box):
-  "Modify box parameters for PLANET object"
-  p=planet.Pobject(box.objid)
+  "Modify box parameters for PLANET event"
+  p=planet.Pevent(box.objid)
   if p.valid:
     box.objid=p.root
     box.basename=planet.site+p.root+box.filter[0]
@@ -190,11 +190,11 @@ def _modstore(box):
 
 
 def _postplanet(box):
-  "Do post-processing for PLANET object"
+  "Do post-processing for PLANET event"
   if box.filename:
     box.filename=planet.allocate(box.filename)
   if box.filename:
-    p=planet.Pobject(box.objid)
+    p=planet.Pevent(box.objid)
     if p.valid:
       planet.process(p.root)
     else:
