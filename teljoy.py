@@ -299,6 +299,10 @@ def _background():
                      " ('freeze', "+`FreezeAction`+") ")
       else:
         FreezeAction=None
+    else:
+      if not existsTJbox(curs):
+        curs.execute("insert into tjbox (Action) values ('none')")
+
   except KeyboardInterrupt:
     print "a teljoy exception"
 
