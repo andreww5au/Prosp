@@ -228,13 +228,20 @@ def _poststore(box):
 
  
  
-def auto():
+def auto(force=0):
   """Go into automatic mode in the directory that the current 'path' is set to.
      A subdirectory below this will be created for reduced images.
+     If the optional argument 'force' is non-zero, auto mode will start even if 
+     weather/twilight monitoring isn't switched on.
      Exit by typing ^C.
      eg: auto()
   """
   global curs,wd,status
+  if (not status.MonitorActive) and (not force):
+    swrite("Monitoring mode is not switched on - aborting auto run.")
+    print "Use monitor('on') to switch on monitoring, or override by"
+    print "calling auto(force=1) instead of auto()"
+    return 0
   swrite('Automatic mode in '+status.path+' - hit ^C to exit')
   status.ObsType=''
   try:

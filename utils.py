@@ -139,7 +139,7 @@ def pgo():
     archive(p.root)
 
 
-def take(objs=[]):
+def take(objs=[], force=0):
   """Moves telescope to and takes an image for each object specified.
      Does everything required for an image of each of object, in the order
      given. The object names are looked up in the objects database, and the
@@ -156,10 +156,21 @@ def take(objs=[]):
 
      eg: take('plref ob2k038 eb2k005 sn99ee')
          take( ['sn93k','sn94ai'], wait=1)
+
+     if more than 6 objects are specified, and weather/twilight monitoring is
+     not switched on, it will abort with an error message. To force operation
+     anyway, add the argument 'force=1'
+
+     eg: take('plref ob2k038 ... eb2k05', force=1)
   """
   if type(objs)==type(''):
     objs=string.replace(objs, ',', ' ')
     objs=string.split(objs)
+  if (not status.MonitorActive) and (not force) and len(objs)>6:
+    swrite("Monitoring mode is not switched on - aborting take command run.")
+    print "Use monitor('on') to switch on monitoring, or override by"
+    print "calling, for example, ('plref ob2k038 ... eb2k05', force=1)"
+    return 0
   for ob in objs:
     p=pipeline.getobject(ob)
     if not p:
