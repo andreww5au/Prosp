@@ -16,6 +16,8 @@ from xpa import display
 from globals import *
 import sendftp
 import ephemint
+import skyviewint
+import threading
 
 
 def randd(fname, histeq=1):
@@ -156,8 +158,8 @@ def take(objs=[],wait=0):
      eg: take('plref ob2k038 eb2k005 sn99ee')
          take( ['sn93k','sn94ai'], wait=1)
   """
-
   if type(objs)==type(''):
+    objs=string.replace(objs, ',', ' ')
     objs=string.split(objs)
   for ob in objs:
     p=Pobject(ob)
@@ -231,7 +233,7 @@ def doall(yrs=['2K','01']):
            ' gzip '+planet.PipeHome+'/outgoing/'+planet.site+ob.root+'I')
   wd=os.getcwd()
   os.chdir(planet.PipeHome+'/outgoing')
-  os.system('scp W*I.gz planet@mitchell.astro.rug.nl:NotPublic/Incoming01')
+  os.system('scp W*.gz planet@thales.astro.rug.nl:NotPublic/Incoming01')
   os.chdir(wd)
 
 
@@ -246,4 +248,44 @@ def ephemjump(ob=None):
   except:
     print "Problem with the object - use 'elements' to create an object."
   
+
+def skyview(posn='', equinox=2000):
+  """Open a Netscape window showing a 'Skyview' image of the area specified.
+     You can either specify a position string (RA and Dec, seperated by a comma,
+     with no colons in the value), an object name (resolved by Skyview), or 
+     if no argument is specified, the current telescope position will be used.
+
+     The pixel scale and field of view match the AP7 - the orientation will be
+     correct for reduced images, or FITS image files loaded manually, but
+     will be upside-down compared to 'raw' images displayed directly by Ariel
+     as the image is taken. The numbered stars in the image are HST guide stars,
+     and there is a key in the text below the image.
+
+     The interface to Netscape is a little dodgy, this command might not work
+     the first time you call it if Netscape isn't already running. It also 
+     takes up to a minute to produce the output - the work is done in a
+     background thread, so the command returns immediately.
+
+     See http://skyview.gsfc.nasa.gov
+  """
+
+  if posn:
+    skyviewint.skyview(posn, equinox)
+  else:
+    if status.TJ.ObjRA:
+      posn=sexstring(status.TJ.ObjRA,' ')+', '+sexstring(status.TJ.ObjDec,' ')
+      equinox=status.TJ.ObjEpoch
+    elif status.TJ.RawRA:
+      posn=sexstring(status.TJ.RawRA,' ')+', '+sexstring(status.TJ.RawDec,' ')
+      t=time.localtime(time.time())
+      equinox=t[0]+t[7]/365.246      #Raw coords are epoch-of-date
+    else:
+      print "No position specified, and Teljoy is not running."
+      return
+    skyviewint.skyview(posn, equinox)
+
+def threads():
+  """Lists all active threads.
+  """
+  return threading.enumerate()
 
