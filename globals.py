@@ -111,6 +111,7 @@ def stringsex(value=""):
 def swrite(s='swrite called with null string.'):
   "Write a status message to screen and status logfile"
   sfile.write(time.strftime("%Y%m%d%H%M%S:",time.localtime(time.time()))+s+'\n')
+  sfile.flush()
   print s
 
 
@@ -118,6 +119,8 @@ def ewrite(s='ewrite called with null string.'):
   "Write an error message to screen, status log, and error log "
   sfile.write(time.strftime("%Y%m%d%H%M%S:",time.localtime(time.time()))+s+'\n')
   efile.write(time.strftime("%Y%m%d%H%M%S:",time.localtime(time.time()))+s+'\n')
+  sfile.flush()
+  efile.flush()
   print s
 
 
