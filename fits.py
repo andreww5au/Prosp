@@ -275,7 +275,8 @@ def _parseline(ob,line):
      inside the quotation marks is also retained, but any other white space
      is stripped.
   """
-
+  if not line:
+    return 1
   key=string.strip(line[:8])   #First 8 chars with whitespace stripped
   value=string.strip(line[9:]) #Rest of line with whitespace stripped
   comment=''                   #Empty comment field for now
@@ -297,10 +298,41 @@ def _parseline(ob,line):
   elif key == 'END':
     return 1
   else:
-    if string.find(value,'/')>-1:    #Strip the comment off
-      comment=string.strip(value[string.find(value,'/')+1:])
-      value=string.strip(value[:string.find(value,'/')])
+    quote = None
+    endquote = None
+    slash = None
+    if string.find(value,"'")>=0:    #There's a quote on the line
+      quote = string.find(value,"'")
+      if string.find(value[quote+1:],"'")>=0:
+        endquote = string.find(value[quote+1:],"'")+quote+1
+    if string.find(value,"/")>=0:
+      slash = string.find(value,"/")
 
+    if quote is not None:          #At least one quote mark
+      if endquote is not None:     #Opening and closing quotes
+        if slash is not None:
+          if slash<quote:                            #slash before any quotes
+            comment=string.strip(value[slash+1:])
+            value=string.strip(value[:slash])
+          elif (slash>quote) and (slash<endquote):   #slash inside value in quotes
+            if string.find(value[endquote:],"/")>-1:    #So only define comment if there's ANOTHER slash
+              comment=string.strip(value[endquote+string.find(value[endquote:],'/')+1:])
+              value=string.strip(value[:endquote+string.find(value[endquote:],'/')])
+          else:                                      #slash after both quotes
+            comment=string.strip(value[slash+1:])
+            value=string.strip(value[:slash])
+      else:                        #Only an opening quote, no closing
+        if slash:
+          if slash<quote:          #slash before any quote marker
+            comment=string.strip(value[slash+1:])
+            value=string.strip(value[:slash])
+          else:                    #slash after the first and only quote
+            value=string.strip(value)+"'"
+    else:                          #No quote marks
+      if slash:
+        comment=string.strip(value[slash+1:]) 
+        value=string.strip(value[:slash])
+        
 #Add dictionary entries for the key value, and key comment if it exists
     ob.headers[key]=value
     if comment<>'':
@@ -331,6 +363,8 @@ def _fh(fim=None, h=''):
       return ''
     else:
       v=fim.headers[h]
+      if v=="":
+        return string.ljust(h,80)
       out=string.ljust(h,8)+'= '
       if v[0]=='"' or v[0]=="'":
         out=out+string.ljust(v,20)
