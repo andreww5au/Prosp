@@ -9,8 +9,9 @@ import time       #for the 'sleep' function
 import os
 import string
 import getpass
-from ArCommands import *   #Make camera functions usable without module name
-                           #qualifier
+import threading
+
+from ArCommands import *   #Make camera functions usable without module name qualifier
 import improc
 from improc import reduce,dobias,dodark,doflat
 import planet
@@ -21,7 +22,7 @@ from xpa import display
 from globals import *
 import ephemint
 import skyviewint
-import threading
+import scheduler
 
 
 def gord(n=1):
@@ -342,5 +343,34 @@ def readlist(fname=''):
     if (i/6.0)==(i/6):
       out=out+'\n'
   return out
-    
 
+
+def runsched(n=0, force=1, planetmode=0):
+  """Run the scheduler repeatedly taking the best object each time. If 'n' is given, and non
+     zero, exit after that many objects. If 'force' is given, and non-zero, skip the reminder
+     about turning on monitoring for more than 6 objects.
+     If 'planetmode' is given, and non-zero, run planet.UpdatePriorities() regularly to keep up
+     homebase changes.
+  """
+  if n==0:
+    n=9999
+  if (not status.MonitorActive) and (not force) and (n>6):
+    swrite("Monitoring mode is not switched on - aborting take command run.")
+    print "Use monitor('on') to switch on monitoring, or override by"
+    print "calling, for example, ('plref ob2k038 ... eb2k05', force=1)"
+    return 0
+
+  for i in range(n):
+    errors=""
+    if planetmode:
+      planet.UpdatePriorities()
+    scheduler.UpdateCandidates()
+    if scheduler.best:
+      errors=scheduler.best.take()
+      if errors:
+        ewrite("Errors in moving to object, sleeping for 300 seconds")
+        time.sleep(300)
+    else:    #No object above horizon
+      ewrite("No object above horizon, sleeping for 300 seconds")
+      time.sleep(300)
+  print "runsched sequence of ",n," scheduler objects completed."
