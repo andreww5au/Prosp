@@ -21,8 +21,11 @@ from xpa import display
 from globals import *
 import ephemint
 import skyviewint
+import grb
+import objects
+import math
 import scheduler
-
+global grbflag
 
 def gord(n=1):
   """Take 'n' images, reducing and displaying each image.
@@ -180,6 +183,174 @@ def take(objs=[], force=0):
     else:
       p.take()
 
+def grbRequest(flag='false',tile='true'):
+  global grbflag
+  global tileside
+  if flag=='true':
+      grbflag=1
+  else:
+      grbflag=0
+  if tile=='true':
+      tileside=3
+  else:
+      tileside=1
+
+def sched(objs=[],force=0,mode=0):
+  """This function is similar to the take function, however, it monitors for the arrival
+     of a GRB email. Scheduled observations are interrupted while the observations
+     requested by the email are made. Sched starts a background thread that monitors
+     an email account for the arrival of GRB emails. If the email request is for an object
+     that is below the the eastern horizon (30 degrees), then normal observations continue
+     until the GRB has 'risen' above 30 degrees.
+
+     Scheduled objects can be specified as either a list of strings, or as one
+     string with a list of object names seperated by spaces.
+
+     eg: sched('plref ob2k038 eb2k005 sn99ee',mode=1)
+         sched( ['sn93k','sn94ai'], force=1)
+
+     if more than 6 objects are specified, and weather/twilight monitoring is
+     not switched on, it will abort with an error message. To force operation
+     anyway, add the argument 'force=1'
+
+     eg: sched('plref ob2k038 ... eb2k05', force=1)
+  """
+# written by Ralph Martin
+#            April 2003
+#  grbflag=0
+  global grbflag
+  global tileside
+  tileside=3
+  grbflag=0
+  grb.emailstart()
+  time.sleep(10)
+  if type(objs)==type(''):
+    objs=string.replace(objs, ',', ' ')
+    objs=string.split(objs)
+  if (not status.MonitorActive) and (not force) and len(objs)>6:
+    swrite("Monitoring mode is not switched on - aborting take command run.")
+    print "Use monitor('on') to switch on monitoring, or override by"
+    print "calling, for example, ('plref ob2k038 ... eb2k05', force=1)"
+    return 0
+  monEmail=0
+  for ob in objs:
+    if grbflag < 1 and monEmail < 1: #no email request not monitoring old request
+      observeThis(ob)
+    else:  #Email request received.
+      ra=ephemint.radRA(grb.self.RA)          #convert from string to radians
+      dec=ephemint.radDec(grb.self.Dec)
+      alt,az=ephemint.altaz(ra,dec)           #get the alt az of the object
+      if alt > 0.523598776: #Object is above telescope horizon (30 degrees)
+#       take it's picture
+        observeThis(grb.self.obj)
+        grbRequest(flag='false') #reset the override flag
+        monEmail=0     #don't monitor
+      elif az < 0.0:   #object has transited and is now setting
+        grbRequest(flag='false') #reset the override flag
+#       grb.self.flag=0 #email acknowledged
+        monEmail=0     #don't monitor
+      else: #Object is below the telescope horizon - continue to monitor.
+        grbRequest(flag='false') #reset the override flag
+#       grb.self.flag=0 #email acknowledged
+        monEmail=1     #waiting for object to rise
+#     take the observing list exposure.
+      observeThis(ob)
+  else: #finished the observing request continue to monitor for email request.
+    monEmail=0
+    print "running schedule and monitor GRB email: %s" %(monEmail)
+    while 1:
+#     run the automatic scheduler
+      runsched(n=0, force=1, planetmode=mode)
+#     scheduler.UpdateCandidates()
+#     scheduler.best.take()
+#     check the GRB email
+      if grbflag < 1 and monEmail < 1:  #no email request and not monitoring
+        time.sleep(1) #Sleep for 10 seconds
+      else:  #Email request received.
+        ra=ephemint.radRA(grb.self.RA)          #convert from string to radians
+        dec=ephemint.radDec(grb.self.Dec)
+        alt,az=ephemint.altaz(ra,dec)           #get the alt az of the object
+        if alt > 0.523598776: #Object is above telescope horizon (30 degrees)
+          tile(grb.self.obj, side=3)           #take picture
+          grbRequest(flag='false')             #reset the override flag
+#         grb.self.flag=0                      #reset the override flag
+          monEmail=0                           #don't monitor
+        elif az < 0.0:                         #object has transited and is now setting
+          grbRequest(flag='false')             #reset the override flag
+#         grb.self.flag=0                      #email acknowledged
+          monEmail=0                           #don't monitor
+        else: #Object is below the telescope horizon - continue to monitor.
+          grbRequest(flag='false')             #reset the override flag
+#         grb.self.flag=0                      #email acknowledged
+          monEmail=1                           #waiting for object to rise
+        time.sleep(2)                          #sleep for 10 seconds
+
+def tile(ob, side=1, offsetRA=340, offsetDec=340 ):
+#  side = take exposures to cover an area of side x side -- default 1x1
+#  exp = exposure time -- default 1 second
+#  ob = object
+#  offsetRA = RA offset in arc seconds -- a little less than chip size
+#  offset Dec = Dec offset in arc seconds
+#  Object names at this stage are standard so that all images
+#  have the same root object name i.e. the string ob.
+   nme=['a','b','c','d','e','f','g','h','i','j','k','l','m', \
+        'n','o','p','q','r','s','t','u','v','w','x','y','z']
+   offsetRA=offsetRA/3600.0
+   offsetDec=offsetDec/3600.0
+   if side == 1:
+     observeThis(ob)
+   else:
+     centreob=objects.Object(ob)              # get details of the object from the data base
+     if not centreob.ObjRA:
+       print "Object not in data base."
+     centreRA = stringsex(centreob.ObjRA)     # Ra and Dec in radians
+     centreDec = stringsex(centreob.ObjDec)
+     oldRA = centreRA
+     oldDec = centreDec
+#    read in the data base entry for this object
+     fracpart,intpart=math.modf(side/2)
+     subby=int(side-intpart)
+     redo=1
+     while redo==1:
+       for i in range(1,side+1):
+         for j in range(1,side+1):
+           redo=0
+#          After every exposure check the centre it may have been updates
+#          since we started tiling.
+#          If the centre has changed another email has arrived -- restart tiling.
+           centreob=objects.Object(ob)              # get details of the object from the data base
+           if not centreob.ObjRA:
+             print "Object not in data base."
+           centreRA = stringsex(centreob.ObjRA)     # Ra and Dec in radians
+           centreDec = stringsex(centreob.ObjDec)
+           if centreRA != oldRA or centreDec != oldDec:
+             print 'new position restart tiling.'
+             oldRA = centreRA
+             oldDec = centreDec
+             redo=1
+             break
+           oldRA = centreRA
+           oldDec = centreDec
+           ii=i-subby
+           jj=j-subby
+#          generate a file name based on ob.
+           obtile=ob+nme[ii+12]+nme[jj+12]
+#          update data base over write any pre-existing entry
+           centreob.ObjID = obtile
+           centreob.ObjRA  = sexstring(centreRA + ii*offsetRA)
+           centreob.ObjDec = sexstring(centreDec + jj*offsetDec)
+           centreob.save(ask=0,force=1) # save the observation
+           observeThis(obtile)
+         if redo==1:
+           break
+       continue
+
+def observeThis(takeobj):
+  p=pipeline.getobject(takeobj)
+  if not p:
+    ewrite("Object: "+takeobj+" not in database, or has unknown reduction pipeline type.")
+  else:
+    p.take()
 
 def foc():
   "Takes a focus image - 10 successive exposures on the same frame, offset."
