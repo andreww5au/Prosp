@@ -17,7 +17,7 @@ os.environ["http_proxy"]="http://proxy.calm.wa.gov.au:8080"
 ser = serial.Serial('/dev/ttyS2', 9600, timeout=1)
 
 logfile = open('/data/templog','a')
-logfile.write("%s %4.1f %4.1f %4.1f %4.1f \n" % (time.asctime(),0,0,0,0) )
+logfile.write("%s\t%s\t%s\t%s\t%s \n" % (time.asctime(),"Airtemp","Watertemp","Setpoint",'Dewpoint") )
 
 ReadSetpoint = [0x01,0x03,0x00,0x7F,0x00,0x01]
 ReadTemp = [0x01,0x03,0x00,0x1C,0x00,0x01]
@@ -34,7 +34,6 @@ threadlist = []      #A list of all thread objects from this module that are cur
 def updateDewpoint():
   """Download the current ambient temperature and dewpoint from the BOM website.
   """
-  global airtemp, dewpoint, lastdewchecktime, goodBOM
   try:
     f=urllib2.urlopen('http://www.bom.gov.au/products/IDW60034.shtml')
     html=f.read()
@@ -49,14 +48,14 @@ def updateDewpoint():
       dl = r.fetch('td')
       if dl:
         if dl[0].first('a').renderContents() == 'BICKLEY':
-          airtemp = float(dl[2].renderContents())
-          dewpoint = float(dl[3].renderContents())  
-          lastdewchecktime = time.time()
-          goodBOM = 1
+          status.airtemp = float(dl[2].renderContents())
+          status.dewpoint = float(dl[3].renderContents())  
+          status.lastdewchecktime = time.time()
+          status.goodBOM = 1
   except:
-    airtemp = 20.0
-    dewpoint = 20.0
-    goodBOM = 0
+    status.airtemp = 20.0
+    status.dewpoint = 20.0
+    status.goodBOM = 0
     print 'Error grabbing temp,dewpoint'
     sys.excepthook(*sys.exc_info())
 
@@ -65,40 +64,40 @@ def _background():
   """Called every 6 seconds from Prosp. Use to check dewpoint every hour to make sure the chiller is
      maintaining a temp safely above the dewpoint.
   """
-  global lastchillerchecktime, watertemp, setpoint
 
   for t in threadlist[:]:
     if not t.isAlive():
       threadlist.remove(t)      #Remove completed download threads from the threadlist, leaving only active ones
 
   #Download new temp/dewpoint every hour if there are no threads already, try again after 90 min if 1 blocked thread
-  if ( (((time.time() - lastdewchecktime) > 3600) and (len(threadlist)==0)) or
-       (((time.time() - lastdewchecktime) > 5400) and (len(threadlist)==1)) ):    
+  if ( (((time.time() - status.lastdewchecktime) > 3600) and (len(threadlist)==0)) or
+       (((time.time() - status.lastdewchecktime) > 5400) and (len(threadlist)==1)) ):    
     t=threading.Thread(target=updateDewpoint,
                        name='BOM Bickley weather page download')
     t.setDaemon(1)
     t.start()
     threadlist.append(t)
 
-  if (time.time() - lastchillerchecktime) > 300:         #Download new watertemp, setpoint every 5 min
+  if (time.time() - status.lastchillerchecktime) > 300:         #Download new watertemp, setpoint every 5 min
     w,s = getTemp(), getSetpoint()
     if (w > -90.0) and (s > -90.0):
-      lastchillerchecktime = time.time()
+      status.lastchillerchecktime = time.time()
     else:
       globals.ewrite('Unable to get watertemp, settemp from chiller unit')
-      lastchillerchecktime = time.time() - 120       #If there was an error, try again in 2 minutes
-    logfile.write("%s %4.1f %4.1f %4.1f %4.1f \n" % (time.asctime(), airtemp, watertemp, setpoint, dewpoint) )
+      status.lastchillerchecktime = time.time() - 240       #If there was an error, try again in 1 minutes
+    logfile.write("%s\t%4.1f\t%4.1f\t%4.1f\t%4.1f \n" % (time.asctime(), status.airtemp, status.watertemp,
+                                                     status.setpoint, status.dewpoint) )
     logfile.flush()
 
     if goodBOM:
       try:
-        desired = status.settemp + headroom      #Temperature to try and keep chiller setpoint near
-        if desired > airtemp:
-          desired = airtemp
-        if desired < (dewpoint + dewheadroom):
-          desired = dewpoint + dewheadroom + 1
+        desired = status.CCDsettemp + headroom      #Temperature to try and keep chiller setpoint near
+        if desired > status.airtemp:
+          desired = status.airtemp
+        if desired < (status.dewpoint + dewheadroom):
+          desired = status.dewpoint + dewheadroom + 1
 
-        if (abs(desired-setpoint) > 5.0) or (setpoint < (dewpoint + dewheadroom)):
+        if (abs(desired-status.setpoint) > 5.0) or (status.setpoint < (status.dewpoint + dewheadroom)):
           newSetpoint(desired)
           print "Changing chiller setpoint to ",round(desired,1)
       except:
@@ -132,14 +131,13 @@ def send(message):
 def getTemp():
   """Read the current water outlet temperature from the chiller unit.
   """
-  global watertemp
   send(ReadTemp)
   reply = map(ord, ser.read(7))
   temp = -99.9
   if len(reply)>4:
     if crc(reply[:-2])[-2:] == reply[-2:]:
       temp = (reply[3]*256 + reply[4]) / 10.0
-      watertemp = temp
+      status.watertemp = temp
   else:
     print "No data ",reply
   return temp
@@ -156,14 +154,13 @@ def tobytes(temp=20.0):
 def getSetpoint():
   """Read the current setpoint temperature from the chiller unit.
   """
-  global setpoint
   send(ReadSetpoint)
   reply = map(ord, ser.read(7))
   temp = -99.9
   if len(reply)>4:
     if crc(reply[:-2])[-2:] == reply[-2:]:
       temp = (reply[3]*256 + reply[4]) / 10.0
-      setpoint = temp
+      status.setpoint = temp
   else:
     print "No data ",reply
   return temp
@@ -172,7 +169,6 @@ def getSetpoint():
 def newSetpoint(temp=20.0):
   """Changes the chiller's current setpoint temperature.
   """
-  global setpoint,lastchillerchecktime
   try:
     temp=float(temp)
   except:
@@ -204,8 +200,8 @@ def newSetpoint(temp=20.0):
     print "Bad response to WriteSetpoint ",reply
     print "Trying to exit program mode"
   else:
-    setpoint = temp
-    lastchillerchecktime = time.time()-240    #Schedule a chiller update 1 minute from now
+    status.setpoint = temp
+    status.lastchillerchecktime = time.time()-240    #Schedule a chiller update 1 minute from now
 
   send(ExitProgram1)
   reply = map(ord, ser.read(8))
@@ -217,16 +213,28 @@ def newSetpoint(temp=20.0):
   if reply[:-2] <> ExitProgram2:
     print "Bad response to ExitProgram2 ",reply
 
+
+class _Chiller:
+  """Chiller status object.
+  """
+  def __init__(self):
+    self.airtemp = 20.0
+    self.dewpoint = 20.0
+    self.setpoint = 25.0
+    self.lastdewchecktime = time.time() - 3600
+    self.goodBOM = 0
+    self.lastchillerchecktime = time.time() - 290
+    self.watertemp = 20.0
+    self.setpoint = 20.0
+  def update(self):
+    updateDewpoint()
+    getTemp()
+    getSetpoint()
+  def display(self):
+    return "Air:%4.1f  Water:%4.1f  Setpoint:%4.1f  Dewpoint:%4.1f" % (status.airtemp, status.watertemp,
+                                                                       status.setpoint, status.dewpoint) 
   
 
+status = _Chiller()
 
-
-airtemp = 20.0
-dewpoint = 20.0
-lastdewchecktime = time.time() - 3600
-goodBOM = 0
-lastchillerchecktime = 0
-watertemp = 20.0
-setpoint = 20.0
-
-#_background()
+_background()
