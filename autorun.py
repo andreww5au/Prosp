@@ -18,9 +18,16 @@ ftpmaildir='/t/533-Observatory/Astronomical/Plat/Mail'
 
 import ArCommands
 from ArCommands import *
-import MySQLdb
 from ftplib import FTP     #Import the FTP object class
 import time                #Time handler functions
+
+import MySQLdb
+try:
+  DictCursor=MySQLdb.DictCursor
+except AttributeError:     #New version of MySQLdb puts cursors in a seperate module
+  import MySQLdb.cursors
+  DictCursor=MySQLdb.cursors.DictCursor
+
 import improc
 import planet
 import utils
@@ -247,7 +254,7 @@ def auto(force=0):
   try:
     swrite('connecting to database for mailbox info')
     db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
-                          db='teljoy', cursorclass=MySQLdb.DictCursor)
+                          db='teljoy', cursorclass=DictCursor)
     curs=db.cursor()
     swrite('connected')
     wd=os.getcwd()

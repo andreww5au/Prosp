@@ -1,5 +1,11 @@
 
 import MySQLdb
+try:
+  DictCursor=MySQLdb.DictCursor
+except AttributeError:     #New version of MySQLdb puts cursors in a seperate module
+  import MySQLdb.cursors
+  DictCursor=MySQLdb.cursors.DictCursor
+
 from globals import *
 
 #These are the initial defaults, copied to the status object on module init.
@@ -138,7 +144,7 @@ def _background():
 
 
 _db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
-                      db='teljoy', cursorclass=MySQLdb.DictCursor)
+                      db='teljoy', cursorclass=DictCursor)
 status=_Weather()
 status.update()
 

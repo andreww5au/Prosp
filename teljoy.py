@@ -1,5 +1,12 @@
 
 import MySQLdb
+try:
+  DictCursor=MySQLdb.DictCursor
+except AttributeError:     #New version of MySQLdb puts cursors in a seperate module
+  import MySQLdb.cursors
+  DictCursor=MySQLdb.cursors.DictCursor
+
+
 import threading
 import time
 import weather
@@ -308,7 +315,7 @@ def _background():
 
 
 db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
-                      db='teljoy', cursorclass=MySQLdb.DictCursor) 
+                      db='teljoy', cursorclass=DictCursor) 
 curs=db.cursor()
 
 status=TJstatus()

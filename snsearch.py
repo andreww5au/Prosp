@@ -1,7 +1,15 @@
 
 import time
 import os
+
 import MySQLdb
+try:
+  DictCursor=MySQLdb.DictCursor
+except AttributeError:     #New version of MySQLdb puts cursors in a seperate module
+  import MySQLdb.cursors
+  DictCursor=MySQLdb.cursors.DictCursor
+
+
 from ftplib import FTP     #Import the FTP object class
 
 from globals import *
@@ -121,7 +129,7 @@ pipeline.Pipelines['IMAGE']=SNObject
 
 swrite('SNSearch module connecting to database')
 db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
-                      db='teljoy', cursorclass=MySQLdb.DictCursor)
+                      db='teljoy', cursorclass=DictCursor)
 curs=db.cursor()
 swrite('connected')
 
