@@ -10,7 +10,7 @@
 localstore=0    #Set to 0 to send 'store' object files to vista
 librarymode=0    #Force store mode SN library imgs
 
-ftphost='bigbang'
+ftphost='rover'
 ftpuser='plat'
 ftppass='sn1993k'
 ftpimagedir='/t/533-Observatory/Astronomical/Images/New'
