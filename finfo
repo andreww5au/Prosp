@@ -1,35 +1,69 @@
 #!/usr/bin/python
 
+#File info lister - an argument of '-d' will produce an ISIS dates list format
+#(filename, HJD-2450000, seeing), and no flag or a '-i' will produce a full 
+#list (filename, object, filter, HJD-2450000, CCDtemp, seeing, sky).
+# An arg of -s will produce image statistics, and be much slower
+#
+#eg:
+#  finfo *.fits 
+#  finfo -d *.fits > ../register/dates
+
 import os
 import sys
 import string
 import improc
 import globals
 
+
+def help():
+  "Usage information."
+  print """FITS File header-card information lister - Usage:
+    finfo [-d] [filenames]       or
+    finfo [-i] [filenames]       or
+    finfo [-s] [filenames]       or
+    finfo [-h]
+
+    -i gives: (filename, object, filter, HJD-2450000, CCDtemp, seeing, sky)
+    -d gives ISIS dates file format (filename, HJD-2450000, seeing)
+    -s gives filename, mean, sigma, min and max pixel values
+    -h prints this usage information.
+       """
+
 flag='i'
 if len(sys.argv)==1:
   help()
-  sys.exit()
+  sys.exit()                  #No arguments supplied, print usage and exit
 elif sys.argv[1][0]=='-':
   flag=sys.argv[1][1:]
   args=sys.argv[2:]
 else:
-  args=sys.argv[1:]
+  args=sys.argv[1:]           #leave with 'args' a list of files to process
 
-if not args:
+if (not args) or (flag=='h') or (flag=='?'):
   help()
-  sys.exit()
+  sys.exit()            #Print usage and exit
 
-
+dostat=0            #Don't do any image statistics
 if flag=='i':
   fmt="%(filename)-20s %(object)-9s %(filterid)1s %(pjd)8.5f  %(ccdtemp)5.1f  %(fwhm)5.2f %(sky)5d"
-elif flag=='d':
+else flag=='d':
   fmt="%(filename)-20s %(pjd)9.5f %(fwhm)5.2f"
+elif flag=='s':
+  fmt="%(filename)-20s %(mean)7.1f %(noise)8.3f %(min)8.3f %(max)8.3f"
+  dostat=1
+
+#Add extra flags and format strings here for more output variations
 
 for f in args:
-  img=improc.FITS(f)
+  if dostat:
+    img=improc.FITS(f,'r')     #Load image
+  else:
+    img=improc.FITS(f,'h')     #Only load image header
   if not img.headers.has_key('FWHM'):
-    img.fwhmsky()
+    img.fwhmsky()        #If there's no FWHM card, calculate FWHM and sky now
+
+#Calculate or grab any params we might want to print from the image header
   
   filename=os.path.basename(f)
   fwhm=float(img.headers['FWHM'])
@@ -42,5 +76,11 @@ for f in args:
   hjd=float(img.headers['HJD'])
   pjd=hjd-2450000.0
   ccdtemp=float(img.headers['CCDTEMP'])
+  if dostat:
+    noise=img.noise()
+    mean=img.mean()
+    max=img.max()
+    min=img.min()
   
-  print fmt % vars()
+  print fmt % vars()      #Print the data using the format string
+
