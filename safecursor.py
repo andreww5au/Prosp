@@ -26,3 +26,9 @@ class SafeCursor(DictCursor):
      except MySQLdb.OperationalError:
        ewrite("Two OperationalError exceptions in MySQL call, giving up")
        raise
+
+  def __del__(self):
+    DictCursor.__del__(self)
+
+  def close(self):
+    DictCursor.close(self)
