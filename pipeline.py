@@ -108,6 +108,7 @@ class dObject(objects.Object):
       self.log()
     else:
       print "Errors: "+self.errors
+      return self.errors
 
 
 def allobjects():
