@@ -1,6 +1,5 @@
 
 import MySQLdb
-import threading
 from globals import *
 
 #These are the initial defaults, copied to the status object on module init.

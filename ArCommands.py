@@ -2,7 +2,6 @@
 import Ariel
 from Ariel import command
 
-import sys   #system functions
 import os    #operating system calls
 import string  #string handlign functions
 import glob    #Filename expansion
