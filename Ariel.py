@@ -12,7 +12,6 @@ import string  #string handlign functions
 import glob    #Filename expansion
 import cPickle  #Object saves to file
 import fcntl   #File locking functions
-import FCNTL   #constants for file locking operations
 import globals
 from globals import *
 
@@ -302,7 +301,7 @@ def init():     #Call this after creating a global status object
   #Open input and output pipes
   outf=os.open('/tmp/ariel.out',os.O_RDONLY | os.O_NONBLOCK)
   try:
-    fcntl.flock(outf,FCNTL.LOCK_EX+FCNTL.LOCK_NB)  #Try a non-blocking lock
+    fcntl.flock(outf,fcntl.LOCK_EX+fcntl.LOCK_NB)  #Try a non-blocking lock
   except IOError:
     os.close(outf)
     outf=os.open('/dev/null',os.O_RDONLY | os.O_NONBLOCK)
