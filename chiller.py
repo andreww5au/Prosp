@@ -17,7 +17,7 @@ os.environ["http_proxy"]="http://proxy.calm.wa.gov.au:8080"
 ser = serial.Serial('/dev/ttyS2', 9600, timeout=1)
 
 logfile = open('/data/templog','a')
-logfile.write("%12.2f %4.1f %4.1f %4.1f %4.1f \n" % (time.time(),0,0,0,0) )
+logfile.write("%12.2f %4.1f %4.1f %4.1f %4.1f \n" % (time.asctime(),0,0,0,0) )
 
 ReadSetpoint = [0x01,0x03,0x00,0x7F,0x00,0x01]
 ReadTemp = [0x01,0x03,0x00,0x1C,0x00,0x01]
@@ -87,7 +87,7 @@ def _background():
     else:
       globals.ewrite('Unable to get watertemp, settemp from chiller unit')
       lastchillerchecktime = time.time() - 120       #If there was an error, try again in 2 minutes
-    logfile.write("%12.2f %4.1f %4.1f %4.1f %4.1f \n" % (time.time(), airtemp, watertemp, setpoint, dewpoint) )
+    logfile.write("%12.2f %4.1f %4.1f %4.1f %4.1f \n" % (time.asctime(), airtemp, watertemp, setpoint, dewpoint) )
     logfile.flush()
 
     if goodBOM:
