@@ -310,6 +310,7 @@ class FITS:
        0.5C difference. The exposure times are used to calculate the correct
        ratio for the dark subtraction.
     """
+    global lastdark
     if not hasattr(self,'data'):
       print "FITS object has no data section to operate on."
       return 0
@@ -337,7 +338,6 @@ class FITS:
       else:
         print "Dark image not found."
         return 0
-    global lastdark
     lastdark=darkimage                #Save it for next time
 
     if abs(float(darkimage.headers['CCDTEMP']) -
@@ -370,6 +370,7 @@ class FITS:
        the flatfields should be dark subtracted as well as bias corrected.
 
     """
+    global lastflats
     if not hasattr(self,'data'):
       print "FITS object has no data section to operate on."
       return 0
@@ -417,7 +418,6 @@ class FITS:
     self.data = self.data / flatimage.data
     histlog(self,"FLAT: "+os.path.abspath(flatimage.filename))
 
-    global lastflats
     if flatimage not in lastflats:
       lastflats.append(flatimage)        #Add it to the cache
     if len(lastflats)>5:

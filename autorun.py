@@ -234,9 +234,8 @@ def auto():
      Exit by typing ^C.
      eg: auto()
   """
-  global curs,wd
+  global curs,wd,status
   swrite('Automatic mode in '+status.path+' - hit ^C to exit')
-  global status
   status.ObsType=''
   try:
     swrite('connecting to database for mailbox info')

@@ -129,6 +129,7 @@ class FITSosucamera(fits.FITS):
        0.5C difference. The exposure times are used to calculate the correct
        ratio for the dark subtraction.
     """
+    global lastdark
     if not hasattr(self,'data'):
       print "FITS object has no data section to operate on."
       return 0
@@ -156,7 +157,6 @@ class FITSosucamera(fits.FITS):
       else:
         print "Dark image not found."
         return 0
-    global lastdark
     lastdark=darkimage                #Save it for next time
 
     darktemp=float(darkimage.headers['CCDTEMP'])
@@ -193,6 +193,7 @@ class FITSosucamera(fits.FITS):
        the flatfields should be dark subtracted as well as bias corrected.
 
     """
+    global lastflats
     if not hasattr(self,'data'):
       print "FITS object has no data section to operate on."
       return 0
@@ -240,7 +241,6 @@ class FITSosucamera(fits.FITS):
     self.data = self.data / flatimage.data
     histlog(self,"FLAT: "+os.path.abspath(flatimage.filename))
 
-    global lastflats
     if flatimage not in lastflats:
       lastflats.append(flatimage)        #Add it to the cache
     if len(lastflats)>5:
@@ -267,6 +267,7 @@ class FITSnewcamera(FITSosucamera):
        then no bias image is subtracted.
 
     """
+    global lastbias
     if not hasattr(self,'data'):
       print "FITS object has no data section to operate on."
       return 0
@@ -309,7 +310,6 @@ class FITSnewcamera(FITSosucamera):
           biasimage=FITS(biasfile,'r')  #All has failed, load 'bias.fits'
         else:
           print "Bias image not found, using constant estimate"
-      global lastbias
       lastbias=biasimage                #Save it for next time
 
     if biasimage:
