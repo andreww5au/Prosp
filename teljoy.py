@@ -8,6 +8,8 @@ from globals import *
 ShutterAction=None
 FreezeAction=None
 
+pausetime=0
+
 Active=threading.Event()
 Active.set()
 
@@ -214,11 +216,13 @@ def freeze(action=0):
 def pause():
   """Goes into "Pause" mode and closes dome, used during bad-weather
   """
+  global pausetime
   if not Active.isSet():
     ewrite("Teljoy already paused, can't pause() again")
   else:
     swrite("Teljoy Paused due to bad weather.")
     status.paused=1
+    pausetime=time.time()     #Record when we've paused
     Active.clear()
     freeze(1)
     shutter('CLOSE')
@@ -227,10 +231,12 @@ def pause():
 def unpause():
   """Leaves "Pause" mode and opens dome, used when weather clears.
   """
+  global pausetime
   if Active.isSet():
     ewrite("Teljoy not in Pause mode, can't unpause()")
   else:
     swrite("Teljoy un-paused, weather OK now.")
+    pausetime=0          #Zap the pause time so the dome doesn't reclose
     shutter('OPEN')
     freeze(0)
     Active.set()
@@ -258,6 +264,10 @@ def _background():
   """
   global ShutterAction,FreezeAction
   try:
+    sincepause=time.time()-pausetime
+    if (sincepause>300) and (sincepause<480):
+      shutter('CLOSE')             #If it's been 5-6 minutes since pausing,
+                                   #close the shutter again to be safe
     curs=db.cursor()
     status.update()
 
