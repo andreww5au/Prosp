@@ -41,6 +41,7 @@ class Object:
     self.XYpos=(0,0)
     self.type=''
     self.comment=''
+    self.errors=''
 
   def __init__(self,str=''):
     if str=='':
@@ -75,6 +76,7 @@ class Object:
         self.type=''
       if not self.comment:
         self.comment=''
+      self.errors=''
 
   def edit(self):
     self.ObjID=_gets('ObjID',self.ObjID)
