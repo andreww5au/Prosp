@@ -23,12 +23,14 @@ def help():
     finfo [-i] [filenames]       or
     finfo [-s] [filenames]       or
     finfo [-o] [filenames]       or
+    finfo [-p] [filenames]       or
     finfo [-h]
 
     -i gives: (filename, object, filter, HJD-2450000, CCDtemp, seeing, sky)
     -d gives ISIS dates file format (filename, HJD-2450000, seeing)
     -s gives filename, mean, sigma, min and max pixel values
     -o gives the same information as -d but for old (PARG camera) images
+    -p gives the same information as -i but for old PARG images
     -h prints this usage information.
        """
 
