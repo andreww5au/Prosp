@@ -247,6 +247,34 @@ class FITSosucamera(fits.FITS):
       lastflats=lastflats[1:]            #Discard old images  
                                          #when the cache gets large.
 
+  def fwhmsky(self):
+    try:
+      try:
+        os.remove('/tmp/fwhmtmp.fits')
+      except OSError:
+        pass
+      self.save('/tmp/fwhmtmp.fits',Int16)
+      os.system('/home/dts/bin/fwhmsky /tmp/fwhmtmp.fits')
+      tmpdata=string.split(open('input.dophot','r').read())
+      try:
+        os.remove('input.dophot')
+        os.remove('/tmp/fwhmtmp.fits')
+      except OSError:
+        pass
+    except OSError, IOError:
+      print "Error with file creation while calculating FWHM, Sky"
+      return -1,-1
+    try:
+      self.headers['FWHM']=tmpdata[0]
+      self.comments['FWHM']='Seeing FWHM, in pixels.'
+      self.headers['SKY']=tmpdata[1]
+      self.comments['SKY']='Sky background, in ADU'
+      return float(tmpdata[0]), float(tmpdata[1])
+    except:
+      print "Error calculating FWHM and Sky"
+      return -1,-1
+
+
 class FITSnewcamera(FITSosucamera):
   """FITS image class. Creation accepts two parameters, filename and read mode.
      If the read mode is 'h', the file headers are read, and two dictionaries,
@@ -547,7 +575,6 @@ def _rlog(fname=''):
     redlist.append(filename)
     cPickle.dump(redlist,f)
     f.close()
-  swrite('logged reduction of '+filename)
 
 
 def _reducefile(fname=''):
@@ -576,8 +603,10 @@ def _reducefile(fname=''):
   img.bias()                      #Subtract bias and trim overscan
   img.dark()                      #Subtract scaled dark image
   img.flat()                      #Divide by appropriate flatfield
+  fwhm,sky=img.fwhmsky()
   img.save(outfile,Int16)   #Save in Int16 format
   _rlog(fname)
+  swrite(filename+' reduced: FWHM=%4.2f pixels, Sky=%d ADU' % (fwhm,sky))
   return outfile
 
 
