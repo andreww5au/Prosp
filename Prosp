@@ -16,6 +16,7 @@ import ArCommands
 import sys
 import time       #for the 'sleep' function
 import types
+import threading
 import improc
 from improc import reduce
 import autorun
@@ -50,20 +51,38 @@ def _background():
 
     if status.MonitorActive:
       if status.weather.clear and isdark() and (not teljoy.Active.isSet()):
+        swrite("Conditions clear, resuming observing.")
         teljoy.unpause()
+        status.lastact=time.time()   #Reset the last image time so we don't
+                                     #trip the inactivity timeout right away
       if (not status.weather.clear) and teljoy.Active.isSet():
+        swrite("Conditions Cloudy, pausing observing.")
         teljoy.pause()
       if (not ephemint.isdark()) and teljoy.Active.isSet():
-        print "End of the night, pausing forever. To resume "
-        print "and open dome, type 'teljoy.unpause()'"
+        swrite("End of the night, pausing forever. To resume "+
+               "and open dome, type 'teljoy.unpause()'")
+        teljoy.pause()
+        status.MonitorActive=0
+      try:
+        Alt=float(status.TJ.Alt)
+        if status.TJ.RawHourAngle>0:
+          Alt=90        #Don't worry about low altitudes east of the zenith
+      except:
+        Alt=0           #If there's an error getting Alt, don't risk it, close up
+      if ( ((not status.shutter) and (time.time()-status.lastact > 3600)) or
+           ((not status.shutter) and (time.time()-status.lastact > 300) and (Alt<20)) or
+           ((not status.shutter) and (Alt<15)) or
+           (Alt<12) ) and teljoy.Active.isSet():
+        swrite("System Inactive or below Alt limits, pausing forever. To "+
+               "resume and open dome, type 'teljoy.unpause()'")
         teljoy.pause()
         status.MonitorActive=0
 
     status.isdark=ephemint.isdark()
 
-    for f in backgrounds:
+    for f in backgrounds:    #Call all the registered background functions
       f()
-    time.sleep(5)
+    time.sleep(5)            #Wait 5 seconds, then repeat
 
 
 class Prompt:
@@ -78,6 +97,7 @@ class Prompt:
                                   target=_background)
         BGThread.setDaemon(1)
         BGThread.start()
+        ewrite("Dead background thread restarted.")
     return ">>>"
 
 
@@ -106,19 +126,20 @@ def monitor(arg=None, close=None, open=None, delay=None):
   """
   if type(arg)==types.StringType:
     arg=string.upper(arg)
+  if type(close)==types.FloatType or type(close)==types.IntType:
+    status.weather.CloudCloseLevel=int(close)
+  if type(open)==types.FloatType or type(open)==types.IntType:
+    status.weather.CloudOpenLevel=int(open)
+  if type(delay)==types.FloatType or type(delay)==types.IntType:
+    status.weather.WeatherOpenDelay=int(delay) 
   if arg=='OFF':
     print "Monitoring OFF."
     status.MonitorActive=0
     if not teljoy.Active.isSet():
       teljoy.unpause()
   elif arg=='ON':
-    if type(close)==types.FloatType or type(close)==types.IntType:
-      status.weather.CloudCloseLevel=int(close)
-    if type(open)==types.FloatType or type(open)==types.IntType:
-      status.weather.CloudOpenLevel=int(open)
-    if type(delay)==types.FloatType or type(delay)==types.IntType:
-      status.weather.WeatherOpenDelay=int(delay) 
     status.weather.__init__()
+    status.lastact=time.time()   #In case it's been a while since we took an image
     if not isdark():
       print "It's not dark yet, monitoring mode would pause immediately."
       print "Monitor mode aborted."
@@ -150,6 +171,7 @@ status.TJ.updated=status.updated  #Flag main status updated when TJ changes
 status.weather=weather.status
 status.MonitorActive=0
 status.isdark=1
+status.lastact=time.time()
 
 
 Ariel.status=status        #Make it the interface libraries status global
@@ -182,3 +204,10 @@ if GotAriel:
   BGThread.setDaemon(1)
   BGThread.start()
 
+try:
+  motd=open('/tmp/ariel.motd','r')
+  print "\nMessage of the Day:\n"
+  print motd.read()+"\n\n"
+  motd.close()
+except:
+  pass

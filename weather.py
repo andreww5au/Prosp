@@ -5,7 +5,7 @@ from globals import *
 #These are the initial defaults, copied to the status object on module init.
 _CloudOpenLevel=100   #Open if cloud < this for more than WeatherOpenDelay sec
 _CloudCloseLevel=150  #Close is cloud > this or raining
-_WeatherOpenDelay=300  #Wait for 1800 sec of no-rain and cloud < CloudOpenLevel
+_WeatherOpenDelay=1800  #Wait for 1800 sec of no-rain and cloud < CloudOpenLevel
 
 
 def _yn(arg=0):
@@ -34,10 +34,13 @@ class _Weather:
   def __init__(self):
     self.empty()
     curs=_db.cursor()
-    #Set the reference time for selecting a sky value to be 300 seconds before 'now'
-    #If we don't subtract 300sec, the first query called will return no records.
-    if curs.execute('select from_unixtime(unix_timestamp(now())-300) as tnow'):
-      self.starttime=curs.fetchallDict()[0]['tnow']
+    #Set the reference time for selecting a sky value to be 1800 seconds before now
+    #If we don't subtract 1800sec, the first query called will return no records.
+    curs.execute('select cloud from weather where time > '+
+                  'from_unixtime(unix_timestamp(now())-1800) order by cloud limit 4' )
+    res=curs.fetchallDict()     
+    self.sky=res[-1]['cloud']   
+           #Take the 4th lowest cloud value in the last half hour
     self.update()
 
   def display(self):
@@ -46,15 +49,17 @@ class _Weather:
     print "Raining: ",_yn(self.rain)
     print "Last weather entry: ",self.lastmod,"seconds ago."
     print "Current clear-sky value: ",self.sky
-    print "Becomes 'not clear' if cloud greater than:",self.sky+self.CloudCloseLevel
-    print "Becomes 'clear' if cloud less than",self.sky+self.CloudOpenLevel,"for",
+    print "Becomes 'not clear' if cloud greater than:", 
+    print self.sky, "+", self.CloudCloseLevel, "=", self.sky+self.CloudCloseLevel
+    print "Becomes 'clear' if cloud less than",
+    print self.sky, "+", self.CloudOpenLevel, "=", self.sky+self.CloudOpenLevel,"for",
     print self.WeatherOpenDelay,"seconds or more."
     if self.weathererror:
       print self.weathererror
     if self.clear:
       print "\nCurrent Status: Clear"
     else:
-      print "\Current Status: Not Clear, conditions have been acceptable for ",
+      print "\nCurrent Status: Not Clear, conditions have been acceptable for ",
       print self.OKforsec, "seconds."
 
 
@@ -90,13 +95,16 @@ class _Weather:
     except:
       self.weathererror="Weather database not OK, can't get current values"
     if self.lastmod>200:
-      self.weathererror="Weather database not updated for "+`self.lastmod`+" seconds."
+      self.weathererror="Weather database not updated for " + `self.lastmod` + " seconds."
 
     try:
-      curs.execute('select cloud from weather where time > "' + self.starttime +
-                    '" order by cloud limit 4' )
-      res=curs.fetchallDict()     #Take the 4th lowest cloud value since we started monitoring
-      self.sky=res[-1]['cloud']   #Unless there are less then 4, in which case take the lowest
+      curs.execute('select cloud from weather where time > '+
+                    'from_unixtime(unix_timestamp(now())-1800) order by cloud limit 4' )
+      res=curs.fetchallDict()     
+      tempsky=res[-1]['cloud']   
+             #Take the 4th lowest cloud value in the last hour
+      if tempsky < self.sky:
+        self.sky=tempsky      #Use this as the new sky value
     except:
       self.weathererror="Weather database not OK, can't get clear sky value"
     self.checkweather()
