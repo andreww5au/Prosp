@@ -16,7 +16,8 @@ DictCursor=safecursor.SafeCursor
 AltCutoff = 30
 
 
-types={'PLANET':1.0, 'IMAGE':0.000001}    #By default, SN searching is a last resort choice
+types={'PLANET':1.0, 'IMAGE':1.0}    #relative weights
+
 candidates={}
 cantimestamp=MySQLdb.Timestamp(0)
 best=None
