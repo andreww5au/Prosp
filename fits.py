@@ -45,6 +45,7 @@ import string        #load string handling library
 import types
 import os
 import time
+import tempfile
 try:
   import Numeric
   from Numeric import *
@@ -462,6 +463,54 @@ def median(l=[]):
   out.comments=l[0].comments
   out.data=_ndmedian(array(myl))
   return out
+
+
+
+def med10(files=''):
+  """Takes one or more FITS image filenames in any combination of names and
+     wildcards. Loads them, ten by ten, medians each group, then medians the
+     result. Returns a FITS image object. If more than 100 images names are 
+     are passed, this function will be called recursively on the results of
+     the first grouping pass.
+
+     Note that this is best called with multiples of ten images - if called with
+     11 images, for example, the median of the first 10 images (low noise) will
+     be averaged with a single image, the one remaining. This will _increase_
+     the noise in the result, not improve it.
+
+  """
+  tempfile.tmpdir='/big/tmp'       #Set up temp file name structure
+  tempfile.template='medtemp'
+  allfiles=globals.distribute(files,(lambda x: x))    #expand any wildcards
+  numfiles=len(allfiles)
+  if numfiles==0:                #No files to process, give up
+    return
+  elif numfiles<11:              #Can do a normal median call
+    tenlist=[]
+    for i in range(10):          #Load up to ten images
+      if allfiles:
+        tenlist.append(fits.FITS(allfiles[0],'r'))
+        allfiles=allfiles[1:]
+    tmp=median(tenlist)     #And call the normal median function
+    return tmp
+  else:                          #More than ten images to do
+    tmplist=[]
+    while allfiles:
+      tenlist=[]
+      for i in range(10):        #Load up to ten files
+        if allfiles:
+          tenlist.append(fits.FITS(allfiles[0],'r'))
+          allfiles=allfiles[1:]
+      tmp=median(tenlist)      #Find the median of those ten files
+      tenlist=[]                         #free up all that memory
+      tmpname=tempfile.mktemp()     #Save the median of ten in a temp file
+      tmp.save(tmpname)
+      tmplist.append(tmpname)
+
+    tmp=med10(tmplist)        #recursivly call med10 on all of the temp files
+    for n in tmplist:
+      os.remove(n)            #remove all the temporary files
+    return tmp
 
 
 #Some handler functions for FITS card support, most not very useful 
