@@ -117,6 +117,7 @@ def _displayfile(fname, iraf=0):
       os.system('echo scale zscale | xpaset '+viewer)
     else:
       os.system('echo scale histeq | xpaset '+viewer)
+    os.system('echo saveas jpeg /tmp/ds9.jpeg | xpaset '+viewer)
 
 
 def display(fpat, iraf=0):
