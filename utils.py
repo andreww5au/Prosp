@@ -1,4 +1,8 @@
 
+"""Utility functions that use features from several modules (planet, teljoy,
+   etc). 
+"""
+
 import ArCommands     #Camera interface library
 import time       #for the 'sleep' function
 import os
@@ -14,22 +18,9 @@ from dobjects import Object
 import teljoy
 from xpa import display
 from globals import *
-import sendftp
 import ephemint
 import skyviewint
 import threading
-
-
-def randd(fname, histeq=1):
-  """Reduce and display a set of images.
-     The 'histeq' parameter is passed to the 'display' function. See the
-     documentation for this function for further information.
-     eg: randd('/data/test005.fits')
-  """
-  outfile=reduce(fname)
-  if outfile:
-    display(outfile,histeq)
-  return outfile
 
 
 def gord(n=1):
@@ -156,6 +147,7 @@ def pgo():
   preduced(go())
   p=Pobject(status.TJ.name)
   process(p.root)
+  archive(p.root)
 
 
 def take(objs=[],wait=0):
@@ -228,7 +220,7 @@ def viewer(vw=''):
   xpa.viewer=vw
 
 
-def doall(yrs=['2K','01']):
+def doall(yrs=['99','2K','01','02']):
   """Processes and archives all waiting images for all objects in the season.
      This does not run in the background, do it last thing before you go home
      in the morning and leave it running. Can take quite a long time...
@@ -302,6 +294,7 @@ def skyview(posn='', equinox=2000):
       return
     skyviewint.skyview(posn, equinox)
 
+
 def threads():
   """Lists all active threads.
   """
@@ -334,3 +327,5 @@ def newdir():
   print "Using bias+dark images for "+`besttemp`+"C."
   os.system("cp /data/bias"+`besttemp`+"Cmaster.fits "+dirname+"/bias.fits")
   os.system("cp /data/dark"+`besttemp`+"Cmaster.fits "+dirname+"/dark.fits")
+
+
