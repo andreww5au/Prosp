@@ -4,6 +4,7 @@ import urllib2
 import os
 import time
 import sys
+import threading
 
 import globals
 from BeautifulSoup import BeautifulSoup
@@ -21,12 +22,13 @@ WriteSetpoint = [0x01,0x06,0x00,0x7F,0x00,0x00]      #Last two bytes are setpoin
 ExitProgram1 = [0x01,0x06,0x03,0x00,0x00,0x06]       #Flag next message as secured - reply should be this message
 ExitProgram2 = [0x01,0x06,0x16,0x00,0x00,0x00]       #Exit programming mode - reply should be this message
 
+threadlist = []      #A list of all thread objects from this module that are currently running
 
-def getDewpoint():
+
+def updateDewpoint():
   """Download the current ambient temperature and dewpoint from the BOM website.
   """
-  temp = 0.0
-  dewpoint = 0.0
+  global airtemp, dewpoint, lastdewchecktime
   try:
     f=urllib2.urlopen('http://www.bom.gov.au/products/IDW60034.shtml')
     html=f.read()
@@ -41,40 +43,40 @@ def getDewpoint():
       dl = r.fetch('td')
       if dl:
         if dl[0].first('a').renderContents() == 'BICKLEY':
-          temp = float(dl[2].renderContents())
+          airtemp = float(dl[2].renderContents())
           dewpoint = float(dl[3].renderContents())  
+          lastdewchecktime = time.time()
   except:
     print 'Error grabbing temp,dewpoint'
     sys.excepthook(*sys.exc_info())
-
-  return temp,dewpoint
 
 
 def _background():
   """Called every 6 seconds from Prosp. Use to check dewpoint every hour to make sure the chiller is
      maintaining a temp safely above the dewpoint.
   """
-  global lastdewchecktime, lastchillerchecktime, airtemp, dewpoint, watertemp, setpoint
+  global lastchillerchecktime, watertemp, setpoint
 
-  if (time.time() - lastdewchecktime) > 3600:         #Download new temp/dewpoint every hour
-    t,d = getDewpoint()
-    if t or d:
-      airtemp = t
-      dewpoint = d
-      lastdewchecktime = time.time()
-    else:
-      globals.ewrite('Unable to get temp,dewpoint from BOM website')
-      lastdewchecktime = time.time() - 1800          #If there was an error, try again in 30 minutes
+  for t in threadlist[:]:
+    if not t.isAlive():
+      threadlist.remove(t)      #Remove completed download threads from the threadlist, leaving only active ones
 
-  if (time.time() - lastchillerchecktime) > 600:         #Download new watertemp, setpoint every hour
+  #Download new temp/dewpoint every hour if there are no threads already, try again after 90 min if 1 blocked thread
+  if ( (((time.time() - lastdewchecktime) > 3600) and (len(threadlist)==0)) or
+       (((time.time() - lastdewchecktime) > 5400) and (len(threadlist)==1)):    
+    t=threading.Thread(target=updateDewpoint,
+                       name='BOM Bickley weather page download')
+    t.setDaemon(1)
+    t.start()
+    threadlist.append(t)
+
+  if (time.time() - lastchillerchecktime) > 300:         #Download new watertemp, setpoint every 5 min
     w,s = getTemp(), getSetpoint()
     if (w > -90.0) and (s > -90.0):
-      watertemp = w
-      setpoint = s
       lastchillerchecktime = time.time()
     else:
       globals.ewrite('Unable to get watertemp, settemp from chiller unit')
-      lastchillerchecktime = time.time() - 300       #If there was an error, try again in 5 minutes
+      lastchillerchecktime = time.time() - 120       #If there was an error, try again in 2 minutes
 
 
 def crc(message=[]):
@@ -104,12 +106,14 @@ def send(message):
 def getTemp():
   """Read the current water outlet temperature from the chiller unit.
   """
+  global watertemp
   send(ReadTemp)
   reply = map(ord, ser.read(7))
   temp = -99.9
   if len(reply)>4:
     if crc(reply[:-2])[-2:] == reply[-2:]:
       temp = (reply[3]*256 + reply[4]) / 10.0
+      watertemp = temp
   else:
     print "No data ",reply
   return temp
@@ -126,12 +130,14 @@ def tobytes(temp=20.0):
 def getSetpoint():
   """Read the current setpoint temperature from the chiller unit.
   """
+  global setpoint
   send(ReadSetpoint)
   reply = map(ord, ser.read(7))
   temp = -99.9
   if len(reply)>4:
     if crc(reply[:-2])[-2:] == reply[-2:]:
       temp = (reply[3]*256 + reply[4]) / 10.0
+      setpoint = temp
   else:
     print "No data ",reply
   return temp
@@ -140,6 +146,7 @@ def getSetpoint():
 def newSetpoint(temp=20.0):
   """Changes the chiller's current setpoint temperature.
   """
+  global setpoint,lastchillerchecktime
   try:
     temp=float(temp)
   except:
@@ -170,6 +177,9 @@ def newSetpoint(temp=20.0):
   if reply[:-2] <> WriteSetpoint:
     print "Bad response to WriteSetpoint ",reply
     print "Trying to exit program mode"
+  else:
+    setpoint = temp
+    lastchillerchecktime = time.time()-240    #Schedule a chiller update 1 minute from now
 
   send(ExitProgram1)
   reply = map(ord, ser.read(8))
@@ -180,6 +190,7 @@ def newSetpoint(temp=20.0):
   reply = map(ord, ser.read(8))
   if reply[:-2] <> ExitProgram2:
     print "Bad response to ExitProgram2 ",reply
+
   
 
 
