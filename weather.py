@@ -6,6 +6,7 @@ from globals import *
 _CloudOpenLevel=100   #Open if cloud < this for more than WeatherOpenDelay sec
 _CloudCloseLevel=150  #Close is cloud > this or raining
 _WeatherOpenDelay=1800  #Wait for 1800 sec of no-rain and cloud < CloudOpenLevel
+_CloudCloseDelay=70    #Wait until at least two cloud readings (1/min) are 'cloudy'
 
 
 def _yn(arg=0):
@@ -28,7 +29,9 @@ class _Weather:
     self.CloudCloseLevel=_CloudCloseLevel
     self.CloudOpenLevel=_CloudOpenLevel
     self.WeatherOpenDelay=_WeatherOpenDelay
+    self.CloudCloseDelay=_CloudCloseDelay    #No interface for setting this at runtime
     self.OKforsec=86400   #Assume it's clear when we start up
+    self.CloudyForSec=0
     self.clear=1
 
   def __init__(self):
@@ -36,11 +39,14 @@ class _Weather:
     curs=_db.cursor()
     #Set the reference time for selecting a sky value to be 1800 seconds before now
     #If we don't subtract 1800sec, the first query called will return no records.
-    curs.execute('select cloud from weather where time > '+
-                  'from_unixtime(unix_timestamp(now())-1800) order by cloud limit 4' )
-    res=curs.fetchallDict()     
-    self.sky=res[-1]['cloud']   
+    try:
+      curs.execute('select cloud from weather where time > '+
+                    'from_unixtime(unix_timestamp(now())-1800) order by cloud limit 4' )
+      res=curs.fetchallDict()     
+      self.sky=res[-1]['cloud']   
            #Take the 4th lowest cloud value in the last half hour
+    except:
+      self.weathererror="Error connecting to database for weather initialisation."
     self.update()
 
   def display(self):
@@ -77,12 +83,17 @@ class _Weather:
         if self.OKforsec > self.WeatherOpenDelay:
           self.clear=1
       else:
-        if (self.cloud >= self.sky + self.CloudCloseLevel) or self.rain:
+        if (self.cloud >= self.sky + self.CloudCloseLevel):
+          self.CloudyForSec=self.CloudyForSec+5
+        else:
+          self.CloudyForSec=0
+        if (self.CloudyForSec > self.CloudCloseDelay) or self.rain:
           self.clear=0
           self.OKforsec=0
 
   def update(self):
     "Connect to the database to update fields"
+    self.weathererror=""
     curs=_db.cursor()
     try:
       curs.execute('select unix_timestamp(now())-unix_timestamp(time) '+
@@ -102,7 +113,7 @@ class _Weather:
                     'from_unixtime(unix_timestamp(now())-1800) order by cloud limit 4' )
       res=curs.fetchallDict()     
       tempsky=res[-1]['cloud']   
-             #Take the 4th lowest cloud value in the last hour
+             #Take the 4th lowest cloud value in the last half hour
       if tempsky < self.sky:
         self.sky=tempsky      #Use this as the new sky value
     except:
@@ -123,14 +134,6 @@ def _background():
     status.update()
   except:
     print "a weather exception"
-
-
-def reset():
-  curs=_db.cursor()
-  if curs.execute('select from_unixtime(unix_timestamp(now())) as tnow'):
-    starttime=curs.fetchallDict()[0]['tnow']
-  
-
 
 
 
