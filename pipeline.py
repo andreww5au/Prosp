@@ -1,5 +1,6 @@
 
 import string
+import time
 
 import objects
 import teljoy
@@ -7,6 +8,7 @@ from globals import *
 import ArCommands
 import xpa
 import improc
+
 
 """
 Pipeline control module and classes:
@@ -35,10 +37,11 @@ class dObject(objects.Object):
     "Move the telescope to the object coordinates"
     while teljoy.status.paused:
       print "Waiting for weather to clear"
-      sleep(60)
+      time.sleep(60)
     swrite("Moving to object "+self.ObjID)
     teljoy.jump(id=self.ObjID, ra=self.ObjRA, dec=self.ObjDec,
                 epoch=self.ObjEpoch)
+    time.sleep(3)
     teljoy.status.update()
     while teljoy.status.moving or teljoy.status.DomeInUse:
       time.sleep(1)
