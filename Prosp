@@ -81,6 +81,7 @@ sys.path=sys.path+['.']   #Allow user-written modules in current dir to load
 
 
 try:
+  raise Ariel.ArielError("No ariel on this machine, don't bother.")
   Ariel.init()        #Call the init() function in the library to open
                       #communications with the camera
 except Ariel.ArielError:
