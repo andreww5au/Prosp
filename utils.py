@@ -192,7 +192,7 @@ def take(objs=[],wait=0):
         time.sleep(1)
         status.TJ.update()
       if string.upper(status.TJ.name) <> string.upper(o.ObjID):   #Teljoy hasn't jumped to this object
-        ewrite('Teljoy hasn't jumped to "+o.ObjID+" - possibly too low")
+        ewrite("Teljoy hasn't jumped to "+o.ObjID+" - possibly too low")
         continue
       if wait:
         raw_input("Press enter when tracker camera is tracking")
