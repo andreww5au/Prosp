@@ -187,8 +187,8 @@ def alarmhandler(signum,frame):
 
 #Main Program:
 
-def sendall(host='mitchell.astro.rug.nl', username='planet',
-            password='', directory='NotPublic/Incoming01'):
+def sendall(host='', username='',
+            password='', directory=''):
   signal.signal(signal.SIGALRM, alarmhandler)  #Define the alarm signal handler
 
   if (not host):
