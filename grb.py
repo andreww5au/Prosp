@@ -57,7 +57,7 @@ def email():
        M.user("perthobs")
 #      M.user("ralphm")
 #      M.pass_(getpass.getpass("Password for CALM email server:"))
-       M.pass_("3asteroid")
+       M.pass_("4asteroid")
 #      M.pass_("password1")
 #      M.pass_("stargaze")
     except poplib.error_proto, detail:
@@ -118,7 +118,7 @@ def checkgrb(self, M):
             print 'Found trigger number'
             lowpos=string.find(message,'TRIGGER_NUM:')
             endpos=string.find(message,"',",lowpos)
-            self.name = message [lowpos+12:endpos]
+            self.name = message [lowpos+12:endpos-1]
             self.name = string.strip (self.name)
             self.obj = self.name   # object = name
             print self.obj
@@ -289,6 +289,7 @@ def grbDB(self):
        newob.save(ask=0,force=1, curs=grb_curs)
      except:
        print "object not saved in data base."
+       sys.excepthook(*sys.exc_info())
        M.quit()
    except:
        M.quit()
