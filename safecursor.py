@@ -1,4 +1,5 @@
 
+from globals import ewrite
 
 import MySQLdb
 try:
