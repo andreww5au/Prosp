@@ -29,6 +29,7 @@ from snlists import *
 import weather
 import pipeline
 import snsearch
+import scheduler
 
 backgrounds.append(teljoy._background)
 backgrounds.append(weather._background)
