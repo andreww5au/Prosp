@@ -35,7 +35,7 @@ def gord(n=1):
   for i in range(n):
     fres=go()
     if fres:
-      fres=randd(fres)
+      fres=display(reduce(fres))
     if n==1:
       resfiles=fres
     else:
@@ -147,8 +147,9 @@ def pgo():
   """
   preduced(go())
   p=Pobject(status.TJ.name)
-  process(p.root)
-  archive(p.root)
+  if p.good:
+    process(p.root)
+    archive(p.root)
 
 
 def take(objs=[],wait=0):
