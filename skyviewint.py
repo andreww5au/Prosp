@@ -21,7 +21,7 @@ import urllib
 import threading
 import os
 
-os.environ['http_proxy']='http://192.168.25.72:3128'
+os.environ['http_proxy']='http://proxy.calm.wa.gov.au:8080'
 
 base='http://skyview.gsfc.nasa.gov/cgi-bin/nnskcall.pl'
 params={'SURVEY':'Digitized Sky Survey',
