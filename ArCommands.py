@@ -342,6 +342,7 @@ def go(n=1):
     aborted=1
   update()   #grab new status information after the image
   _setcounter()
+  status.lastact=time.time()     #Record the time that the last image was taken
   print '\7'
   if len(result)==1:
     return result[0]
