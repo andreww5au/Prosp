@@ -9,7 +9,7 @@ pi=math.pi
 
 obslat=ephem.scanSexagesimal('-32:00:29.1')/180.0*pi
 obslong=ephem.scanSexagesimal('116:8:6.1')/180.0*pi
-twilight=18/180.0*pi    #Astronomical Twilight, 18 degrees below horizon
+twilight=12/180.0*pi    #Nautical Twilight, 12 degrees below horizon
 
 
 def mjdnow():
