@@ -1,6 +1,6 @@
 
 import Ariel
-from Ariel import command
+command=Ariel.command
 
 import os    #operating system calls
 import string  #string handlign functions
@@ -303,7 +303,7 @@ def _setcounter():
     for file in glob.glob('/data/counters/'+bname+'[0-9][0-9][0-9].cntr'):
       os.remove(file)
     f=open('/data/counters/'+nname+'cntr','w')
-    f.close
+    f.close()
     
 
 def _abort():

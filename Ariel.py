@@ -12,7 +12,6 @@ import string  #string handlign functions
 import glob    #Filename expansion
 import cPickle  #Object saves to file
 import fcntl   #File locking functions
-import globals
 from globals import *
 
 class GuideZero:
