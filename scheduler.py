@@ -20,7 +20,7 @@ except AttributeError:     #New version of MySQLdb puts cursors in a seperate mo
 AltCutoff = 30
 
 
-types=""
+types={'PLANET':1000.0, 'IMAGE':1.0}    #By default, SN searching is a last resort choice
 candidates={}
 cantimestamp=MySQLdb.Timestamp(0)
 best=None
@@ -68,7 +68,7 @@ def Ptest2(o):
                    anglediff(teljoy.status.RawDec, o.DEC) )
   except TypeError:
     moveangle = 0              #Teljoy appears inactive, ignore moveangle factor for testing
-  movefactor = abs(math.cos(moveangle/360*math.pi))            #Cos(moveangle/2) in degrees
+  movefactor = abs(math.cos(moveangle/540*math.pi))     #=1 for zero shift, 0.5 for 180 degrees
 
   timefactor = abs((float(MySQLdb.TimestampFromTicks(time.time())) - o.LastObs) / (o.period*86400))
 
@@ -83,12 +83,17 @@ def Ptest2(o):
   else:                      #No matter what the altitude
     ch=( (math.sin(AltCutoff/180*math.pi)-math.sin(ephemint.obslat)*math.sin(o.DEC/180*math.pi)) / 
         (math.cos(ephemint.obslat)*math.cos(o.DEC/180*math.pi)) )
-    if ch<1.0:
-      hafactor=(6-ha)          #always above horizon
-    elif ch>1.0:
-      hafactor=0             #Always below horizon
-    else:
-      hafactor=(6-ha) * (0.5 * math.pi / math.acos(ch))
+
+    #ch is the cos of the objects abs(hour angle) at rise/set (above altcutoff)
+
+#    if ch<-1.0:
+#      hafactor=(6-ha)/6.0    #always above horizon -> =1 overhead, 0.17 at 5 hours
+#    elif ch>1.0:
+#      hafactor=0             #Always below horizon
+#    else:
+#      hafactor=(6-ha) / (12 * math.acos(ch) / math.pi)
+
+    hafactor=1.0     #Disable HA weighting temporarily
   
   return movefactor * timefactor * altfactor * hafactor
 
@@ -117,9 +122,17 @@ def UpdateCandidates():
   temptime=MySQLdb.TimestampFromTicks(time.time())
 
   if types:
-    if type(types)==type(""):
-      types=[types]
-    types=map(string.upper, types)
+    if type(types)==type(""):      #simple string
+      _types=[string.upper(types)]
+      _weights=None
+    elif type(types)==type({}):    #Dictionary, with priority weights
+      _types=map(string.upper, types.keys())
+      _weights={}
+      for t in types.keys():
+        _weights[string.upper(t)]=float(types(t))
+    elif type(types)==type([]):
+      _types=map(string.upper, types)
+      _weights=None
     for ty in types:
       curs.execute("select ObjID from objects where lastmod > '"+
                     str(cantimestamp)+"' and "+
@@ -133,7 +146,8 @@ def UpdateCandidates():
         if _valid(o):
           candidates[id] = o
   else:
-      curs.execute("select ObjID from objects where lastobs > '"+
+      _weights=None
+      curs.execute("select ObjID from objects where lastmod > '"+
                     str(cantimestamp)+"'")
       c=curs.fetchallDict()
       for row in c:
@@ -144,12 +158,19 @@ def UpdateCandidates():
         if _valid(o):
           candidates[id] = o
 
+  for k in candidates.keys():       #remove any existing candidates that are now invalid
+    if not _valid(candidates[k]):   #eg, due to a change in the scheduler.types global
+      del candidates[k]
+
   cantimestamp=temptime
   best=None
   for o in candidates.values():
     al,az=ephemint.altaz(o.RA/12*math.pi, o.DEC/180*math.pi)
     o.ALT, o.AZ = al/math.pi*180,  az/math.pi*180
-    o.PRIORITY = Pfunction(o)
+    if _weights:
+      o.PRIORITY = Pfunction(o) * _weights(string.upper(o.type))
+    else:
+      o.PRIORITY = Pfunction(o)
     try:
       if o.PRIORITY > best.PRIORITY:
         best=o
