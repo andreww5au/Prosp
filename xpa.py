@@ -10,7 +10,7 @@ import string
 import os
 import globals
 
-viewer='SAOtng'      #Default to saotng unless otherwise overriden
+viewer='ds9'      #Default to ds9 unless otherwise overriden
 
 
 class marker:

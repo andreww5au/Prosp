@@ -248,6 +248,20 @@ def settemp(t=-10):
   command('settemp '+`t`,1)
 
 
+def cooldown():
+  """Initiate CCD cooldown by turning on CCD cooler power. Cancels any previous
+     "warmup" command.
+  """
+  command('cooldown',1)
+
+
+def warmup():
+  """Shut down CCD cooler power safely by initiating slow warm-up to ambient
+     temperature. Use 'cooldown' to turn the power back on again.
+  """
+  command('warmup',1)
+
+
 def ccdtemp(n=2):
   """Update displayed CCD temperature value using an average of 'n' seconds
      of temp measurements, default 2. The 'At Temp', etc flags are only updated
@@ -257,6 +271,7 @@ def ccdtemp(n=2):
      eg: ccdtemp(1)
   """
   command('ccdtemp '+`n`,1)
+  return status.temp
 
 
 def focus(n=-1):

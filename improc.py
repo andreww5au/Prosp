@@ -9,15 +9,17 @@ from globals import *
 try:
   import Numeric
   from Numeric import *
+  import MLab
   GotNum=1
 except ImportError:
   GotNum=0
 
 lastdark=None     #Contains the last Dark image used, to cache the data.
+lastbias=None
 lastflats=[]      #A cache of the last few flatfield images used.
 
 
-class FITS(fits.FITS):
+class FITSosucamera(fits.FITS):
   """FITS image class. Creation accepts two parameters, filename and read mode.
      If the read mode is 'h', the file headers are read, and two dictionaries,
      object.headers and object.comments are created. If the read mode is 'r', 
@@ -31,7 +33,29 @@ class FITS(fits.FITS):
      The reduction methods on the image include: bias, dark, and flat.
   """
 
-  def bias(self, datasec=None, biassec=None):
+  def noise(self,region=''):
+    t=MLab.std(_parseregion(self,region))
+    return _ndmedian(t)
+
+  def median(self,region=''):
+    t=_ndmedian(_parseregion(self,region))
+    return _ndmedian(t)
+
+  def mean(self,region=''):
+    t=MLab.mean(_parseregion(self,region))
+    return MLab.mean(t)
+
+  def max(self,region=''):
+    t=MLab.max(_parseregion(self,region))
+    return MLab.max(t)
+
+  def min(self,region=''):
+    t=MLab.min(_parseregion(self,region))
+    return MLab.min(t)
+
+
+
+  def bias(self, biasfile=None, datasec=None, biassec=None):
     """Bias subtracts the image, using the images bias region.
 
        If the data and bias regions are not given, the relevant areas are 
@@ -135,14 +159,18 @@ class FITS(fits.FITS):
     global lastdark
     lastdark=darkimage                #Save it for next time
 
-    if abs(float(darkimage.headers['CCDTEMP']) -
-           float(self.headers['CCDTEMP'])) > 0.5:
-      print "Warning - dark frame CCD temp does not match image CCD temp."
+    darktemp=float(darkimage.headers['CCDTEMP'])
+    deltatemp=float(self.headers['CCDTEMP']) - darktemp
+    if abs(deltatemp) > 1.0:
+      print "Warning - dark frame and image CCD temps differ by "+`deltatemp`
 
     eratio=float(self.headers['EXPTIME']) / float(darkimage.headers['EXPTIME'])
-    self.data=self.data - (darkimage.data * eratio)
+    tratio=2.0**( deltatemp/6.0 )
+    self.data=self.data - (darkimage.data * eratio * tratio)
     histlog(self,"DARK: "+os.path.abspath(darkimage.filename)+
-             " ratio=%6.4f" % eratio)
+         " ET=%ss, T=%5.2fC" % (darkimage.headers['EXPTIME'],darktemp))
+    histlog(self,"DARK: exp time ratio=%5.3f, temp ratio=%5.3f" %
+            (eratio,tratio))
     return 1
 
 
@@ -219,6 +247,87 @@ class FITS(fits.FITS):
       lastflats=lastflats[1:]            #Discard old images  
                                          #when the cache gets large.
 
+class FITSnewcamera(FITSosucamera):
+  """FITS image class. Creation accepts two parameters, filename and read mode.
+     If the read mode is 'h', the file headers are read, and two dictionaries,
+     object.headers and object.comments are created. If the read mode is 'r', 
+     the data section is read as well, producing a Numeric Python array 
+     attribute, object.data. If the filename is null, an empty (but valid FITS)
+     header is constructed, and a 512x512 pixel data section, initialised to 
+     zeroes (unless the mode is 'h' for headers only).
+
+     This subclasses FITSosucamera and overrides the 'bias' method to do bias
+     image subtraction needed for the new Perth AP7.
+     The reduction methods on the image include: bias, dark, and flat.
+  """
+
+  def bias(self, biasfile='', datasec=None, biassec=None):
+    """Trims and Bias subtracts the image, using 'bias.fits' in the current dir.
+       If 'biasfile' is specified, that file is used. If 'biasfile' is None, 
+       then no bias image is subtracted.
+
+    """
+    if not hasattr(self,'data'):
+      print "FITS object has no data section to operate on."
+      return 0
+    if string.find(self.comments["HISTORY"],"BIAS: ")>-1:
+      print "Can't bias subtract, image already bias subtracted."
+      return 0
+    if not (datasec and biassec):     #If both regions are not supplied
+      if ( not self.headers.has_key('DATASEC') or
+           not self.headers.has_key('BIASSEC')    ):   #or in the header
+        print "DATASEC and BIASSEC region keywords not found in FITS header"
+        return 0
+      else:                               #Extract regions from header
+        datasec=self.headers['DATASEC']
+        biassec=self.headers['BIASSEC']
+
+    #Now turn the region string specifiers into Numeric array subregions
+    dregion=_parseregion(self, datasec)
+    bregion=_parseregion(self, biassec)[:,1:]
+                #Omit first column to correct for BIASSEC inconsistency. 
+                #In data section, startx and endx are inclusive, but
+                #in bias region, startx is _not_ inclusive. That's
+                #true for all images from Ariel++, and seems
+                #unlikely to be fixed.
+    bias=sum(sort(ravel(bregion))[100:-100]) / (product(bregion.shape) - 200)
+
+    biasimage=None
+    if biasfile<>None:
+      if type(biasfile)==types.StringType and biasfile<>'':
+        biasimage=FITS(biasfile)      #If a filename is supplied, load the image
+      elif isinstance(biasfile,fits.FITS):
+        biasimage=biasfile           #If it's a FITS image, use it as-is
+      else:                     #Use the default bias frame
+        if lastbias:            #The cached image if the file directory matches
+          if (os.path.abspath(os.path.dirname(self.filename))==
+              os.path.abspath(os.path.dirname(lastbias.filename))):
+            biasimage=lastbias
+      if not biasimage:
+        biasfile=os.path.abspath(os.path.dirname(self.filename))+'/bias.fits'
+        if os.path.exists(biasfile):
+          biasimage=FITS(biasfile,'r')  #All has failed, load 'bias.fits'
+        else:
+          print "Bias image not found, using constant estimate"
+      global lastbias
+      lastbias=biasimage                #Save it for next time
+
+    if biasimage:
+      biastemp=float(biasimage.headers['CCDTEMP'])
+      deltatemp=biastemp - float(self.headers['CCDTEMP'])
+      if abs(deltatemp) > 1.0:
+        print "Warning - bias frame and image temp differ by "+`deltatemp`
+      bdregion=_parseregion(biasimage,datasec)
+      self.data=dregion - bias - bdregion
+      histlog(self,"BIAS: of "+`bias`+" and bias.fits at "+`biastemp`+"C")
+    else:
+      self.data=dregion - bias                      #Subtract and trim image
+      histlog(self,"BIAS: of "+`bias`)
+
+    self.headers['NAXIS1']=`self.data.shape[1]`   #Update cards after trimming
+    self.headers['NAXIS2']=`self.data.shape[0]`
+    return 1
+
 
 #
 #Some support functions that might be of use externally:
@@ -248,20 +357,23 @@ def median(l=[]):
      objects (either as a list or a tuple).
   """
   myl=[]
+  temps=[]
   for i in l:
     if not hasattr(i,'data'):
       print "FITS object has no data section to operate on."
       return 0
     myl.append(i.data)
+    temps.append(float(i.headers['CCDTEMP']))
   out=FITS()
   out.headers=l[0].headers
   out.comments=l[0].comments
   out.data=_ndmedian(array(myl))
+  out.headers['CCDTEMP']=`_ndmedian(array(temps))`
   return out
 
 
 
-def med10(files=''):
+def med10(files='', bias=0):
   """Takes one or more FITS image filenames in any combination of names and
      wildcards. Loads them, ten by ten, medians each group, then medians the
      result. Returns a FITS image object. If more than 100 images names are 
@@ -273,10 +385,13 @@ def med10(files=''):
      be averaged with a single image, the one remaining. This will _increase_
      the noise in the result, not improve it.
 
+     If the optional parameter 'bias' is true, the bias() method will be called
+     on each image before it is medianed (but only on the first pass).
+
   """
   tempfile.tmpdir='/big/tmp'       #Set up temp file name structure
   tempfile.template='medtemp'
-  allfiles=globals.distribute(files,(lambda x: x))    #expand any wildcards
+  allfiles=distribute(files,(lambda x: x))    #expand any wildcards
   numfiles=len(allfiles)
   if numfiles==0:                #No files to process, give up
     return
@@ -285,6 +400,10 @@ def med10(files=''):
     for i in range(10):          #Load up to ten images
       if allfiles:
         tenlist.append(FITS(allfiles[0],'r'))
+        if bias==1:
+          tenlist[-1].bias()
+        elif bias==-1:
+          tenlist[-1].bias(biasfile=None)
         allfiles=allfiles[1:]
     tmp=median(tenlist)     #And call the normal median function
     return tmp
@@ -295,6 +414,10 @@ def med10(files=''):
       for i in range(10):        #Load up to ten files
         if allfiles:
           tenlist.append(FITS(allfiles[0],'r'))
+          if bias==1:
+            tenlist[-1].bias()
+          elif bias==-1:
+            tenlist[-1].bias(biasfile=None)
           allfiles=allfiles[1:]
       tmp=median(tenlist)      #Find the median of those ten files
       tenlist=[]                         #free up all that memory
@@ -302,7 +425,7 @@ def med10(files=''):
       tmp.save(tmpname)
       tmplist.append(tmpname)
 
-    tmp=med10(tmplist)        #recursivly call med10 on all of the temp files
+    tmp=med10(tmplist, bias=0)  #recursivly call med10 on all of the temp files
     for n in tmplist:
       os.remove(n)            #remove all the temporary files
     return tmp
@@ -326,6 +449,24 @@ def reduce(fpat=''):
   return distribute(fpat,_reducefile)
 
 
+def dobias(files=[]):
+  """Take a list of bias frame filenames and turn them into a median bias image.
+
+     Each image is loaded, and the median of all
+     the images is written to the file 'bias.fits' in the same directory as the
+     first FITS file.
+  """
+  nfiles=distribute(files, lambda x: x)   #Expand each name for wildcards, etc
+  if not nfiles:
+    swrite("dobias - No images to process.")
+    return 0
+  im=med10(nfiles, bias=-1)    #Signal overscan subtraction only for each image
+  outfile=os.path.abspath(os.path.dirname(nfiles[0]))+'/bias.fits'
+  if os.path.exists(outfile):
+    os.remove(outfile)
+  im.save(outfile, Float32)
+
+
 def dodark(files=[]):
   """Take a list of dark frame filenames and turn them into a median dark image.
 
@@ -337,16 +478,8 @@ def dodark(files=[]):
   if not nfiles:
     swrite("dodark - No images to process.")
     return 0
-  if len(nfiles)>10:
-    swrite("dodark - Too many files to median, truncating to first 8 images.")
-    nfiles=nfiles[:10]
-  di=[]
-  for d in nfiles:
-    im=FITS(d,'r')
-    im.bias()
-    di.append(im)
-  im=median(di)
-  outfile=os.path.abspath(os.path.dirname(di[0].filename))+'/dark.fits'
+  im=med10(nfiles, bias=1)   #Signal overscan and bias image subtraction
+  outfile=os.path.abspath(os.path.dirname(nfiles[0]))+'/dark.fits'
   if os.path.exists(outfile):
     os.remove(outfile)
   im.save(outfile, Float32)
@@ -553,10 +686,13 @@ def _parseregion(im=None, r=''):
      includes one row of actual image data, which must be stripped out using 
      slicing outside this function to keep the code here consistent.
   """
-  r1,r2=tuple(string.split(r[2:-2],':'))
-  xs,xe=tuple(string.split(r1,','))
-  ys,ye=tuple(string.split(r2,','))
-  return im.data[int(ys)-1:int(ye), int(xs)-1:int(xe)]
+  if not r:
+    return im.data
+  else:
+    r1,r2=tuple(string.split(r[2:-2],':'))
+    xs,xe=tuple(string.split(r1,','))
+    ys,ye=tuple(string.split(r2,','))
+    return im.data[int(ys)-1:int(ye), int(xs)-1:int(xe)]
     
 
 def _msort(m):
@@ -581,4 +717,9 @@ def _ndmedian(m):
     return (ms[dv-1] + ms[dv])/2
   else:
     return ms[dv]
+
+
+###   Module init  ####
+
+FITS=FITSnewcamera
 

@@ -12,7 +12,7 @@ librarymode=0    #Force store mode SN library imgs
 
 ftphost='bigbang'
 ftpuser='plat'
-ftppass='SN1993K'
+ftppass='sn1993k'
 ftpimagedir='/t/533-Observatory/Astronomical/Images/New'
 ftpmaildir='/t/533-Observatory/Astronomical/Plat/Mail'
 
@@ -34,10 +34,10 @@ class CCDbox:
     curs.execute('select * from ccdbox') #Use data from 'ccdbox' table in SQL
                                        # database provided by telescope software
     if curs.rowcount: 
-      c=curs.fetchallDict()
+      c=curs.fetchallDict()[0]
       self.valid=1
       self.error=0
-      self.seq=int(c['seq'])
+      self.seq=int(c['Seq'])
       self.name=string.strip(c['Name'])
       self.exptime=float(c['exptime'])
       self.filter=string.strip(string.upper(c['filtname']))
