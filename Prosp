@@ -47,15 +47,17 @@ def _background():
   "Call each of the registered background functions every 5 seconds"
   while 1:
 
-    if status.weather.WeatherActive:
-      if status.weather.Clear.isSet() and (not teljoy.Active.isSet()):
+    if status.MonitorActive:
+      if status.weather.clear and (not teljoy.Active.isSet()):
         teljoy.unpause()
-      if (not status.weather.Clear.isSet()) and teljoy.Active.isSet():
+      if (not status.weather.clear) and teljoy.Active.isSet():
         teljoy.pause()
       if (not ephemint.isdark()) and teljoy.Active.isSet():
         print "End of the night, pausing forever. To resume,"
-        print "type 'status.weather.WeatherActive=0', then 'teljoy.unpause()'"
+        print "type 'status.MonitorActive=0', then 'teljoy.unpause()'"
         teljoy.pause()
+
+    status.isdark=ephemint.isdark()
 
     for f in backgrounds:
       f()
@@ -83,6 +85,8 @@ status=Ariel.ArielStatus()  #Define a status variable using the new class
 status.TJ=teljoy.status
 status.TJ.updated=status.updated  #Flag main status updated when TJ changes
 status.weather=weather.status
+status.MonitorActive=0
+status.isdark=1
 
 
 Ariel.status=status        #Make it the interface libraries status global
