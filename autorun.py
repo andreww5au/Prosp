@@ -52,8 +52,13 @@ class CCDbox:
       self.objra=string.strip(c['ObjRA'])
       self.objdec=string.strip(c['ObjDec'])
       self.objepoch=float(c['Epoch'])
-      self.ut=c['UT'][8:10]+" "+c['UT'][10:12]+" "+c['UT'][12:]
-      self.ut_date=c['UT'][6:8]+" "+c['UT'][4:6]+" "+c['UT'][:4]
+      try:
+        self.ut=c['UT'][8:10]+" "+c['UT'][10:12]+" "+c['UT'][12:]
+        self.ut_date=c['UT'][6:8]+" "+c['UT'][4:6]+" "+c['UT'][:4]
+      except TypeError:    #It appears UT isn't a string, maybe it's a DateTime
+        t=c['UT']
+        self.ut="%2.2d %2.2d %5.2f" % (t.hour, t.minute, t.second)
+        self.ut_date="%2.2d %2.2d %4.4d" % (t.day, t.month, t.year)
       self.julday=float(c['JulDay'])
       self.alt=float(c['Alt'])
       self.azi=float(c['Azi'])
