@@ -126,20 +126,29 @@ def monitor(arg=None, close=None, open=None, delay=None):
   """
   if type(arg)==types.StringType:
     arg=string.upper(arg)
-  if type(close)==types.FloatType or type(close)==types.IntType:
-    status.weather.CloudCloseLevel=int(close)
-  if type(open)==types.FloatType or type(open)==types.IntType:
-    status.weather.CloudOpenLevel=int(open)
-  if type(delay)==types.FloatType or type(delay)==types.IntType:
-    status.weather.WeatherOpenDelay=int(delay) 
   if arg=='OFF':
     print "Monitoring OFF."
     status.MonitorActive=0
+
+    if type(close)==types.FloatType or type(close)==types.IntType:
+      status.weather.CloudCloseLevel=int(close)
+    if type(open)==types.FloatType or type(open)==types.IntType:
+      status.weather.CloudOpenLevel=int(open)
+    if type(delay)==types.FloatType or type(delay)==types.IntType:
+      status.weather.WeatherOpenDelay=int(delay)
+
     if not teljoy.Active.isSet():
       teljoy.unpause()
   elif arg=='ON':
     status.weather.__init__()
-    status.lastact=time.time()   #In case it's been a while since we took an image
+    status.lastact=time.time()   #In case it's been a while since an image
+    if type(close)==types.FloatType or type(close)==types.IntType:
+      status.weather.CloudCloseLevel=int(close)
+    if type(open)==types.FloatType or type(open)==types.IntType:
+      status.weather.CloudOpenLevel=int(open)
+    if type(delay)==types.FloatType or type(delay)==types.IntType:
+      status.weather.WeatherOpenDelay=int(delay)
+
     if not isdark():
       print "It's not dark yet, monitoring mode would pause immediately."
       print "Monitor mode aborted."
@@ -154,9 +163,9 @@ def monitor(arg=None, close=None, open=None, delay=None):
       return 0
 
     status.MonitorActive=1
-    print "Monitoring ON, 'clear' delay timer reset to force immediate unpausing\n"
+    print "Monitoring ON, 'clear' delay reset to force immediate unpausing\n"
     status.weather.display()
-  else:
+  else:   #Arg not on or off
     print "type 'help(monitor)' for usage information.\nStatus:"
     status.weather.display()
     
