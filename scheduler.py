@@ -16,7 +16,7 @@ DictCursor=safecursor.SafeCursor
 AltCutoff = 30
 
 
-types={'PLANET':1, 'IMAGE':0.01}  
+types={'PLANET':0.001, 'IMAGE':1.0}  
 
 candidates={}
 cantimestamp=MySQLdb.Timestamp(0)
@@ -207,7 +207,7 @@ def _valid(o):
 
 
 
-Pfunction=Ptest3
+Pfunction=Ptest2
 
 
 #print 'connecting to database for objects database access'
