@@ -85,10 +85,13 @@ def getpage(base,data):
      It passes the base script URL along with all the form values in a block,
      passing them in the URL fails becuase of the length limit on URL's.
   """
-  f=urllib.urlopen(base, data)
-  page=f.read()
-  f.close()
-#  print page
+  try:
+    f=urllib.urlopen(base, data)
+    page=f.read()
+    f.close()
+  except:
+    print "Error connecting to PLANET homebase"
+    page=""
   if not string.find(page,'OK'):
     print "Error logging data:"
     print page    
