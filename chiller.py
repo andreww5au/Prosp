@@ -59,7 +59,7 @@ def _background():
   if (time.time() - lastdewchecktime) > 3600:         #Download new temp/dewpoint every hour
     t,d = getDewpoint()
     if t or d:
-      temp = t
+      airtemp = t
       dewpoint = d
       lastdewchecktime = time.time()
     else:
