@@ -180,6 +180,9 @@ def take(objs=[],wait=0):
     else:
       o=Object(ob)
     if o.ObjRA<>'':
+      while status.TJ.paused:
+        print "Waiting for weather to clear"
+        sleep(60)
       swrite("take - Moving to object "+o.ObjID)
       o.jump()
       print "Waiting for telescope and optical coupler."
@@ -188,9 +191,9 @@ def take(objs=[],wait=0):
       while status.TJ.moving or status.TJ.DomeInUse:
         time.sleep(1)
         status.TJ.update()
-      while status.TJ.paused:
-        print "Waiting for weather to clear"
-        sleep(60)
+      if string.upper(status.TJ.name) <> string.upper(o.ObjID):   #Teljoy hasn't jumped to this object
+        ewrite('Teljoy hasn't jumped to "+o.ObjID+" - possibly too low")
+        continue
       if wait:
         raw_input("Press enter when tracker camera is tracking")
       else:
