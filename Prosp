@@ -208,6 +208,7 @@ sys.path=sys.path+['.']   #Allow user-written modules in current dir to load
 
 
 try:
+#  raise Ariel.ArielError("Ariel interface disabled in Prosp, camera missing.")
   Ariel.init()        #Call the init() function in the library to open
                       #communications with the camera
 except Ariel.ArielError:
