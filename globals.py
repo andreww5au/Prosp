@@ -8,8 +8,8 @@ import operator
 import time
 import math
 
-statusfile='/tmp/ProspLog'
-errorfile='/tmp/ProspErrors'
+statusfile='/data/Logs/ProspLog'
+errorfile='/data/Logs/ProspErrors'
 
 try:
   if not sys.argv[0].endswith('Prosp'):
