@@ -1,10 +1,6 @@
 #!/usr/bin/python2 -i
 
-CloudOpenLevel=5900   #Open if cloud < this for more than WeatherOpenDelay sec
-CloudCloseLevel=6000  #Close is cloud > this or raining
-WeatherOpenDelay=1800  #Wait for 1800 sec of no-rain and cloud < CloudOpenLevel
-
-WeatherActive=0       #0 for disabled, 1 for rain only, 2 for rain and cloud.
+backgrounds=[]
 
 try:
   import readline
@@ -18,7 +14,6 @@ import Ariel
 import ArCommands
 
 import sys
-import signal     #Makes sure interrupts received only by main thread
 import time       #for the 'sleep' function
 import improc
 from improc import reduce
@@ -29,24 +24,49 @@ from planet import *
 import teljoy
 from teljoy import *
 import weather
+
+backgrounds.append(teljoy._background)
+backgrounds.append(weather._background)
+
 from globals import *
 import utils
 from utils import *
 import ephemint
 from ephemint import *
-import __builtin__
-
 
 
 def help(func):
   "Usage: help(function) to find out information about that function"
   if type(func)==type(''):
-    print "     "+getattr(__builtin__.globals()[func],'func_doc')
+    print "     "+getattr(__builtins__.globals()[func],'func_doc')
   else:
     print "     "+func.func_doc
 
 
+def _background():
+  "Call each of the registered background functions every 5 seconds"
+  while 1:
+    for f in backgrounds:
+      f()
+    time.sleep(5)
 
+
+class Prompt:
+  """Class to assign to sys.ps1, str() method is called every time a prompt is
+     printed. Used to make sure that the background thread is still alive.
+  """
+  def __str__(self):
+    global BGThread
+    if GotAriel:
+      if not BGThread.isAlive():
+        BGThread=threading.Thread(group=None,
+                                  target=_background)
+        BGThread.setDaemon(1)
+        BGThread.start()
+    return ">>>"
+
+
+sys.ps1=Prompt() 
 
 status=Ariel.ArielStatus()  #Define a status variable using the new class
 status.TJ=teljoy.status
@@ -64,6 +84,7 @@ try:
   Ariel.init()        #Call the init() function in the library to open
                       #communications with the camera
 except Ariel.ArielError:
+  GotAriel=0
   ewrite("Ariel init failed.")
   ewrite("Another program is using the Ariel++ interface to control the AP7.")
   print "Continuing without access to the AP7 hardware - to connect to the "
@@ -71,8 +92,14 @@ except Ariel.ArielError:
   print "Prosp, and restart. Use 'ps -a' to find other instances of the"
   print "program."
 else:
+  GotAriel=1
   swrite("Ariel init succeeded, contact with AP7 established.")
   from ArCommands import *
-  if not teljoy.Background.isAlive():
-    teljoy.Background.start()
+
+
+if GotAriel:
+  BGThread=threading.Thread(group=None,
+                     target=_background)
+  BGThread.setDaemon(1)
+  BGThread.start()
 
