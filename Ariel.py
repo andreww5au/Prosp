@@ -299,14 +299,18 @@ def init():     #Call this after creating a global status object
   swrite("Python Ariel interface initialising:")
 
   #Open input and output pipes
-  outf=os.open('/tmp/ariel.out',os.O_RDONLY | os.O_NONBLOCK)
+  
   try:
+    outf=os.open('/tmp/ariel.out',os.O_RDONLY | os.O_NONBLOCK)
     fcntl.flock(outf,fcntl.LOCK_EX+fcntl.LOCK_NB)  #Try a non-blocking lock
-  except IOError:
-    os.close(outf)
+  except:
+    try:
+      os.close(outf)
+    except:
+      pass
     outf=os.open('/dev/null',os.O_RDONLY | os.O_NONBLOCK)
     inf=os.open('/dev/null',os.O_WRONLY | os.O_APPEND | os.O_SYNC)
-    raise ArielError("Ariel in use")
+    raise ArielError("Ariel in use or not reachable")
     connected=0
   else:
     inf=os.open('/tmp/ariel.in',os.O_WRONLY | os.O_APPEND | os.O_SYNC)
