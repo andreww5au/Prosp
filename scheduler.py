@@ -16,7 +16,7 @@ DictCursor=safecursor.SafeCursor
 AltCutoff = 30
 
 
-types={'PLANET':1000.0, 'IMAGE':1.0}    #By default, SN searching is a last resort choice
+types={'PLANET':1.0, 'IMAGE':0.000001}    #By default, SN searching is a last resort choice
 candidates={}
 cantimestamp=MySQLdb.Timestamp(0)
 best=None
@@ -95,8 +95,8 @@ def Ptest2(o):
 
 
 def Ptest3(o):
-  """Flat priority function, useful only for PLANET or other objects observed many
-     times per night. No dependence on position apart from being =0 for alt<AltCutoff
+  """Flat priority function, useful mostly for PLANET or other objects observed many
+     times per night. No dependence on position apart from being =0 for alt<AltCutoff and abs(HA)>5
   """
   timefactor = abs((float(MySQLdb.TimestampFromTicks(time.time())) - o.LastObs) / (o.period*86400))
 
@@ -104,7 +104,14 @@ def Ptest3(o):
     altfactor=0.0
   else:
     altfactor = 1.0  
-  return timefactor * altfactor
+
+  ha=o.RA - teljoy.status.LST
+  if abs(ha) > 5:
+    hafactor = 0.0           #Don't allow any jumps outside -5 < HA < +5 hours 
+  else:                      #No matter what the altitude
+    hafactor = 1.0
+
+  return timefactor * altfactor * hafactor
 
 
 
@@ -189,7 +196,7 @@ def _valid(o):
 
 
 
-Pfunction=Ptest2
+Pfunction=Ptest3
 
 
 #print 'connecting to database for objects database access'
