@@ -1,4 +1,4 @@
-#!/usr/bin/python -i
+#!/usr/bin/python2 -i
 
 CloudOpenLevel=5900   #Open if cloud < this for more than WeatherOpenDelay sec
 CloudCloseLevel=6000  #Close is cloud > this or raining
