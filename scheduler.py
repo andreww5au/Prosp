@@ -16,7 +16,7 @@ DictCursor=safecursor.SafeCursor
 AltCutoff = 30
 
 
-types={'PLANET':1.0, 'IMAGE':1.0}    #relative weights
+types={'PLANET':0.1, 'IMAGE':1.0}  
 
 candidates={}
 cantimestamp=MySQLdb.Timestamp(0)
