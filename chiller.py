@@ -13,8 +13,13 @@ os.environ["http_proxy"]="http://proxy.calm.wa.gov.au:8080"
 ser = serial.Serial('/dev/ttyS2', 9600, timeout=1)
 
 ReadSetpoint = [0x01,0x03,0x00,0x7F,0x00,0x01]
-
 ReadTemp = [0x01,0x03,0x00,0x1C,0x00,0x01]
+
+EnterProgram1 = [0x01,0x06,0x03,0x00,0x00,0x05]      #Flag next message as secured - reply should be this message
+EnterProgram2 = [0x01,0x06,0x15,0x00,0x00,0x00]      #Enter programming mode - reply should be this message
+WriteSetpoint = [0x01,0x06,0x00,0x7F,0x00,0x00]      #Last two bytes are setpoint*10, high then low
+ExitProgram1 = [0x01,0x06,0x03,0x00,0x00,0x06]       #Flag next message as secured - reply should be this message
+ExitProgram2 = [0x01,0x06,0x16,0x00,0x00,0x00]       #Exit programming mode - reply should be this message
 
 
 def getDewpoint():
@@ -110,6 +115,13 @@ def getTemp():
   return temp
     
 
+def tobytes(temp=20.0):
+  """Convert a temperature from degrees C to a list of two bytes (high,low)
+  """
+  t = int(temp*10)
+  return list(divmod(t,256))
+  
+
 
 def getSetpoint():
   """Read the current setpoint temperature from the chiller unit.
@@ -123,6 +135,52 @@ def getSetpoint():
   else:
     print "No data ",reply
   return temp
+
+
+def newSetpoint(temp=20.0):
+  """Changes the chiller's current setpoint temperature.
+  """
+  try:
+    temp=float(temp)
+  except:
+    print "Aborting - Invalid value: ",temp
+    return
+
+  if temp <= (dewpoint + 2):
+    print "Aborting - Too low a temperature, current dewpoint is ",round(dewpoint,2)
+    return
+  elif temp >= 30:
+   print "Aborting - Too high a temperature, max of 30C"
+
+  send(EnterProgram1)
+  reply = map(ord, ser.read(8))
+  if reply[:-2] <> EnterProgram1:
+    print "Aborting - Bad response to EnterProgram1 ",reply
+    return
+
+  send(EnterProgram2)
+  reply = map(ord, ser.read(8))
+  if reply[:-2] <> EnterProgram2:
+    print "Aborting - Bad response to EnterProgram2 ",reply
+    return
+
+  WriteSetpoint[4:] = tobytes(temp)      #Note this changes global defined at top of file
+  send(WriteSetpoint)
+  reply = map(ord, ser.read(8))
+  if reply[:-2] <> WriteSetpoint:
+    print "Bad response to WriteSetpoint ",reply
+    print "Trying to exit program mode"
+
+  send(ExitProgram1)
+  reply = map(ord, ser.read(8))
+  if reply[:-2] <> ExitProgram1:
+    print "Bad response to ExitProgram1 ",reply
+
+  send(ExitProgram2)
+  reply = map(ord, ser.read(8))
+  if reply[:-2] <> ExitProgram2:
+    print "Bad response to ExitProgram2 ",reply
+  
 
 
 
