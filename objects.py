@@ -180,7 +180,7 @@ class Object:
          "XYpos_X="+`self.XYpos[0]`+", "+
          "XYpos_Y="+`self.XYpos[1]`+", "+
          "type='"+self.type+"', "+
-         "period='"+self.period+"', "+
+         "period="+`self.period`+", "+
          "comment='"+self.comment+"' "+
          "where ObjID='"+self.ObjID+"'")
 
@@ -205,6 +205,14 @@ class Object:
     print "Object "+self.ObjID+" deleted from database."
     return 1
 
+
+def ZapPeriods(period=0, type=''):
+  """Take an object type and set the desired observing interval for all objects of that
+     type to the specified period, in days.
+  """
+  if type:
+    curs.execute("update objects set period="+`period`+" where type='"+type+"'")
+   
 
 
 def allobjects():
