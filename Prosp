@@ -206,6 +206,7 @@ Ariel.status=status        #Make it the interface libraries status global
 ArCommands.status=status   #And the Ariel commands module
 autorun.status=status     #And the AutoRun libraries status global too
 utils.status=status       #And the utility commands module
+chiller.status=status     #And the chiller module, so it has the CCD temps
 sys.path=sys.path+['.']   #Allow user-written modules in current dir to load
 
 

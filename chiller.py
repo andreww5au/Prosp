@@ -33,7 +33,7 @@ threadlist = []      #A list of all thread objects from this module that are cur
 def updateDewpoint():
   """Download the current ambient temperature and dewpoint from the BOM website.
   """
-  global airtemp, dewpoint, lastdewchecktime
+  global airtemp, dewpoint, lastdewchecktime, goodBOM
   try:
     f=urllib2.urlopen('http://www.bom.gov.au/products/IDW60034.shtml')
     html=f.read()
@@ -51,7 +51,11 @@ def updateDewpoint():
           airtemp = float(dl[2].renderContents())
           dewpoint = float(dl[3].renderContents())  
           lastdewchecktime = time.time()
+          goodBOM = 1
   except:
+    airtemp = 20.0
+    dewpoint = 20.0
+    goodBOM = 0
     print 'Error grabbing temp,dewpoint'
     sys.excepthook(*sys.exc_info())
 
@@ -84,16 +88,19 @@ def _background():
       lastchillerchecktime = time.time() - 120       #If there was an error, try again in 2 minutes
     logfile.write("%12.2f %4.1f %4.1f %4.1f %4.1f \n" % (time.time(), airtemp, watertemp, setpoint, dewpoint) )
 
-  try:
-    desired = status.settemp + headroom      #Temperature to try and keep chiller setpoint near
-    if desired > airtemp:
-      desired = airtemp
-    if desired < (dewpoint + dewheadroom):
-      desired = dewpoint + dewheadroom
+    if goodBOM:
+      try:
+        desired = status.settemp + headroom      #Temperature to try and keep chiller setpoint near
+        if desired > airtemp:
+          desired = airtemp
+        if desired < (dewpoint + dewheadroom):
+          desired = dewpoint + dewheadroom
 
-    if (abs(desired-setpoint) > 5.0) or (setpoint < (dewpoint + dewheadroom)):
-      newSetpoint(desired)
-      print "Changing chiller setpoint to ",round(desired,1)
+        if (abs(desired-setpoint) > 5.0) or (setpoint < (dewpoint + dewheadroom)):
+          newSetpoint(desired)
+          print "Changing chiller setpoint to ",round(desired,1)
+      except:
+        pass       #Not running inside Prosp, no CCD setpoint info
 
 
 def crc(message=[]):
@@ -212,11 +219,12 @@ def newSetpoint(temp=20.0):
 
 
 
-airtemp = 99.9
-dewpoint = 99.9
+airtemp = 20.0
+dewpoint = 20.0
 lastdewchecktime = time.time() - 3600
+goodBOM = 0
 lastchillerchecktime = 0
-watertemp = -99.9
-setpoint = -99.9
+watertemp = 20.0
+setpoint = 20.0
 
 #_background()
