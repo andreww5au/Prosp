@@ -118,7 +118,9 @@ def monitor(arg=None, close=None, open=None, delay=None):
     if type(open)==types.FloatType or type(open)==types.IntType:
       status.weather.CloudOpenLevel=int(open)
     if type(delay)==types.FloatType or type(delay)==types.IntType:
-      status.weather.WeatherOpenDelay=int(delay)
+      status.weather.WeatherOpenDelay=int(delay) 
+    status.weather.clear=1
+    status.weather.checkweather()
     if not isdark():
       print "It's not dark yet, monitoring mode would pause immediately."
       print "Monitor mode aborted."
@@ -127,7 +129,13 @@ def monitor(arg=None, close=None, open=None, delay=None):
       print "It's too cloudy, monitoring mode would pause immediately."
       print "Monitor mode aborted."
       return 0
+    if status.weather.lastmod > 120:
+      print "It's been too long since the cloud detector was updated,"
+      print "something must be wrong. Monitor mode aborted."
+      return 0
+    status.weather.clear=1
     status.weather.OKforsec=86400
+    status.weather.checkweather()
     status.MonitorActive=1
     print "Monitoring ON, 'clear' delay timer reset to force immediate unpausing\n"
     status.weather.display()
