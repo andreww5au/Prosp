@@ -1,6 +1,7 @@
 
 """Utility functions that use features from several modules (planet, teljoy,
    etc). 
+   Used in Prosp and as stand-alone.
 """
 
 import ArCommands     #Camera interface library
