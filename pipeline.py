@@ -48,6 +48,7 @@ class dObject(objects.Object):
 
   def jump(self):
     "Move the telescope to the object coordinates"
+    self.errors=""
     while teljoy.status.paused:
       print "Waiting for weather to clear"
       time.sleep(60)
@@ -97,6 +98,7 @@ class dObject(objects.Object):
 
   def take(self):
     "Carry out a full observation and reduction for this object."
+    self.errors=""
     self.jump()
     if not self.errors:
       self.preset()
