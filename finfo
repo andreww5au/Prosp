@@ -78,23 +78,26 @@ for f in args:
 
 #Calculate or grab any params we might want to print from the image header
   
-  filename=os.path.basename(f)
-  object=string.strip(img.headers['OBJECT'][1:-1])
-  exptime=float(img.headers['EXPTIME'])
-  dateobs=string.strip(img.headers['DATE-OBS'][1:-1])
-  timeobs=string.strip(img.headers['TIME-OBS'][1:-1])
-  filterid=string.strip(img.headers['FILTERID'][1])
-  hjd=float(img.headers['HJD'])
-  pjd=hjd-2450000.0
-  ccdtemp=float(img.headers['CCDTEMP'])
-  if dostat:
-    noise=img.noise()
-    mean=img.mean()
-    max=img.max()
-    min=img.min()
-  if dofwhmsky:
-    fwhm=float(img.headers['FWHM'])
-    sky=float(img.headers['SKY'])
+  try:  
+    filename=os.path.basename(f)
+    object=string.strip(img.headers['OBJECT'][1:-1])
+    exptime=float(img.headers['EXPTIME'])
+    dateobs=string.strip(img.headers['DATE-OBS'][1:-1])
+    timeobs=string.strip(img.headers['TIME-OBS'][1:-1])
+    filterid=string.strip(img.headers['FILTERID'][1])
+    hjd=float(img.headers['HJD'])
+    pjd=hjd-2450000.0
+    ccdtemp=float(img.headers['CCDTEMP'])
+    if dostat:
+      noise=img.noise()
+      mean=img.mean()
+      max=img.max()
+      min=img.min()
+    if dofwhmsky:
+      fwhm=float(img.headers['FWHM'])
+      sky=float(img.headers['SKY'])
+  except:
+    pass     #Assume that any errors are in FITS cards we don't need to print
 
   
   print fmt % vars()      #Print the data using the format string
