@@ -321,6 +321,7 @@ def readlist(fname=''):
     tmplist=open(fname,'r').read().split()
   except IOError:
     ewrite('File: '+fname+' not found')
+    return None
 
   out=''
   i=0
