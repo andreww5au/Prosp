@@ -87,6 +87,27 @@ def sexstring(value=0,sp=':'):
     return outs
 
 
+def stringsex(value=""):
+  """Convert the sexagesimal coordinate 'value' into a floating point
+     result. Handles either a colon or a space as seperator, but currently
+     requires all three components (H:M:S not H:M or H:M.mmm).
+  """
+  try:
+    components=string.split(value,':')
+    if len(components)<>3:
+      components=string.split(value,' ')
+    if len(components)<>3:
+      return None
+
+    h,m,s=tuple(map(string.strip, components))
+    sign=1
+    if h[0]=="-":
+      sign=-1
+    return float(h) + (sign*float(m)/60.0) + (sign*float(s)/3600.0)
+  except:
+    return None
+
+
 def swrite(s='swrite called with null string.'):
   "Write a status message to screen and status logfile"
   sfile.write(time.strftime("%Y%m%d%H%M%S:",time.localtime(time.time()))+s+'\n')
