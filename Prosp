@@ -46,6 +46,17 @@ def help(func):
 def _background():
   "Call each of the registered background functions every 5 seconds"
   while 1:
+
+    if status.weather.WeatherActive:
+      if status.weather.Clear.isSet() and (not teljoy.Active.isSet()):
+        teljoy.unpause()
+      if (not status.weather.Clear.isSet()) and teljoy.Active.isSet():
+        teljoy.pause()
+      if (not ephemint.isdark()) and teljoy.Active.isSet():
+        print "End of the night, pausing forever. To resume,"
+        print "type 'status.weather.WeatherActive=0', then 'teljoy.unpause()'"
+        teljoy.pause()
+
     for f in backgrounds:
       f()
     time.sleep(5)
@@ -72,6 +83,7 @@ status=Ariel.ArielStatus()  #Define a status variable using the new class
 status.TJ=teljoy.status
 status.TJ.updated=status.updated  #Flag main status updated when TJ changes
 status.weather=weather.status
+
 
 Ariel.status=status        #Make it the interface libraries status global
 ArCommands.status=status   #And the Ariel commands module

@@ -5,6 +5,8 @@ import time
 import weather
 from globals import *
 
+ShutterAction=None
+FreezeAction=None
 
 Active=threading.Event()
 Active.set()
@@ -192,38 +194,6 @@ def dome(azi=90):
     curs.execute("insert into tjbox (Action,DomeAzi) values ('dome', "+`azi`+") ")
 
 
-def shutterwait(action='CLOSE'):
-  """Closes the dome shutter. Will not return until the shutter is fully
-     opened/closed. Note, if teljoy is not accepting remote control commands
-     (eg old version of teljoy, or sitting at coordinate entry prompt), 
-     this function WILL NOT EVER RETURN.
-
-     Usage: shutterwait('OPEN')
-            shutterwait('CLOSE')
-  """
-  curs=db.cursor()
-  send=-1
-  action=string.upper(string.strip(action))
-  if action=='OPEN':
-    send=1
-    swrite("Opening Shutter.")
-  elif action=='CLOSE':
-    send=0
-    swrite("Closing Shutter.")
-  if send<0:
-    ewrite("teljoy.shutterwait - Parameter must be 'OPEN' or 'CLOSE'")
-  else:
-    print "looping",send,status.ShutterInUse,status.ShutterOpen
-    while status.ShutterInUse or (status.ShutterOpen <> send):
-      if not existsTJbox(curs):
-        curs.execute("insert into tjbox (Action,shutter) values"+
-              " ('shutter', "+`send`+") ")
-        print "resending tjbox",send,status.ShutterInUse,status.ShutterOpen
-      print "waiting for shutter to finish",send,status.ShutterInUse,status.ShutterOpen
-      time.sleep(5)
-    print "finishing",send,status.ShutterInUse,status.ShutterOpen
-
-
 def freeze(action=0):
   """Freezes all telescope tracking if the argument is true, unfreezes
      if the argument is false. Silently fails if Teljoy isn't ready to be
@@ -234,12 +204,11 @@ def freeze(action=0):
      Usage: freeze(1)
             freeze(0)
   """
-  curs=db.cursor()
-  curs.execute("insert into tjbox (Action,freeze) values ('freeze', "+`action`+") ")
+  global FreezeAction
   if action:
-    swrite("Telescope frozen.")
+    FreezeAction=1
   else:
-    swrite("Telescope un-frozen.")
+    FreezeAction=0
 
 
 def pause():
@@ -252,7 +221,6 @@ def pause():
     status.paused=1
     Active.clear()
     freeze(1)
-    time.sleep(5)
     shutter('CLOSE')
 
 
@@ -264,32 +232,50 @@ def unpause():
   else:
     swrite("Teljoy un-paused, weather OK now.")
     shutter('OPEN')
-    time.sleep(5)
     freeze(0)
-    time.sleep(5)
     Active.set()
     status.paused=0
 
 
 def shutter(action='CLOSE'):
-  """Open/close the shutter in a background thread so that the function returns
-     immediately.
+  """Open/close the shutter. Argument must be 'OPEN' or 'CLOSE'. All
+     action takes place in the background, so the function returns 
+     immediately. If Teljoy is not in a state where it can be remote
+     controlled, this function will do nothing.
   """
-  tmpthread=threading.Thread(target=shutterwait, args=(action,))
-  tmpthread.run()
+  global ShutterAction
+  action=string.upper(string.strip(action))
+  if action=="OPEN":
+    ShutterAction=1
+  elif action=="CLOSE":
+    ShutterAction=0
+  else:
+    print "teljoy.shutter: Argument must be 'OPEN' or 'CLOSE'"
 
 
 def _background():
   """Function to be run in the background, updates the status object.
   """
+  global ShutterAction,FreezeAction
   try:
+    curs=db.cursor()
     status.update()
-    if weather.WeatherActive:
-      if weather.Clear.isSet() and (not Active.isSet()):
-        unpause()
-      if (not weather.Clear.isSet()) and Active.isSet():
-        pause()
-  except:
+
+    if ShutterAction <> None:
+      if status.ShutterOpen <> ShutterAction:
+        curs.execute("delete from tjbox")
+        curs.execute("insert into tjbox (Action,shutter) values"+
+                     " ('shutter', "+`ShutterAction`+") ")
+      else:
+        ShutterAction=None
+    elif FreezeAction <> None:
+      if status.Frozen <> FreezeAction:
+        curs.execute("delete from tjbox")
+        curs.execute("insert into tjbox (Action,freeze) values"+
+                     " ('freeze', "+`FreezeAction`+") ")
+      else:
+        FreezeAction=None
+  except KeyboardInterrupt:
     print "a teljoy exception"
 
 
