@@ -67,6 +67,31 @@ def isday():
     return 1
 
 
+def precess(ra=0.0, dec=-0.5587):
+# written by Ralph Martin April 2003
+  c=herenow()
+  mjd=c.mjd
+  pra,pdec = ephem.ap_as(c,mjd,ra,dec)
+  return pra,pdec
+
+
+def alaz(ra=0.0,dec=-0.5587):
+# written by Ralph Martin April 2003
+# calculate an altitude and azimuth for a given ra and dec
+  c=herenow()
+  pra,pdec=precess(ra,dec)  #precess ra and dec
+# input ra and dec in radians 
+  st=ephem.computeSiderealTime(c)  #sidereal time (hours)
+  stRadians=pi*st/12.0
+  H=stRadians-ra
+  aa=math.cos(H)*math.sin(obslat)-math.tan(dec)*math.cos(obslat)
+  aziTan=math.sin(H)/aa
+  azi=math.atan(aziTan) # objects's azimuth
+  altSin=math.sin(obslat)*math.sin(dec)+math.cos(obslat)*math.cos(dec)*math.cos(H)
+  alt=math.asin(altSin)
+  return alt,azi
+
+
 
 def elements(name=None):
   """Takes an optional name (if missing, you will be prompted for a name), and
