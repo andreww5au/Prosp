@@ -48,7 +48,7 @@ def _background():
   while 1:
 
     if status.MonitorActive:
-      if status.weather.clear and (not teljoy.Active.isSet()):
+      if status.weather.clear and isdark() and (not teljoy.Active.isSet()):
         teljoy.unpause()
       if (not status.weather.clear) and teljoy.Active.isSet():
         teljoy.pause()
