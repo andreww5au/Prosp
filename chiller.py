@@ -10,7 +10,7 @@ from BeautifulSoup import BeautifulSoup
 
 os.environ["http_proxy"]="http://proxy.calm.wa.gov.au:8080"
 
-ser = serial.Serial('/dev/ttyS0', 9600, timeout=1)
+ser = serial.Serial('/dev/ttyS2', 9600, timeout=1)
 
 ReadSetpoint = [0x01,0x03,0x00,0x7F,0x00,0x01]
 
@@ -100,11 +100,13 @@ def getTemp():
   """Read the current water outlet temperature from the chiller unit.
   """
   send(ReadTemp)
-  reply = map(ord, ser.read())
+  reply = map(ord, ser.read(7))
   temp = -99.9
   if len(reply)>4:
     if crc(reply[:-2])[-2:] == reply[-2:]:
       temp = (reply[3]*256 + reply[4]) / 10.0
+  else:
+    print "No data ",reply
   return temp
     
 
@@ -113,11 +115,13 @@ def getSetpoint():
   """Read the current setpoint temperature from the chiller unit.
   """
   send(ReadSetpoint)
-  reply = map(ord, ser.read())
+  reply = map(ord, ser.read(7))
   temp = -99.9
   if len(reply)>4:
     if crc(reply[:-2])[-2:] == reply[-2:]:
       temp = (reply[3]*256 + reply[4]) / 10.0
+  else:
+    print "No data ",reply
   return temp
 
 
