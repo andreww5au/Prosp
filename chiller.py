@@ -63,7 +63,7 @@ def _background():
 
   #Download new temp/dewpoint every hour if there are no threads already, try again after 90 min if 1 blocked thread
   if ( (((time.time() - lastdewchecktime) > 3600) and (len(threadlist)==0)) or
-       (((time.time() - lastdewchecktime) > 5400) and (len(threadlist)==1)):    
+       (((time.time() - lastdewchecktime) > 5400) and (len(threadlist)==1)) ):    
     t=threading.Thread(target=updateDewpoint,
                        name='BOM Bickley weather page download')
     t.setDaemon(1)
@@ -197,7 +197,7 @@ def newSetpoint(temp=20.0):
 
 airtemp = 99.9
 dewpoint = 99.9
-lastdewchecktime = 0
+lastdewchecktime = time.time() - 3600
 lastchillerchecktime = 0
 watertemp = -99.9
 setpoint = -99.9
