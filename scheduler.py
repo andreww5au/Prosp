@@ -89,9 +89,21 @@ def Ptest2(o):
       hafactor=0             #Always below horizon
     else:
       hafactor=(6-ha) * (0.5 * math.pi / math.acos(ch))
-    
   
   return movefactor * timefactor * altfactor * hafactor
+
+
+def Ptest3(o):
+  """Flat priority function, useful only for PLANET or other objects observed many
+     times per night. No dependence on position apart from being =0 for alt<AltCutoff
+  """
+  timefactor = abs((float(MySQLdb.TimestampFromTicks(time.time())) - o.LastObs) / (o.period*86400))
+
+  if o.ALT < AltCutoff:
+    altfactor=0.0
+  else:
+    altfactor = 1.0  
+  return timefactor * altfactor
 
 
 
@@ -143,6 +155,8 @@ def UpdateCandidates():
         best=o
     except AttributeError:
       best=o
+  if best.PRIORITY <= 0:
+    best=None
 
 
 
