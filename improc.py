@@ -19,7 +19,7 @@ lastbias=None
 lastflats=[]      #A cache of the last few flatfield images used.
 
 
-class FITSosucamera(fits.FITS):
+class FITSold(fits.FITS):
   """FITS image class. Creation accepts two parameters, filename and read mode.
      If the read mode is 'h', the file headers are read, and two dictionaries,
      object.headers and object.comments are created. If the read mode is 'r', 
@@ -105,7 +105,7 @@ class FITSosucamera(fits.FITS):
     self.data=dregion - bias                      #Subtract and trim image
     self.headers['NAXIS1']=`self.data.shape[1]`   #Update cards after trimming
     self.headers['NAXIS2']=`self.data.shape[0]`
-    histlog(self,"BIAS: of "+`bias`+" and trimmed")
+    self.histlog("BIAS: of %9.4f and trimmed" % (round(bias,4)))
     return 1
 
 
@@ -126,7 +126,9 @@ class FITSosucamera(fits.FITS):
 
        Before carrying out the dark subtraction, the CCD temperatures (FITS
        key 'CCDTEMP') are compared, and a warning given if there is more than
-       0.5C difference. The exposure times are used to calculate the correct
+       0.5C difference. The temperatures are then used to multiply the dark image
+       by 2^(delta-T/6) to correct for the theoretical dependence of dark current
+       on CCD temperature. The exposure times are used to calculate the exposure
        ratio for the dark subtraction.
     """
     global lastdark
@@ -167,9 +169,9 @@ class FITSosucamera(fits.FITS):
     eratio=float(self.headers['EXPTIME']) / float(darkimage.headers['EXPTIME'])
     tratio=2.0**( deltatemp/6.0 )
     self.data=self.data - (darkimage.data * eratio * tratio)
-    histlog(self,"DARK: "+os.path.abspath(darkimage.filename)+
+    self.histlog("DARK: "+os.path.abspath(darkimage.filename)+
          " ET=%ss, T=%5.2fC" % (darkimage.headers['EXPTIME'],darktemp))
-    histlog(self,"DARK: exp time ratio=%5.3f, temp ratio=%5.3f" %
+    self.histlog("DARK: exp time ratio=%5.3f, temp ratio=%5.3f" %
             (eratio,tratio))
     return 1
 
@@ -239,7 +241,7 @@ class FITSosucamera(fits.FITS):
         return 0
 
     self.data = self.data / flatimage.data
-    histlog(self,"FLAT: "+os.path.abspath(flatimage.filename))
+    self.histlog("FLAT: "+os.path.abspath(flatimage.filename))
 
     if flatimage not in lastflats:
       lastflats.append(flatimage)        #Add it to the cache
@@ -275,8 +277,8 @@ class FITSosucamera(fits.FITS):
       return -1,-1
 
 
-class FITSnewcamera(FITSosucamera):
-  """FITS image class. Creation accepts two parameters, filename and read mode.
+class FITSnew(FITSold):
+  """New FITS image class. Creation accepts two parameters, filename and read mode.
      If the read mode is 'h', the file headers are read, and two dictionaries,
      object.headers and object.comments are created. If the read mode is 'r', 
      the data section is read as well, producing a Numeric Python array 
@@ -284,7 +286,7 @@ class FITSnewcamera(FITSosucamera):
      header is constructed, and a 512x512 pixel data section, initialised to 
      zeroes (unless the mode is 'h' for headers only).
 
-     This subclasses FITSosucamera and overrides the 'bias' method to do bias
+     This subclasses FITSold - overrides the 'bias' method to do bias
      image subtraction needed for the new Perth AP7.
      The reduction methods on the image include: bias, dark, and flat.
   """
@@ -347,10 +349,10 @@ class FITSnewcamera(FITSosucamera):
         print "Warning - bias frame and image temp differ by "+`deltatemp`
       bdregion=_parseregion(biasimage,datasec)
       self.data=dregion - bias - bdregion
-      histlog(self,"BIAS: of "+`bias`+" and bias.fits at "+`biastemp`+"C")
+      self.histlog("BIAS: of %9.4f and bias.fits at %6.2fC" % (bias, biastemp))
     else:
       self.data=dregion - bias                      #Subtract and trim image
-      histlog(self,"BIAS: of "+`bias`)
+      self.histlog("BIAS: of %9.4f" % (bias))
 
     self.headers['NAXIS1']=`self.data.shape[1]`   #Update cards after trimming
     self.headers['NAXIS2']=`self.data.shape[0]`
@@ -360,24 +362,6 @@ class FITSnewcamera(FITSosucamera):
 #
 #Some support functions that might be of use externally:
 #
-
-def histlog(im,str):
-  """Adds a HISTORY line containing 'str' to the image.
-     Used to log actions performed on an image. A 20 character time stamp
-     is added as a prefix, and the result is split across up to three cards
-     if it is too long to fit in one. Any extra text is truncated.
-  """
-  value=time.strftime("%Y/%m/%d %H:%M:%S ",time.gmtime(time.time()) )+str
-  if len(value)>70:
-    value=value[:70]+'\n'+value[70:]
-  if len(value)>141:
-    value=value[:141]+'\n'+value[141:]
-  if len(value)>212:
-    value=value[:212]
-  if im.comments.has_key("HISTORY"):
-    im.comments["HISTORY"]=im.comments["HISTORY"]+'\n'+value
-  else:
-    im.comments["HISTORY"]=value
 
 
 def median(l=[]):
@@ -610,102 +594,6 @@ def _reducefile(fname=''):
   return outfile
 
 
-
-#Some handler functions for FITS card support, most not very useful 
-#externally.
-
-def _parseline(ob,line):
-  """Parse each header line, finding key, value, and comment.
-     Return value is 0 unless the FITS card parsed is the 'END' marker,
-     in which case 1 is returned to signal the end of the FITS cards.
-
-     Most FITS cards are stored in the ob.headers dictionary,
-     and if a line has a key/value and an inline comment, that
-     comment is stored with the same key value but in the ob.comments
-     dictionary. The 'COMMENT' and 'HISTORY' keys are handled specially.
-     Both end up in the ob.comments dictionary, but all COMMENT
-     lines are joined together, seperated by newlines, and stored with
-     the 'COMMENT' key. The 'HISTORY' key is handled the same way.
-
-     All values are stored as strings, with any strings present in the FITS
-     cards retaining thier enclosing quotation marks. These quote marks are
-     necessary, so that the file save code can determine whether to format the
-     card for string or numeric data. They can be stripped off using string
-     slicing when used - eg object.headers['FILTERID'][1:-1]. White space
-     inside the quotation marks is also retained, but any other white space
-     is stripped.
-  """
-
-  key=string.strip(line[:8])   #First 8 chars with whitespace stripped
-  value=string.strip(line[9:]) #Rest of line with whitespace stripped
-  comment=''                   #Empty comment field for now
-
-  if key == 'COMMENT':    #Handle case where comment takes up the whole line
-    if ob.comments.has_key('COMMENT'):
-      ob.comments['COMMENT']=ob.comments['COMMENT']+'\n'+value
-    else:
-      ob.comments['COMMENT']=value
-  elif key == 'HISTORY':  #Handle 'HISTORY' like 'COMMENT'
-    if ob.comments.has_key('HISTORY'):
-      ob.comments['HISTORY']=ob.comments['HISTORY']+'\n'+value
-    else:
-      ob.comments['HISTORY']=value
-
-#For both HISTORY and COMMENT, build up one value, with newlines seperating
-#each line in the FITS file. Otherwise, it's one dictionary entry per line
-
-  elif key == 'END':
-    return 1
-  else:
-    if string.find(value,'/')>-1:    #Strip the comment off
-      comment=string.strip(value[string.find(value,'/')+1:])
-      value=string.strip(value[:string.find(value,'/')])
-
-#Add dictionary entries for the key value, and key comment if it exists
-    ob.headers[key]=value
-    if comment<>'':
-      ob.comments[key]=comment
-    return 0
-
-
-
-def _fh(fim=None, h=''):
-  """Given an image and a header key, return the 80-byte formatted header card.
-
-     A null card is returned for an error, and can be ignored since it's safe
-     to write an empty string to the FITS header.
-  """
-  h=string.upper(h)
-  if not fim:
-    return '' 
-  try:
-    if h=='END':
-      return string.ljust('END',80)
-    elif h=='COMMENT' or h=='HISTORY':
-      lines=string.split(fim.comments[h],'\n')
-      out=''
-      for l in lines:
-        out=out+string.ljust(string.ljust(h,10)+l, 80)
-      return out
-    elif h not in fim.headers.keys():
-      return ''
-    else:
-      v=fim.headers[h]
-      out=string.ljust(h,8)+'= '
-      if v[0]=='"' or v[0]=="'":
-        out=out+string.ljust(v,20)
-      else:
-        out=out+string.rjust(v,20)
-      if fim.comments.has_key(h):
-        out=out+' / '+fim.comments[h]
-      out=string.ljust(out,80)
-      if len(out)>80:
-        out=out[:80]
-    return out
-  except KeyError:
-    return ''
-
-
 def _parseregion(im=None, r=''):
   """Returns an array slice from a FITS object given a region string.
      For example, a region string might be '[512,544:1,512]', and the Numeric
@@ -750,5 +638,5 @@ def _ndmedian(m):
 
 ###   Module init  ####
 
-FITS=FITSnewcamera
+FITS=FITSnew
 

@@ -220,7 +220,7 @@ class FITS(fits.FITS):
         return 0
 
     self.data = self.data / flatimage.data
-    histlog(self,"FLAT: "+os.path.abspath(flatimage.filename))
+    self.histlog("FLAT: "+os.path.abspath(flatimage.filename))
 
 
 
