@@ -1,5 +1,6 @@
 
 import os
+import sys
 import string
 import glob
 import types
@@ -11,6 +12,8 @@ statusfile='/tmp/ProspLog'
 errorfile='/tmp/ProspErrors'
 
 try:
+  if not sys.argv[0].endswith('Prosp'):
+    raise NameError, "Not running inside Prosp"
   sfile=open(statusfile,'a')
   efile=open(errorfile,'a')
 except:
