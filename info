@@ -1,0 +1,46 @@
+#!/usr/bin/python
+
+import os
+import sys
+import string
+import improc
+import globals
+
+flag='i'
+if len(sys.argv)==1:
+  help()
+  sys.exit()
+elif sys.argv[1][0]=='-':
+  flag=sys.argv[1][1:]
+  args=sys.argv[2:]
+else:
+  args=sys.argv[1:]
+
+if not args:
+  help()
+  sys.exit()
+
+
+if flag=='i':
+  fmt="%(filename)-20s %(object)-9s %(filterid)1s %(pjd)8.5f  %(ccdtemp)5.1f  %(fwhm)5.2f %(sky)5d"
+elif flag=='d':
+  fmt="%(filename)-20s %(pjd)9.5f %(fwhm)5.2f"
+
+for f in args:
+  img=improc.FITS(f)
+  if not img.headers.has_key('FWHM'):
+    img.fwhmsky()
+  
+  filename=os.path.basename(f)
+  fwhm=float(img.headers['FWHM'])
+  sky=float(img.headers['SKY'])
+  object=string.strip(img.headers['OBJECT'][1:-1])
+  exptime=float(img.headers['EXPTIME'])
+  dateobs=string.strip(img.headers['DATE-OBS'][1:-1])
+  timeobs=string.strip(img.headers['TIME-OBS'][1:-1])
+  filterid=string.strip(img.headers['FILTERID'][1])
+  hjd=float(img.headers['HJD'])
+  pjd=hjd-2450000.0
+  ccdtemp=float(img.headers['CCDTEMP'])
+  
+  print fmt % vars()
