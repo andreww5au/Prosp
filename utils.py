@@ -7,7 +7,7 @@ import getpass
 from ArCommands import *   #Make camera functions usable without module name
                            #qualifier
 import improc
-from improc import reduce,dodark,doflat
+from improc import reduce,dobias,dodark,doflat
 import planet
 from planet import *
 from dobjects import Object
