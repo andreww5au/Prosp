@@ -234,18 +234,18 @@ def doall(yrs=['99','2K','01','02']):
     counts=planet.countimgs(status.path)
     processall(yr)
     archiveall(yr)
-  for f in dircache.listdir(planet.PipeHome+'/outgoing/'):
-    os.remove(planet.PipeHome+'/outgoing/'+f)
+#  for f in dircache.listdir(planet.PipeHome+'/outgoing/'):
+#    os.remove(planet.PipeHome+'/outgoing/'+f)
   for o in counts.keys():
     swrite("Object "+o+": "+`counts[o]`+" images.")
-    ob=planet.Pobject(o)
-    if ob.good:
-      os.system('cp '+ob.archivedir+'/'+planet.site+ob.root+'I '+ 
-           planet.PipeHome+'/outgoing/'+planet.site+ob.root+'I ;'+
-           ' gzip '+planet.PipeHome+'/outgoing/'+planet.site+ob.root+'I')
+#    ob=planet.Pobject(o)
+#    if ob.good:
+#      os.system('cp '+ob.archivedir+'/'+planet.site+ob.root+'I '+ 
+#           planet.PipeHome+'/outgoing/'+planet.site+ob.root+'I ;'+
+#           ' gzip '+planet.PipeHome+'/outgoing/'+planet.site+ob.root+'I')
   wd=os.getcwd()
-  os.chdir(planet.PipeHome+'/outgoing')
-  os.system('scp W*.gz planet@thales.astro.rug.nl:NotPublic/Incoming01')
+  os.chdir('/home/observer/PLANET-archives')
+  os.system('./SyncArchives')
   os.chdir(wd)
 
 
