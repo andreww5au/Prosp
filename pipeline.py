@@ -102,9 +102,9 @@ class dObject(objects.Object):
       self.preset()
       self.fileprefix()
       self.set()
+      self.updatetime()
       self.get()
       self.reduce()
-      self.updatetime()
       self.log()
     else:
       print "Errors: "+self.errors
