@@ -39,7 +39,7 @@ class _Weather:
 
   def __init__(self):
     self.empty()
-    curs=_db.cursor()
+    curs=db.cursor()
     #Set the reference time for selecting a sky value to be 1800 seconds before now
     #If we don't subtract 1800sec, the first query called will return no records.
     try:
@@ -94,27 +94,29 @@ class _Weather:
           self.clear=0
           self.OKforsec=0
 
-  def update(self):
+  def update(self, u_curs=None):
     "Connect to the database to update fields"
     self.weathererror=""
-    curs=_db.cursor()
+
+    if not u_curs:
+      u_curs=db.cursor()
     try:
-      curs.execute('select unix_timestamp(now())-unix_timestamp(time) '+
+      u_curs.execute('select unix_timestamp(now())-unix_timestamp(time) '+
           'as lastmod, cloud, rain from teljoy.weather order by time desc '+
           'limit 1')
                                        #Read the contents of the
                                        #'weather status' table to find
                                        #cloud voltage and rain status
-      self.__dict__.update(curs.fetchallDict()[0])
+      self.__dict__.update(u_curs.fetchallDict()[0])
     except:
       self.weathererror="Weather database not OK, can't get current values"
     if self.lastmod>200:
       self.weathererror="Weather database not updated for " + `self.lastmod` + " seconds."
 
     try:
-      curs.execute('select cloud from weather where time > '+
+      u_curs.execute('select cloud from weather where time > '+
                     'from_unixtime(unix_timestamp(now())-1800) order by cloud limit 4' )
-      res=curs.fetchallDict()     
+      res=u_curs.fetchallDict()     
       tempsky=res[-1]['cloud']   
              #Take the 4th lowest cloud value in the last half hour
       if tempsky < self.sky:
@@ -133,15 +135,18 @@ class _Weather:
 def _background():
   """Function to be run in the background, updates the status object.
   """
+  b_curs=b_db.cursor()
   try:
-    status.update()
+    status.update(b_curs)
   except:
     print "a weather exception"
 
 
 
-_db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor)
+b_db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+                        db='teljoy', cursorclass=DictCursor)
 status=_Weather()
 status.update()
 

@@ -90,11 +90,12 @@ class TJstatus:
     print 'lastmod=',self.lastmod
     print 'paused=',self.paused
 
-  def update(self):
+  def update(self, u_curs=None):
     "Connect to the database to update fields"
 
-    curs=db.cursor()
-    curs.execute('select name,ObjRA,ObjDec,ObjEpoch,RawRA,RawDec,'+
+    if not u_curs:
+      u_curs=db.cursor()
+    u_curs.execute('select name,ObjRA,ObjDec,ObjEpoch,RawRA,RawDec,'+
          'RawHourAngle,Alt,Azi,LST,UTDec,posviolate,moving,'+
          'EastOfPier,NonSidOn,DomeInUse,ShutterInUse,ShutterOpen,'+
          'DomeTracking,Frozen,AutoRunning,NumRead,CurNum,'+
@@ -102,7 +103,7 @@ class TJstatus:
          'unix_timestamp(now())-unix_timestamp(LastMod) as lastmod '+
          'from current');
 
-    c=curs.fetchallDict()[0]
+    c=u_curs.fetchallDict()[0]
 
     self.__dict__.update(c)   #Create self.name, self.ObjRA, etc from
                               #the data returned from the query
@@ -287,26 +288,27 @@ def _background():
     if (sincepause>300) and (sincepause<480):
       shutter('CLOSE')             #If it's been 5-6 minutes since pausing,
                                    #close the shutter again to be safe
-    curs=db.cursor()
-    status.update()
+
+    b_curs=b_db.cursor()
+    status.update(b_curs)
 
     if ShutterAction <> None:
       if status.ShutterOpen <> ShutterAction:
-        curs.execute("delete from tjbox")
-        curs.execute("insert into tjbox (Action,shutter) values"+
+        b_curs.execute("delete from tjbox")
+        b_curs.execute("insert into tjbox (Action,shutter) values"+
                      " ('shutter', "+`ShutterAction`+") ")
       else:
         ShutterAction=None
     elif FreezeAction <> None:
       if status.Frozen <> FreezeAction:
-        curs.execute("delete from tjbox")
-        curs.execute("insert into tjbox (Action,freeze) values"+
+        b_curs.execute("delete from tjbox")
+        b_curs.execute("insert into tjbox (Action,freeze) values"+
                      " ('freeze', "+`FreezeAction`+") ")
       else:
         FreezeAction=None
     else:
-      if not existsTJbox(curs):
-        curs.execute("insert into tjbox (Action) values ('none')")
+      if not existsTJbox(b_curs):
+        b_curs.execute("insert into tjbox (Action) values ('none')")
 
   except KeyboardInterrupt:
     print "a teljoy exception"
@@ -314,6 +316,9 @@ def _background():
 
 db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor) 
+b_db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+                        db='teljoy', cursorclass=DictCursor)
+
 curs=db.cursor()
 
 status=TJstatus()
