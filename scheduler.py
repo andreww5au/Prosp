@@ -78,20 +78,30 @@ def Ptest2(o):
   if abs(ha) > 5:
     hafactor = 0.0           #Don't allow any jumps outside -5 < HA < +5 hours 
   else:                      #No matter what the altitude
-    ch=( (math.sin(AltCutoff/180*math.pi)-math.sin(ephemint.obslat)*math.sin(o.DEC/180*math.pi)) / 
-        (math.cos(ephemint.obslat)*math.cos(o.DEC/180*math.pi)) )
+    if o.DEC == 90.0:
+      ch = 999
+    elif o.DEC == -90.0:
+      ch = -999
+    else:
+      ch=( (math.sin(AltCutoff/180*math.pi)-math.sin(ephemint.obslat)*math.sin(o.DEC/180*math.pi)) / 
+           (math.cos(ephemint.obslat)*math.cos(o.DEC/180*math.pi)) )
 
     #ch is the cos of the objects abs(hour angle) at rise/set (above altcutoff)
+    #ch <= 1.0 implies always above horizon
+    #ch == 0 implies object rises and sets when HA = +/-6 hours
+    #ch == 0.25 implies object rises and sets when HA = +/-5 hours
+    #ch >= 1.0 implies always below horizon
 
-#    if ch<-1.0:
-#      hafactor=(6-ha)/6.0    #always above horizon -> =1 overhead, 0.17 at 5 hours
-#    elif ch>1.0:
-#      hafactor=0             #Always below horizon
-#    else:
-#      hafactor=(6-ha) / (12 * math.acos(ch) / math.pi)
+    if ch <= 0.25:
+      hafactor = math.cos(ha/10*math.pi)    #if object always visible when -5<HA<5
+    elif ch >= 1.0:
+      hafactor = 0             #Always below horizon
+    else:
+      hafactor = 5.0/(12*math.acos(ch)/math.pi) * math.cos(ha/(24*math.acos(ch)/math.pi)*math.pi)
 
-    hafactor=1.0     #Disable HA weighting temporarily
-  
+    if hafactor > 10.0:
+      hafactor = 10.0
+    
   return movefactor * timefactor * altfactor * hafactor
 
 
@@ -197,7 +207,7 @@ def _valid(o):
 
 
 
-Pfunction=Ptest3
+Pfunction=Ptest2
 
 
 #print 'connecting to database for objects database access'
