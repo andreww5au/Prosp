@@ -31,6 +31,7 @@ class Object:
 
   def empty(self):
     self.ObjID=''
+    self.name=''
     self.origid=''
     self.ObjRA=''
     self.ObjDec=''
@@ -54,6 +55,7 @@ class Object:
       else:
         c=curs.fetchallDict()[0]
       self.ObjID=c['ObjID']
+      self.name=c['name']
       self.origid=self.ObjID
       self.ObjRA=c['ObjRA']
       self.ObjDec=c['ObjDec']
@@ -76,6 +78,7 @@ class Object:
 
   def edit(self):
     self.ObjID=_gets('ObjID',self.ObjID)
+    self.name=_gets('Name',self.name)
     self.ObjRA=_gets('RA',self.ObjRA)
     self.ObjDec=_gets('Dec',self.ObjDec)
     self.ObjEpoch=_getn('Epoch',self.ObjEpoch)
@@ -100,10 +103,11 @@ class Object:
       print "Empty ObjID, can't save object."
       return 0
     if not curs.execute("select * from objects where ObjID='"+self.ObjID+"'"):
-      curs.execute("insert into objects (ObjID,ObjRA,ObjDec,ObjEpoch,filtname,"+
+      curs.execute("insert into objects (ObjID,name,ObjRA,ObjDec,ObjEpoch,filtname,"+
          "exptime,"+
          "XYpos_X,XYpos_Y,type,comment) values ("+
          "'"+self.ObjID+"', "+
+         "'"+self.name+"', "+
          "'"+self.ObjRA+"', "+
          "'"+self.ObjDec+"', "+
          `self.ObjEpoch`+", "+
@@ -129,6 +133,7 @@ class Object:
           return 0
       curs.execute("update objects set "+
          "ObjID='"+self.ObjID+"', "+
+         "name='"+self.name+"', "+
          "ObjRA='"+self.ObjRA+"', "+
          "ObjDec='"+self.ObjDec+"', "+
          "ObjEpoch="+`self.ObjEpoch`+", "+
