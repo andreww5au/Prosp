@@ -3,9 +3,10 @@ import MySQLdb
 import threading
 from globals import *
 
-CloudOpenLevel=5900   #Open if cloud < this for more than WeatherOpenDelay sec
-CloudCloseLevel=6000  #Close is cloud > this or raining
-WeatherOpenDelay=1800  #Wait for 1800 sec of no-rain and cloud < CloudOpenLevel
+#These are the initial defaults, copied to the status object on module init.
+_CloudOpenLevel=5900   #Open if cloud < this for more than WeatherOpenDelay sec
+_CloudCloseLevel=6000  #Close is cloud > this or raining
+_WeatherOpenDelay=1800  #Wait for 1800 sec of no-rain and cloud < CloudOpenLevel
 
 
 def _yn(arg=0):
@@ -15,7 +16,7 @@ def _yn(arg=0):
     return 'no'
 
 
-class Weather:
+class _Weather:
   "Cloud and rain detector status"
 
   def empty(self):
@@ -23,9 +24,9 @@ class Weather:
     self.lastmod=-1
     self.cloud=0
     self.rain=0
-    self.CloudCloseLevel=CloudCloseLevel
-    self.CloudOpenLevel=CloudOpenLevel
-    self.WeatherOpenDelay=WeatherOpenDelay
+    self.CloudCloseLevel=_CloudCloseLevel
+    self.CloudOpenLevel=_CloudOpenLevel
+    self.WeatherOpenDelay=_WeatherOpenDelay
     self.OKforsec=86400   #Assume it's clear when we start up
     self.clear=1
 
@@ -62,7 +63,7 @@ class Weather:
 
   def update(self):
     "Connect to the database to update fields"
-    curs=db.cursor()
+    curs=_db.cursor()
     curs.execute('select unix_timestamp(now())-unix_timestamp(time) '+
           'as lastmod, cloud, rain from teljoy.weather order by time desc '+
           'limit 1')
@@ -87,9 +88,11 @@ def _background():
     print "a weather exception"
 
 
-db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+
+
+
+_db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
                       db='teljoy', cursorclass=MySQLdb.DictCursor)
-curs=db.cursor()
-status=Weather()
+status=_Weather()
 status.update()
 
