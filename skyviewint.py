@@ -32,7 +32,7 @@ params={'SURVEY':'Digitized Sky Survey',
         'COLTAB':'B-W LINEAR', 
         'SFACTR':0.0853333, 
         'RESAMP':'Interpolation',
-        'CATLOG':'HST Guide Star Catalog, Version 1.2',
+        'CATLOG':'GSC 2.2 Catalog (STScI, 2001)(VizieR)',
          }
 
 
