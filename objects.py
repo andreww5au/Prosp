@@ -138,7 +138,7 @@ class Object:
     if not curs.execute("select * from objects where ObjID='"+self.ObjID+"'"):
       curs.execute("insert into objects (ObjID,name,ObjRA,ObjDec,ObjEpoch,filtname,"+
          "exptime,"+
-         "XYpos_X,XYpos_Y,type,period,comment, LastObs) values ("+
+         "XYpos_X,XYpos_Y,type,period,comment) values ("+
          "'"+self.ObjID+"', "+
          "'"+self.name+"', "+
          "'"+self.ObjRA+"', "+
@@ -150,8 +150,7 @@ class Object:
          `self.XYpos[1]`+", "+
          "'"+self.type+"', "+
          `self.period`+", "+
-         "'"+self.comment+"', "+
-         `self.LastObs`+" ) ")
+         "'"+self.comment+"') ")
       if string.upper(self.origid)<>string.upper(self.ObjID):
         if self.origid<>'':
           curs.execute("delete from objects where ObjID='"+self.origid+"'")
@@ -178,8 +177,7 @@ class Object:
          "XYpos_Y="+`self.XYpos[1]`+", "+
          "type='"+self.type+"', "+
          "period="+`self.period`+", "+
-         "comment='"+self.comment+"', "+
-         "LastObs="+`self.LastObs`+" "+
+         "comment='"+self.comment+"' "+
          "where ObjID='"+self.ObjID+"'")
 
     print "Object "+self.ObjID+" saved."
