@@ -43,9 +43,8 @@
 
 import string        #load string handling library
 import types
-import os
 import time
-import tempfile
+
 try:
   import Numeric
   from Numeric import *
@@ -128,7 +127,7 @@ class FITS:
             type=Float32
           else:
             print "Unrecognised BITPIX value: ",bp
-            return None
+            return
 
           shape=[]
           len=1

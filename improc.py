@@ -9,7 +9,7 @@ from globals import *
 try:
   import Numeric
   from Numeric import *
-  from Numeric import MLab
+  import MLab
   GotNum=1
 except ImportError:
   GotNum=0
@@ -263,7 +263,7 @@ class FITSold(fits.FITS):
         os.remove('/tmp/fwhmtmp.fits')
       except OSError:
         pass
-    except OSError, IOError:
+    except (OSError, IOError):
       print "Error with file creation while calculating FWHM, Sky"
       return -1,-1
     try:
@@ -574,7 +574,6 @@ def _reducefile(fname=''):
   filedir=os.path.dirname(fullfile)
   filename=os.path.basename(fullfile)
   outfile=filedir+'/reduced/'+filename
-  darkfile=filedir+'/dark.fits'
 
   if not os.path.isdir(filedir+'/reduced'):
     os.mkdir(filedir+'/reduced')

@@ -19,7 +19,6 @@ import string
 import webbrowser
 import urllib
 import threading
-import os
 
 os.environ['http_proxy']='http://proxy.calm.wa.gov.au:8080'
 

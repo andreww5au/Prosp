@@ -6,7 +6,7 @@ DictCursor=safecursor.SafeCursor
 
 import threading
 import time
-import weather
+
 from globals import *
 
 ShutterAction=None

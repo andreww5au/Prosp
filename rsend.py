@@ -12,8 +12,6 @@
 import os
 import string
 import urllib
-import threading
-import os
 import types
 import operator
 import glob

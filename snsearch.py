@@ -12,7 +12,7 @@ from ftplib import FTP     #Import the FTP object class
 from globals import *
 import pipeline
 import teljoy
-from pipeline import dObject
+dObject=pipeline.dObject
 
 
 
@@ -33,7 +33,7 @@ def _dosname(uname):
 def nextseq():
   try:
     seq=int(open('/data/counters/snsearch.seq').read())
-  except NameError,ValueError:
+  except (NameError,ValueError):
     seq=1000000
   seq=seq+1
   try:

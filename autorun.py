@@ -16,7 +16,6 @@ ftppass='sn1993k'
 ftpimagedir='/t/533-Observatory/Astronomical/Images/New'
 ftpmaildir='/t/533-Observatory/Astronomical/Plat/Mail'
 
-import ArCommands
 from ArCommands import *
 from ftplib import FTP     #Import the FTP object class
 import time                #Time handler functions

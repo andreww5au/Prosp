@@ -12,15 +12,13 @@ PermError="PermissionError"
 
 
 import ftplib              #FTP library
-from ftplib import FTP     #Import the FTP object class
+FTP=ftplib.FTP     #Import the FTP object class
 import time                #Time handler functions
-import threading           #Multi thread handler
 import __builtin__         #So we can override the built-in file type
 import signal              #Signal handling
 import os                  #Operating system support
 import os.path             #Pathname and directory handling functions
 import getpass             #Non-echoing password input
-import sys
 
 def open(filename, mode="rb"):
   "Override the built in open command to return my file object"
@@ -69,7 +67,7 @@ class mfile:
   def seek(self,offset,whence=0):
     self.fileobj.seek(offset,whence)
 
-  def tell():
+  def tell(self):
     return self.fileobj.tell()
 
   def isatty(self):

@@ -4,12 +4,11 @@
    Used in Prosp and as stand-alone.
 """
 
-import ArCommands     #Camera interface library
 import time       #for the 'sleep' function
 import os
 import string
-import getpass
 import threading
+
 
 from ArCommands import *   #Make camera functions usable without module name qualifier
 import improc

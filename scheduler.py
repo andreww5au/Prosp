@@ -4,7 +4,7 @@ import math
 import time
 
 from globals import *
-import objects
+
 import pipeline
 import ephemint
 import teljoy
