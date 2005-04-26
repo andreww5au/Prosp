@@ -1,0 +1,3 @@
+#!/bin/csh
+
+gcc -Wall -O2 -Ilibfli-1.13/lib -lm -o focus focus.c libfli-1.13/lib/libfli.a
