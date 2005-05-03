@@ -273,24 +273,25 @@ def ccdtemp(n=2):
   return status.temp
 
 
-def focus(n=-1):
+def foclines(n=-1):
   """Open shutter for 'exptime' seconds, and move CCD down N lines.
      If N<0 or not specified, readout CCD. Use this command multiple times with
      an argument of 10-100 pixels, changing the focus each time, then force a 
-     readout with 'focus(-1)'. You will see many images of your focus star, N
-     pixel lines apart. Select the sharpest image and move to that focus 
+     readout with 'foclines(-1)'. You will see many images of your focus star, N
+     pixel lines apart. Select the sharpest image and move to the 
      focus position used for that exposure.
      Would only useful if the telescope has a focus encoder.
-     eg: focus(32)
-         focus(32)
-         focus(32)
-         focus(-1)
+     eg: foclines(32)
+         foclines(32)
+         foclines(32)
+         foclines(-1)
   """
   if n<0:
     command('focus readout',1)
   else:
     command('focus '+`n`,1)
   update()   #grab new status information after the image
+  return status.path+status.lastfile
 
 
 def _setcounter():

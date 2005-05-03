@@ -355,8 +355,8 @@ def observeThis(takeobj):
 def foc():
   "Takes a focus image - 10 successive exposures on the same frame, offset."
   for i in range(9):
-    focus(25)
-  focus(-1)
+    foclines(25)
+  foclines(-1)
 
 
 def viewer(vw=''):
