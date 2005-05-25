@@ -2,6 +2,7 @@
 import focuser
 import pipeline
 import ArCommands
+import fits
 from pipeline import dObject
 
 coarsestep = 100
@@ -26,6 +27,15 @@ def best(center = 0, step = 100, average = 1):
     totpos = totpos + guesspos
   return totpos / average
 
+
+def saveraw(fobj=None, fname=''):
+  """Given a FITS file object and a filename, save the data section of the image
+     (no headers) as a raw array of 32-bit floats.
+  """
+  if fobj and fname:
+    f = open(fname,'w')
+    f.write(fobj.data.astype(fits.Float32))
+    f.close()
 
 
 class FocObject(dObject):
