@@ -95,7 +95,7 @@ def getpage(base,data):
     f.close()
   except:
     print "Error connecting to PLANET homebase"
-    page=""
+  print page
   if not string.find(page,'OK'):
     print "Error logging data:"
     print page    
