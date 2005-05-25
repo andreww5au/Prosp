@@ -57,8 +57,8 @@ def ntranslate(name="HB-2K-060"):
     team,place,year,num=name[0],name[1],name[2:4],name[4:]
     if ( (team=='M' or team=='E' or team=='O' or team=='K') and
          (place=='B' or place=='L' or place=='S') and
-         (year=='98' or year=='99' or year=='2K' or year=='01' or year=='02'
-          or year=='03' or year=='04') and
+         (year=='98' or year=='99' or year=='2K' or
+          (year[0]=='0' and (year[1] in '123456789')) ) and
          (num[0] in string.digits and num[1] in string.digits and
           num[2] in string.digits)):
       return name    #return (translated?) version of name
