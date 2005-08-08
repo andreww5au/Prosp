@@ -9,8 +9,8 @@ import threading
 import globals
 from BeautifulSoup import BeautifulSoup
 
-headroom = 50.0    #Try and maintain chiller setpoint temp this far above CCD settemp
-dewheadroom = 2.0  #Make sure to keep chiller setpoint this far above dewpoint
+headroom = 43.0    #Try and maintain chiller setpoint temp this far above CCD settemp
+dewheadroom = 1.0  #Make sure to keep chiller setpoint this far above dewpoint
 
 ReadSetpoint = [0x01,0x03,0x00,0x7F,0x00,0x01]
 ReadTemp = [0x01,0x03,0x00,0x1C,0x00,0x01]
@@ -168,8 +168,8 @@ def newSetpoint(temp=20.0):
     print "Aborting - Invalid value: ",temp
     return
 
-  if temp <= (dewpoint + dewheadroom):
-    print "Aborting - Too low a temperature, current dewpoint is ",round(dewpoint,2)
+  if temp <= (status.dewpoint + dewheadroom):
+    print "Aborting - Too low a temperature, current dewpoint is ",round(status.dewpoint,2)
     return
   elif temp >= 30:
    print "Aborting - Too high a temperature, max of 30C"
