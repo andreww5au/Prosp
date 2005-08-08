@@ -255,7 +255,7 @@ class FITSold(fits.FITS):
         os.remove('/tmp/fwhmtmp.fits')
       except OSError:
         pass
-      self.save('/tmp/fwhmtmp.fits',Int16)
+      self.save('/tmp/fwhmtmp.fits',bitpix=16)
       os.system('/home/dts/bin/fwhmsky /tmp/fwhmtmp.fits')
       tmpdata=string.split(open('input.dophot','r').read())
       try:
@@ -476,7 +476,7 @@ def dobias(files=[]):
   outfile=os.path.abspath(os.path.dirname(nfiles[0]))+'/bias.fits'
   if os.path.exists(outfile):
     os.remove(outfile)
-  im.save(outfile, Float32)
+  im.save(outfile, bitpix=-32)
 
 
 def dodark(files=[]):
@@ -494,7 +494,7 @@ def dodark(files=[]):
   outfile=os.path.abspath(os.path.dirname(nfiles[0]))+'/dark.fits'
   if os.path.exists(outfile):
     os.remove(outfile)
-  im.save(outfile, Float32)
+  im.save(outfile, bitpix=-32)
 
 
 def doflat(files=[], filt=None):
@@ -528,7 +528,7 @@ def doflat(files=[], filt=None):
   outfile=os.path.abspath(os.path.dirname(di[0].filename))+'/flat'+filt+'.fits'
   if os.path.exists(outfile):
     os.remove(outfile)
-  im.save(outfile, Float32)
+  im.save(outfile, bitpix=-32)
 
 
 
@@ -604,7 +604,7 @@ def _reducefile(fname=''):
   img.data[511]=ones(512)*-2000   #Hack to force dud row to an ignored value
 
   fwhm,sky=img.fwhmsky()
-  img.save(outfile,Int16)   #Save in Int16 format
+  img.save(outfile,bitpix=16)   #Save in Int16 format
   _rlog(fname)
   swrite(filename+' reduced: FWHM=%4.2f pixels, Sky=%d ADU' % (fwhm,sky))
   return outfile
