@@ -19,7 +19,7 @@ except:
   sfile=open('/dev/null','a')
   efile=open('/dev/null','a')
 
-filters=['Clear', 'Red', '4450', '9500', 'Visual', 'Infrared', '5260', '7260']
+filters=['Clear', 'Red', '4450', '9500', 'Visual', 'Infrared', 'Empty', '7260']
 
 
 def filtname(filt=2):
