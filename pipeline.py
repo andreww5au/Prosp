@@ -8,6 +8,7 @@ from globals import *
 import ArCommands
 import xpa
 import improc
+from guidestar.starposc import getstars, best 
 
 
 """
@@ -78,7 +79,20 @@ class dObject(objects.Object):
   def set(self):
     "Set the observing params for Ariel to this object's params."
     ArCommands.object(self.ObjID)
-    ArCommands.guider(self.XYpos[0],self.XYpos[1])
+#    print 'X=',self.XYpos[0], ' Y=',self.XYpos[1]
+    if (self.XYpos[0] == 0) and (self.XYpos[1] == 0):
+      slist = getstars(ra=self.ObjRA, dec=self.ObjDec, epoch=self.ObjEpoch)
+      bstar = None
+      if slist:
+        bstar = best(slist)      
+      if bstar is not None:
+        s = slist[bstar]
+        print "Chosen guide star %d of %d: Mag=%5.2f, x=%d, y=%d" % (bstar,len(slist),s.mag,s.x,s.y)
+        ArCommands.guider(s.x, s.y)
+      else:
+        print "No guide star in database, no guide star found in GSC"
+    else:
+      ArCommands.guider(self.XYpos[0],self.XYpos[1])
     ArCommands.filter(self.filtname)
     ArCommands.exptime(self.exptime)
 
