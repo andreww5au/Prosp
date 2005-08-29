@@ -1,16 +1,15 @@
 
 import serial
-import urllib2
-import os
+#import os
 import time
-import sys
-import threading
+#import sys
 
 import globals
-from BeautifulSoup import BeautifulSoup
+import weather
 
 headroom = 43.0    #Try and maintain chiller setpoint temp this far above CCD settemp
 dewheadroom = 1.0  #Make sure to keep chiller setpoint this far above dewpoint
+errortemp = 12.0   #If we lose data from the weather station, use this as setpoint
 
 ReadSetpoint = [0x01,0x03,0x00,0x7F,0x00,0x01]
 ReadTemp = [0x01,0x03,0x00,0x1C,0x00,0x01]
@@ -21,55 +20,12 @@ WriteSetpoint = [0x01,0x06,0x00,0x7F,0x00,0x00]      #Last two bytes are setpoin
 ExitProgram1 = [0x01,0x06,0x03,0x00,0x00,0x06]       #Flag next message as secured - reply should be this message
 ExitProgram2 = [0x01,0x06,0x16,0x00,0x00,0x00]       #Exit programming mode - reply should be this message
 
-threadlist = []      #A list of all thread objects from this module that are currently running
-
-
-def updateDewpoint():
-  """Download the current ambient temperature and dewpoint from the BOM website.
-  """
-  try:
-    f=urllib2.urlopen('http://www.bom.gov.au/products/IDW60034.shtml')
-    html=f.read()
-    f.close()
-    soup=BeautifulSoup()
-    soup.feed(html)
-    rl = soup.fetch('table', attrs={'border': '1'})
-    if rl:
-      rl = rl[0].fetch('tr')
-  
-    for r in rl:
-      dl = r.fetch('td')
-      if dl:
-        if dl[0].first('a').renderContents() == 'BICKLEY':
-          status.airtemp = float(dl[2].renderContents())
-          status.dewpoint = float(dl[3].renderContents())  
-          status.lastdewchecktime = time.time()
-          status.goodBOM = 1
-  except:
-    status.airtemp = 20.0
-    status.dewpoint = 20.0
-    status.goodBOM = 0
-    print 'Error grabbing temp,dewpoint'
-    sys.excepthook(*sys.exc_info())
 
 
 def _background():
   """Called every 6 seconds from Prosp. Use to check dewpoint every hour to make sure the chiller is
      maintaining a temp safely above the dewpoint.
   """
-
-  for t in threadlist[:]:
-    if not t.isAlive():
-      threadlist.remove(t)      #Remove completed download threads from the threadlist, leaving only active ones
-
-  #Download new temp/dewpoint every hour if there are no threads already, try again after 90 min if 1 blocked thread
-  if ( (((time.time() - status.lastdewchecktime) > 3600) and (len(threadlist)==0)) or
-       (((time.time() - status.lastdewchecktime) > 5400) and (len(threadlist)==1)) ):    
-    t=threading.Thread(target=updateDewpoint,
-                       name='BOM Bickley weather page download')
-    t.setDaemon(1)
-    t.start()
-    threadlist.append(t)
 
   if (time.time() - status.lastchillerchecktime) > 300:         #Download new watertemp, setpoint every 5 min
     w,s = getTemp(), getSetpoint()
@@ -78,23 +34,20 @@ def _background():
     else:
       globals.ewrite('Unable to get watertemp, settemp from chiller unit')
       status.lastchillerchecktime = time.time() - 240       #If there was an error, try again in 1 minutes
-    logfile.write("%s\t%4.1f\t%4.1f\t%4.1f\t%4.1f \n" % (time.asctime(), status.airtemp, status.watertemp,
-                                                     status.setpoint, status.dewpoint) )
+    logfile.write("%s\t%4.1f\t%4.1f\t%4.1f\t%4.1f \n" % (time.asctime(), weather.status.temp, status.watertemp,
+                                                     status.setpoint, weather.status.dewpoint) )
     logfile.flush()
 
-    if status.goodBOM:
+    if (not weather.status.weatherror) and (weather.status.dewpoint is not None):
       try:
-        desired = status.CCDsettemp + headroom      #Temperature to try and keep chiller setpoint near
-        if desired > status.airtemp:
-          desired = status.airtemp
-        if desired < (status.dewpoint + dewheadroom):
-          desired = status.dewpoint + dewheadroom + 1
+        desired = weather.status.dewpoint + dewheadroom      #Temperature to try and keep chiller setpoint near
 
-        if (abs(desired-status.setpoint) > 5.0) or (status.setpoint < (status.dewpoint + dewheadroom)):
+        if (abs(desired-status.setpoint) >= 1.0):
           newSetpoint(desired)
           print "Changing chiller setpoint to ",round(desired,1)
       except:
-        pass       #Not running inside Prosp, no CCD setpoint info
+        newSetpoint(errortemp)
+        print "No dewpoint or air temp available, defaulting to %4.1f for chiller" % (errortemp,)
 
 
 def crc(message=[]):
@@ -168,8 +121,8 @@ def newSetpoint(temp=20.0):
     print "Aborting - Invalid value: ",temp
     return
 
-  if temp <= (status.dewpoint + dewheadroom):
-    print "Aborting - Too low a temperature, current dewpoint is ",round(status.dewpoint,2)
+  if temp <= (weather.status.dewpoint + dewheadroom):
+    print "Aborting - Too low a temperature, current dewpoint is ",round(weather.status.dewpoint,2)
     return
   elif temp >= 30:
    print "Aborting - Too high a temperature, max of 30C"
@@ -211,25 +164,19 @@ class _Chiller:
   """Chiller status object.
   """
   def __init__(self):
-    self.airtemp = 20.0
-    self.dewpoint = 20.0
     self.setpoint = 25.0
-    self.lastdewchecktime = time.time() - 3600
-    self.goodBOM = 0
     self.lastchillerchecktime = time.time() - 290
     self.watertemp = 20.0
     self.setpoint = 20.0
   def update(self):
-    updateDewpoint()
     getTemp()
     getSetpoint()
   def display(self):
-    return "Air:%4.1f  Water:%4.1f  Setpoint:%4.1f  Dewpoint:%4.1f" % (self.airtemp, self.watertemp,
-                                                                       self.setpoint, self.dewpoint) 
+    return "Air:%4.1f  Water:%4.1f  Setpoint:%4.1f  Dewpoint:%4.1f" % (weather.status.temp, self.watertemp,
+                                                                       self.setpoint, weather.status.dewpoint) 
 
 def init():   #Initialise at runtime, including connection to chiller and downloading initial BOM data
   global status, ser, logfile  
-  os.environ["http_proxy"]="http://proxy.calm.wa.gov.au:8080"
   ser = serial.Serial('/dev/ttyS2', 9600, timeout=1)
   logfile = open('/data/templog','a')
   logfile.write("%s\t%s\t%s\t%s\t%s \n" % (time.asctime(),"Air","Water","Set","Dew") )
