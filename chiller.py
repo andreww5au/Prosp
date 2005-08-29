@@ -38,7 +38,7 @@ def _background():
                                                      status.setpoint, weather.status.dewpoint) )
     logfile.flush()
 
-    if (not weather.status.weatherror) and (weather.status.dewpoint is not None):
+    if (not weather.status.weathererror) and (weather.status.dewpoint is not None):
       try:
         desired = weather.status.dewpoint + dewheadroom      #Temperature to try and keep chiller setpoint near
 
@@ -121,8 +121,8 @@ def newSetpoint(temp=20.0):
     print "Aborting - Invalid value: ",temp
     return
 
-  if temp <= (weather.status.dewpoint + dewheadroom):
-    print "Aborting - Too low a temperature, current dewpoint is ",round(weather.status.dewpoint,2)
+  if temp < (weather.status.dewpoint + dewheadroom):
+    print "Aborting - %4.1f is too low a setpoint, current dewpoint is %4.1f" %(temp,weather.status.dewpoint)
     return
   elif temp >= 30:
    print "Aborting - Too high a temperature, max of 30C"
