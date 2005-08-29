@@ -18,6 +18,15 @@ def _yn(arg=0):
   else:
     return 'no'
 
+def render(v,dig,dp):
+  """If v is None, return 'NULL' as a string. Otherwise return
+     the value in v formatted nicely as a number, with the given
+     number of digits in total, and after the decimal point.
+  """
+  if v is None:
+    return "NULL"
+  else:
+    return ('%'+`dig`+'.'+`dp`+'f') % v
 
 class _Weather:
   "Cloud and rain detector status"
@@ -28,6 +37,12 @@ class _Weather:
     self.cloud=0
     self.sky=0
     self.rain=0
+    self.temp = None
+    self.dewpoint = None
+    self.windspeed = None
+    self.windgust = None
+    self.winddir = None
+    self.pressure = None
     self.weathererror=""
     self.CloudCloseLevel=_CloudCloseLevel
     self.CloudOpenLevel=_CloudOpenLevel
@@ -43,7 +58,7 @@ class _Weather:
     #Set the reference time for selecting a sky value to be 1800 seconds before now
     #If we don't subtract 1800sec, the first query called will return no records.
     try:
-      curs.execute('select cloud from weather where time > '+
+      curs.execute('select cloud from weathlog where time > '+
                     'from_unixtime(unix_timestamp(now())-1800) order by cloud limit 4' )
       res=curs.fetchallDict()     
       self.sky=res[-1]['cloud']   
@@ -57,6 +72,12 @@ class _Weather:
     print "Cloud level = ",self.cloud
     print "Raining: ",_yn(self.rain)
     print "Last weather entry: ",self.lastmod,"seconds ago."
+    print "Air temp:", render(self.temp,4,1)
+    print "Dew point:", render(self.dewpoint,4,1)
+    print "Avg wind speed:", render(self.windspeed,3,0)
+    print "Wind gust speed:", render(self.windgust,3,0)
+    print "Wind direction:", render(self.winddir,3,0)
+    print "Air Pressure:", render(self.pressure,6,1)
     print "Current clear-sky value: ",self.sky
     print "Becomes 'not clear' if cloud greater than:", 
     print self.sky, "+", self.CloudCloseLevel, "=", self.sky+self.CloudCloseLevel
@@ -101,8 +122,9 @@ class _Weather:
     if not u_curs:
       u_curs=db.cursor()
     try:
-      u_curs.execute('select unix_timestamp(now())-unix_timestamp(time) '+
-          'as lastmod, cloud, rain from teljoy.weather order by time desc '+
+      u_curs.execute('select unix_timestamp(now())-unix_timestamp(time) ' +
+          'as lastmod, cloud, rain, temp, dewpoint, windspeed, windgust, ' + 
+          'winddir, pressure from misc.weathlog order by time desc '+
           'limit 1')
                                        #Read the contents of the
                                        #'weather status' table to find
@@ -114,7 +136,7 @@ class _Weather:
       self.weathererror="Weather database not updated for " + `self.lastmod` + " seconds."
 
     try:
-      u_curs.execute('select cloud from weather where time > '+
+      u_curs.execute('select cloud from misc.weathlog where time > '+
                     'from_unixtime(unix_timestamp(now())-1800) order by cloud limit 4' )
       res=u_curs.fetchallDict()     
       tempsky=res[-1]['cloud']   
@@ -144,9 +166,9 @@ def _background():
 
 
 db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
-                      db='teljoy', cursorclass=DictCursor)
+                      db='misc', cursorclass=DictCursor)
 b_db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
-                        db='teljoy', cursorclass=DictCursor)
+                        db='misc', cursorclass=DictCursor)
 status=_Weather()
 status.update()
 
