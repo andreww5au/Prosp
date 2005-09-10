@@ -1,6 +1,7 @@
 
 import string
 import time
+import sys
 
 import objects
 import teljoy
@@ -81,7 +82,12 @@ class dObject(objects.Object):
     ArCommands.object(self.ObjID)
 #    print 'X=',self.XYpos[0], ' Y=',self.XYpos[1]
     if (self.XYpos[0] == 0) and (self.XYpos[1] == 0):
-      slist = getstars(ra=self.ObjRA, dec=self.ObjDec, epoch=self.ObjEpoch)
+      try:
+        slist = getstars(ra=self.ObjRA, dec=self.ObjDec, epoch=self.ObjEpoch)
+      except:
+        slist = []
+        ewrite('Exception in guide star code')
+        sys.excepthook(*sys.exc_info())
       bstar = None
       if slist:
         bstar = best(slist)      
