@@ -57,7 +57,7 @@ def email():
        M.user("perthobs")
 #      M.user("ralphm")
 #      M.pass_(getpass.getpass("Password for CALM email server:"))
-       M.pass_("4asteroid")
+       M.pass_("6asteroid")
 #      M.pass_("password1")
 #      M.pass_("stargaze")
     except poplib.error_proto, detail:
