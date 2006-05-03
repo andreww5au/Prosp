@@ -222,7 +222,7 @@ def sched(objs=[],force=0,mode=0):
   global tileside
   tileside=3
   grbflag=0
-  grb.emailstart()
+  #grb.emailstart()
   time.sleep(10)
   if type(objs)==type(''):
     objs=string.replace(objs, ',', ' ')
