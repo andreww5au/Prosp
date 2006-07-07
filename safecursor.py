@@ -2,11 +2,7 @@
 from globals import ewrite
 
 import MySQLdb
-try:
-  DictCursor=MySQLdb.DictCursor
-except AttributeError:     #New version of MySQLdb puts cursors in a seperate module
-  import MySQLdb.cursors
-  DictCursor=MySQLdb.cursors.DictCursorNW
+from MySQLdb.cursors import DictCursorNW as DictCursor
 
 
 class SafeCursor(DictCursor):
