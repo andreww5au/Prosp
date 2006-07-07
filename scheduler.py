@@ -16,7 +16,7 @@ DictCursor=safecursor.SafeCursor
 AltCutoff = 30
 
 
-types={'PLANET':10.0, 'IMAGE':0.001}  
+types={'PLANET':1.00, 'STORE':1.00, 'IMAGE':0.0001}  
 
 candidates={}
 cantimestamp=MySQLdb.Timestamp(0)
