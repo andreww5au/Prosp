@@ -6,6 +6,12 @@ import MySQLdb
 import safecursor
 DictCursor=safecursor.SafeCursor
 
+#Uncomment one of these lines to choose whether to use mailbox files or the
+#table teljoy.vistabox to communicate with Vista
+
+# VistaMail = 'file'
+VistaMail = 'SQL'
+
 
 from ftplib import FTP     #Import the FTP object class
 
@@ -70,41 +76,74 @@ class SNObject(dObject):
     f.write('Comment: '+self.comment+"\r\n")
     f.close()
 
+  def writesqlbox(self):
+    "Write an entry in the table teljoy.vistabox on the SQL server"
+    curs.execute("insert into teljoy.vistabox (Seq,Name,exptime,filtname," +
+                 "ObjID,ObjRA,ObjDec,Epoch,UT,JulDay,Alt,Azi,RAtrack,DECtrack," +
+                 "XYpos_X,XYpos_Y,ObsType,filename,Comment) values ("+
+         `self.seq`+", "+
+         "'"+self.name+"', "+
+         `self.exptime`+", "+
+         "'"+self.filtname+"', "+
+         "'"+self.ObjID+"', "+
+         "'"+self.ObjRA+"', "+
+         "'"+self.ObjDec+"', "+
+         `self.ObjEpoch`+", "+
+         "'"+time.strftime("%Y-%m-%d %H:%M:%S",time.gmtime())+"', "+
+         `julday()`+", "+
+         `teljoy.status.Alt`+", "+
+         `teljoy.status.Azi`+", "+
+         "0, 0, "+
+         `self.XYpos[0]`+", "+
+         `self.XYpos[1]`+", "+
+         "'"+self.type+"', "+
+         "'"+self.dosname+"', "+
+         "'"+self.comment+"') ")
+    
+
   def sendfiles(self):
     "Send image and mailbox files to vista via ftp, waiting if vista is busy"
-    swrite('autorun - sending files via ftp')
+    swrite('snsearch - sending files via ftp')
 
-    self.writemailbox()
     #Temporary testing setup - convert to appropriate host/directories
     ftp=FTP(ftphost,ftpuser,ftppass)  #open connection and create
                                                 # ftp object
     ftp.cwd(ftpimagedir)
-    swrite("autorun - ftp changed to "+ftpimagedir)
+    swrite("snsearch - ftp changed to "+ftpimagedir)
 
     #Send image file (using binary with 8kb blocksize
     f=open(self.filename,'r')
     ftp.storbinary('STOR '+self.dosname,f,8192)
     f.close()
-    swrite("autorun - ftp transferred "+ftpimagedir+'/'+self.dosname)
+    swrite("snsearch - ftp transferred "+ftpimagedir+'/'+self.dosname)
 
     ftp.cwd(ftpmaildir)
-    swrite("autorun - ftp changed to "+ftpmaildir)
-  
-    #Send mailbox file, as 'VISTA.NEW', deleting any previous file of that name
-    if 'VISTA.NEW' in ftp.nlst():
-      ftp.delete('VISTA.NEW')
-    f=open('/tmp/vista.box','r')
-    ftp.storbinary('STOR VISTA.NEW',f,1024)
-    f.close()
-    swrite("autorun - ftp transferred "+ftpmaildir+'/vista.new')
+    swrite("snsearch - ftp changed to "+ftpmaildir)
 
-    #Wait for vista.box to be deleted, then rename vista.new to vista.box
-    while ('VISTA.BOX' in ftp.nlst()):
-      print 'waiting for Vista to finish:'
-      time.sleep(5)
-    ftp.rename('VISTA.NEW','VISTA.BOX')
-    ftp.quit()
-    swrite("autorun - ftp renamed VISTA.NEW to VISTA.BOX")
+    if VistaMail == 'file':
+      self.writemailbox()
+      #Send mailbox file, as 'VISTA.NEW', deleting any previous file of that name
+      if 'VISTA.NEW' in ftp.nlst():
+        ftp.delete('VISTA.NEW')
+      f=open('/tmp/vista.box','r')
+      ftp.storbinary('STOR VISTA.NEW',f,1024)
+      f.close()
+      swrite("snsearch - ftp transferred "+ftpmaildir+'/vista.new')
+
+      #Wait for vista.box to be deleted, then rename vista.new to vista.box
+      while ('VISTA.BOX' in ftp.nlst()):
+        print 'waiting for Vista to finish:'
+        time.sleep(5)
+      ftp.rename('VISTA.NEW','VISTA.BOX')
+      ftp.quit()
+      swrite("snsearch - ftp renamed VISTA.NEW to VISTA.BOX")
+    else:
+      ftp.quit()
+      while curs.execute("select * from vistabox"):
+        print 'Waiting for Vista to finish:'
+        time.sleep(5)
+      self.writesqlbox()
+      swrite("snsearch - SQL mailbox written to Vista")
 
   def reduce(self):
     "Send image and mailbox to vista for post-processing for SN-Search object"
@@ -115,8 +154,8 @@ class SNObject(dObject):
       curs.execute("update sn.targets set lastobs=NOW() where ObjID='"+self.ObjID+
          "' or altID='"+self.ObjID+"' ")
     else:
-      ewrite("autorun - Error processing "+self.ObjID+", aborting auto mode.")
-      self.errors="autorun - Error processing "+self.ObjID+", aborting auto mode."
+      ewrite("snsearch - Error processing "+self.ObjID+", aborting processing.")
+      self.errors="snsearch - Error processing "+self.ObjID+", aborting processing."
 
 
 
