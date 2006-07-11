@@ -2,8 +2,6 @@
 import string        #load string handling library
 import os
 import tempfile
-import dircache
-import cPickle
 import fits
 from globals import *
 try:
@@ -113,7 +111,7 @@ class FITSold(fits.FITS):
     """Dark subtracts the image, using the dark frame given or the default.
 
        The dark frame can either be passed directly (as a filename or a FITS
-       image), or if none is given, the file 'dark.fits' in the same directory
+       image), or if none is given, tfiledir+'/reducelog'he file 'dark.fits' in the same directory
        as the image will be used. After being used, the dark image is saved in
        the global 'lastdark' variable. On subsequent calls to dark(), the 
        image in lastdark is used if its directory is the same as that for the
@@ -550,29 +548,24 @@ def to8bit(img=None):
 #
 
 
-def _rlog(fname=''):
+def _rlog(fname='',filename='?',filterid='?',exptime=0.0,ccdtemp=0.0,pjd=0.0,fwhm=0.0,sky=0.0,secz=0.0):
   """Record an image file reduction in ./reducelog so that it won't be
      reduced again.
   """
   fullfile=os.path.abspath(os.path.expanduser(fname))
   filedir=os.path.dirname(fullfile)
   filename=os.path.basename(fullfile)
-  dir=dircache.listdir(filedir)
-  if not 'reducelog' in dir:
-    redlist=[]
-    redlist.append(filename)
-    f=open(filedir+'/reducelog','w')
-    cPickle.dump(redlist,f)
-    swrite('initialised reducelog for '+filedir)
-    f.close()
+  if not os.path.exists(filedir+'/reducelog'):
+    empty=1
   else:
-    f=open(filedir+'/reducelog','r')
-    redlist=cPickle.load(f)
-    f.close()
-    f=open(filedir+'/reducelog','w')
-    redlist.append(filename)
-    cPickle.dump(redlist,f)
-    f.close()
+    empty=0
+  fmt="%-18s %8.5f   %1s  %5.1f   %5.1f  %5.2f %5d  %4.2f\n"
+  f=open(filedir+'/reducelog','a')
+  if empty:
+    f.write("#Filename          PJD        Filt Exptime CCDTemp FWHM  SKY   SecZ\n")
+    os.symlink(filedir+'/reducelog', '/tmp/reducelog')
+  f.write(fmt % (filename,pjd,filterid,exptime,ccdtemp,fwhm,sky,secz) )
+  f.close()
 
 
 def _reducefile(fname=''):
@@ -603,9 +596,16 @@ def _reducefile(fname=''):
 
   img.data[511]=ones(512)*-2000   #Hack to force dud row to an ignored value
 
+  exptime=float(img.headers['EXPTIME'])
+  filterid=string.strip(img.headers['FILTERID'][1])
+  secz=float(img.headers['SECZ'])
+  hjd=float(img.headers['HJD'])
+  pjd=hjd-2450000.0
+  ccdtemp=float(img.headers['CCDTEMP'])
+
   fwhm,sky=img.fwhmsky()
   img.save(outfile,bitpix=16)   #Save in Int16 format
-  _rlog(fname)
+  _rlog(fname,filename,filterid,exptime,ccdtemp,pjd,fwhm,sky,secz)
   swrite(filename+' reduced: FWHM=%4.2f pixels, Sky=%d ADU' % (fwhm,sky))
   return outfile
 
