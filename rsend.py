@@ -26,7 +26,7 @@ import fits
 #Uncomment and edit this string if you need to use a proxy server. We need to
 #in Perth because un-proxied web traffic is blocked by the firewall, but if
 #you don't _need_ to use one, don't bother, it won't do any caching anyway..
-os.environ["http_proxy"]="http://proxy.calm.wa.gov.au:8080"
+os.environ["http_proxy"]="http://192.168.25.74:3128"
 
 #Uncomment the correct site= line, comment out the rest
 #site="NotSet"
