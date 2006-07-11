@@ -27,6 +27,7 @@ ftpuser='plat'
 ftppass='sn1993k'
 ftpimagedir='/t/533-Observatory/Astronomical/Images/New'
 ftpmaildir='/t/533-Observatory/Astronomical/Plat/Mail'
+nfsimagedir='/cook/Astronomical/Images/new'
 
 
 def _dosname(uname):
@@ -101,7 +102,7 @@ class SNObject(dObject):
          "'"+self.comment+"') ")
     
 
-  def sendfiles(self):
+  def sendfilesftp(self):
     "Send image and mailbox files to vista via ftp, waiting if vista is busy"
     swrite('snsearch - sending files via ftp')
 
@@ -120,37 +121,47 @@ class SNObject(dObject):
     ftp.cwd(ftpmaildir)
     swrite("snsearch - ftp changed to "+ftpmaildir)
 
-    if VistaMail == 'file':
-      self.writemailbox()
-      #Send mailbox file, as 'VISTA.NEW', deleting any previous file of that name
-      if 'VISTA.NEW' in ftp.nlst():
-        ftp.delete('VISTA.NEW')
-      f=open('/tmp/vista.box','r')
-      ftp.storbinary('STOR VISTA.NEW',f,1024)
-      f.close()
-      swrite("snsearch - ftp transferred "+ftpmaildir+'/vista.new')
+    self.writemailbox()
+    #Send mailbox file, as 'VISTA.NEW', deleting any previous file of that name
+    if 'VISTA.NEW' in ftp.nlst():
+      ftp.delete('VISTA.NEW')
+    f=open('/tmp/vista.box','r')
+    ftp.storbinary('STOR VISTA.NEW',f,1024)
+    f.close()
+    swrite("snsearch - ftp transferred "+ftpmaildir+'/vista.new')
 
-      #Wait for vista.box to be deleted, then rename vista.new to vista.box
-      while ('VISTA.BOX' in ftp.nlst()):
-        print 'waiting for Vista to finish:'
-        time.sleep(5)
-      ftp.rename('VISTA.NEW','VISTA.BOX')
-      ftp.quit()
-      swrite("snsearch - ftp renamed VISTA.NEW to VISTA.BOX")
-    else:
-      ftp.quit()
-      while curs.execute("select * from vistabox"):
-        print 'Waiting for Vista to finish:'
-        time.sleep(5)
-      self.writesqlbox()
-      swrite("snsearch - SQL mailbox written to Vista")
+    #Wait for vista.box to be deleted, then rename vista.new to vista.box
+    while ('VISTA.BOX' in ftp.nlst()):
+      print 'waiting for Vista to finish:'
+      time.sleep(5)
+    ftp.rename('VISTA.NEW','VISTA.BOX')
+    ftp.quit()
+    swrite("snsearch - ftp renamed VISTA.NEW to VISTA.BOX")
+
+
+  def sendfilesnfs(self):
+    "Send image and mailbox files to vista via nfs, waiting if vista is busy"
+    swrite('snsearch - sending files via nfs')
+
+    os.system('cp '+filename+' '+nfsimagedir+'/'+self.dosname)
+    swrite("snsearch - nfs transferred "+nfsimagedir+'/'+self.filename)
+
+    while curs.execute("select * from vistabox"):
+      print 'Waiting for Vista to finish:'
+      time.sleep(5)
+    self.writesqlbox()
+    swrite("snsearch - SQL mailbox written to Vista")
+
 
   def reduce(self):
     "Send image and mailbox to vista for post-processing for SN-Search object"
     self.dosname=_dosname(os.path.basename(self.filename))
     self.seq=nextseq()
     if (self.filename) and (not self.errors):    #Data reduction completed OK
-      self.sendfiles()
+      if VistaMail == 'file':
+        self.sendfilesftp()
+      else:
+        self.sendfilesnfs()
       curs.execute("update sn.targets set lastobs=NOW() where ObjID='"+self.ObjID+
          "' or altID='"+self.ObjID+"' ")
     else:
