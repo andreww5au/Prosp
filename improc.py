@@ -111,7 +111,7 @@ class FITSold(fits.FITS):
     """Dark subtracts the image, using the dark frame given or the default.
 
        The dark frame can either be passed directly (as a filename or a FITS
-       image), or if none is given, tfiledir+'/reducelog'he file 'dark.fits' in the same directory
+       image), or if none is given, the file 'dark.fits' in the same directory
        as the image will be used. After being used, the dark image is saved in
        the global 'lastdark' variable. On subsequent calls to dark(), the 
        image in lastdark is used if its directory is the same as that for the
@@ -562,6 +562,7 @@ def _rlog(fname='',filename='?',filterid='?',exptime=0.0,ccdtemp=0.0,pjd=0.0,fwh
   fmt="%-18s %8.5f   %1s  %5.1f   %5.1f  %5.2f %5d  %4.2f\n"
   f=open(filedir+'/reducelog','a')
   if empty:
+    f.write("Reduce log for "+filedir+"\n")
     f.write("#Filename          PJD        Filt Exptime CCDTemp FWHM  SKY   SecZ\n")
     os.symlink(filedir+'/reducelog', '/tmp/reducelog')
   f.write(fmt % (filename,pjd,filterid,exptime,ccdtemp,fwhm,sky,secz) )
