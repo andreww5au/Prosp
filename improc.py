@@ -564,6 +564,10 @@ def _rlog(fname='',filename='?',filterid='?',exptime=0.0,ccdtemp=0.0,pjd=0.0,fwh
   if empty:
     f.write("Reduce log for "+filedir+"\n")
     f.write("#Filename          PJD        Filt Exptime CCDTemp FWHM  SKY   SecZ\n")
+    try:
+      os.remove('/tmp/reducelog')
+    except OSError:
+      pass
     os.symlink(filedir+'/reducelog', '/tmp/reducelog')
   f.write(fmt % (filename,pjd,filterid,exptime,ccdtemp,fwhm,sky,secz) )
   f.close()
