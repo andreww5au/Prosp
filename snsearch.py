@@ -98,8 +98,9 @@ class SNObject(dObject):
          `self.XYpos[0]`+", "+
          `self.XYpos[1]`+", "+
          "'"+self.type+"', "+
-         "'"+self.filename+"', "+
+         "'"+self.filename[4:]+"', "+
          "'"+self.comment+"') ")
+       #Need to strip the '/big' off the beginning of the filename to math NFS mount paths
     
 
   def sendfilesftp(self):
