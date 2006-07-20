@@ -98,7 +98,7 @@ class SNObject(dObject):
          `self.XYpos[0]`+", "+
          `self.XYpos[1]`+", "+
          "'"+self.type+"', "+
-         "'"+self.dosname+"', "+
+         "'"+self.filename+"', "+
          "'"+self.comment+"') ")
     
 
@@ -139,12 +139,8 @@ class SNObject(dObject):
     swrite("snsearch - ftp renamed VISTA.NEW to VISTA.BOX")
 
 
-  def sendfilesnfs(self):
-    "Send image and mailbox files to vista via nfs, waiting if vista is busy"
-    swrite('snsearch - sending files via nfs')
-
-    os.system('cp '+filename+' '+nfsimagedir+'/'+self.dosname)
-    swrite("snsearch - nfs transferred "+nfsimagedir+'/'+self.filename)
+  def sendfilessql(self):
+    "Send mailbox file to vista via sql, waiting if vista is busy"
 
     while curs.execute("select * from vistabox"):
       print 'Waiting for Vista to finish:'
@@ -161,7 +157,7 @@ class SNObject(dObject):
       if VistaMail == 'file':
         self.sendfilesftp()
       else:
-        self.sendfilesnfs()
+        self.sendfilessql()
       curs.execute("update sn.targets set lastobs=NOW() where ObjID='"+self.ObjID+
          "' or altID='"+self.ObjID+"' ")
     else:
