@@ -141,7 +141,6 @@ class SNObject(dObject):
 
   def sendfilessql(self):
     "Send mailbox file to vista via sql, waiting if vista is busy"
-
     while curs.execute("select * from vistabox"):
       print 'Waiting for Vista to finish:'
       time.sleep(5)
