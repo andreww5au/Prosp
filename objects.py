@@ -218,7 +218,7 @@ def ZapPeriods(period=0, type='', curs=None):
   if not curs:
     curs=db.cursor()
   if type:
-    curs.execute("update objects set period="+`period`+" where type='"+type+"'")
+    curs.execute("update teljoy.objects set period="+`period`+" where type='"+type+"' and ObjID not like 'P%'")
    
 
 
