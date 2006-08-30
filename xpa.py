@@ -62,17 +62,23 @@ def getregions():
     label=''
     mlist=[]
     for r in out:       #For each line
-      if r[:6]<>'image;':
+      if r[:5]<>'point':
         pass
       else:
-        sc=string.find(r,';')
+        print r
+        hs=string.find(r,'#')
         ob=string.find(r,'(')
         cb=string.find(r,')')
-        type=r[sc+1:ob]     #type is the string between the ; and the (
+        try:
+          type = r[hs+1:].split()[0].split('=')[1]
+          print type
+        except:
+          print "region type unknown: "+r
+          type='point'
         ocb=string.find(r,'{')
         ccb=string.find(r,'}')
         label=r[ocb+1:ccb]   #The label is between curly brackets
-        if type=='point':
+        if type=='box':
           x,y=eval(r[ob+1:cb])  #Grab the X and Y values for a point
           m=marker(x,y,label,type)  #Create a marker object
         else:
