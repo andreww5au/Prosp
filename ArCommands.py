@@ -99,16 +99,16 @@ def exptime(et=0.02):
   command('exptime '+`et`,1)
 
 
-def _ctrn(str=''):  #Used in 'filename' to find filectr's for matching files
+def _ctrn(s=''):  #Used in 'filename' to find filectr's for matching files
   "Return the file counter number given a complete filename"
-  bname=os.path.basename(str)
-  if (len(bname)>7) and   \
-     (bname[-8] in string.digits) and  \
-     (bname[-7] in string.digits) and  \
-     (bname[-6] in string.digits):
-    return float(str[-8:-5])
-  else:
-    return 0
+  bname=os.path.basename(s).split('.')[0]
+  im=''
+  for i in range(len(bname)-1,0,-1):
+    if bname[i].isdigit():
+      im = bname[i] + im
+    else:
+      break
+  return float(im)
 
 
 def filename(fname='apogee'):
@@ -280,7 +280,7 @@ def foclines(n=-1):
      readout with 'foclines(-1)'. You will see many images of your focus star, N
      pixel lines apart. Select the sharpest image and move to the 
      focus position used for that exposure.
-     Would only useful if the telescope has a focus encoder.
+     Would only be useful if the telescope had a focus encoder.
      eg: foclines(32)
          foclines(32)
          foclines(32)
@@ -297,11 +297,17 @@ def foclines(n=-1):
 def _setcounter():
   """Updates the counter file in /data/counters for the next image taken.
   """
-  fname=os.path.basename(status.lastfile)
-  if len(fname)>8:
+  fname = os.path.basename(status.lastfile)
+  tname = fname.split('.')[0]
+  i = len(tname)-1
+  if i > -1:
+    while tname[i].isdigit() and i>-1:
+      i = i - 1
     nname=fname[:-4]
-    bname=fname[:-8]
+    bname=tname[:i+1]
     for file in glob.glob('/data/counters/'+bname+'[0-9][0-9][0-9].cntr'):
+      os.remove(file)
+    for file in glob.glob('/data/counters/'+bname+'[0-9][0-9][0-9][0-9].cntr'):
       os.remove(file)
     f=open('/data/counters/'+nname+'cntr','w')
     f.close()
