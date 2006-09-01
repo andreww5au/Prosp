@@ -77,7 +77,10 @@ def getregions():
           type='point'
         ocb=string.find(r,'{')
         ccb=string.find(r,'}')
-        label=r[ocb+1:ccb]   #The label is between curly brackets
+        if ocb > 0:   #There is a label
+          label=r[ocb+1:ccb]   #The label is between curly brackets
+        else:
+          label = ''   #No label for this point
         if type=='point':
           x,y=eval(r[ob+1:cb])  #Grab the X and Y values for a point
           m=marker(x,y,label,type)  #Create a marker object
