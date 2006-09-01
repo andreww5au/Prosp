@@ -62,7 +62,7 @@ def getregions():
     label=''
     mlist=[]
     for r in out:       #For each line
-      if r[:5]<>'point':
+      if r.find('(') <= 0:
         pass
       else:
         print r
@@ -70,7 +70,7 @@ def getregions():
         ob=string.find(r,'(')
         cb=string.find(r,')')
         try:
-          type = r[hs+1:].split()[0].split('=')[1]
+          type = r[:ob]
           print type
         except:
           print "region type unknown: "+r
@@ -78,7 +78,7 @@ def getregions():
         ocb=string.find(r,'{')
         ccb=string.find(r,'}')
         label=r[ocb+1:ccb]   #The label is between curly brackets
-        if type=='box':
+        if type=='point':
           x,y=eval(r[ob+1:cb])  #Grab the X and Y values for a point
           m=marker(x,y,label,type)  #Create a marker object
         else:
