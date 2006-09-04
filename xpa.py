@@ -30,8 +30,8 @@ class marker:
         cmd="regions '#"+self.label+"; "+self.type+" "+`self.x`+" "+`self.y`+"'"
         commands.getoutput('echo "'+cmd+'" | xpaset '+viewer)
       else:
-        cmd="regions '"+self.type+" "+`self.x`+" "+`self.y`+" # text={"+self.label+"} '"
-        commands.getoutput('echo '+cmd+' | xpaset '+viewer)
+        cmd="'"+self.type+" "+`self.x`+" "+`self.y`+" # text={"+self.label+"} '"
+        commands.getoutput('echo '+cmd+' | xpaset '+viewer+' regions')
     print cmd
 
 
