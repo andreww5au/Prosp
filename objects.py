@@ -74,7 +74,7 @@ class Object:
   def subframe(self, n=0):
     """Change the exposure time and filter to the n'th pair in the subframes list
     """
-    if (n > self.subframes) or (n > len(subframes)-1):
+    if (n > self.subframes) or (n > len(self.subframes)-1):
       print "Invalid subframe number ",n," in object ",self.ObjID
     else:
       self.filtname, self.exptime = self.sublist[n]
