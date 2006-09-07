@@ -254,6 +254,134 @@ def allobjects(curs=None):
     olist.append(Object(row['ObjID']))
   return olist
 
+
+def filtobjects(curs=None,
+                id=None,                          #ObjID wildcard
+                sortby=None,                      #Field to sort list by
+                ramin=None, ramax=None,           #RA limits (hours)
+                decmin=None, decmax=None,         #Dec limits (degrees)
+                lodmin=None, lodmax=None,         #last observed limits (days ago)
+                type=None,                        #type (no wildcard, ALL for all types)
+                page=1, pagesize=9999,            #page number, and number of objects/page
+                count=0):                         #if count, return total number, not list
+  "Return a list of objects filtered by parameter"
+  if not curs:
+    curs=db.cursor()
+
+  #Update table with floating point RA and Dec values for everything in teljoy.objects
+  curs.execute("select objects.ObjID as ObjID, ObjRA, ObjDec from objects left join objtemp "+
+               "on (objects.ObjID = objtemp.ObjID) "+
+               "where (objtemp.ObjID is NULL) or (objects.LastMod > objtemp.LastMod) ")
+  if curs.rowcount:
+    ulist = curs.fetchallDict()
+    for c in ulist:        
+      fObjRA = globals.stringsex(c['ObjRA'])
+      fObjDec = globals.stringsex(c['ObjDec'])
+      curs.execute('replace into objtemp set ObjID="' + c['ObjID'] + '", '
+                   'fObjRA=' + `fObjRA` + ', fObjDec=' + `fObjDec` + ' ')
+
+  if ramin:
+    sramin = str(ramin)
+  else:
+    sramin = "0.0"
+
+  if ramax:
+    sramax = str(ramax)
+  else:
+    sramax = "24.0"
+
+  if decmin:
+    sdecmin = str(decmin)
+  else:
+    sdecmin = "-90.0"
+
+  if decmax:
+    sdecmax = str(decmax)
+  else:
+    sdecmax = "90.0"
+
+  if lodmin:
+    slodmin = str(lodmin)
+  else:
+    slodmin = "0.0"
+
+  if lodmax:
+    slodmax = str(lodmax)
+  else:
+    slodmax = "99999999.0"
+
+  if (not id) or (id == "NONE"):
+    sid = "%"
+  else:
+    sid = string.replace(id,r'%',r'\%')
+    sid = string.replace(sid,r'_',r'\_')
+    sid = string.replace(sid,r'*',r'%')
+    sid = string.replace(sid,r'?',r'_')
+
+  if (not type) or (type == "NONE"):
+    stype = "%"
+  else:
+    stype = string.upper(string.strip(type))
+    if stype == 'ALL':
+      stype = "%"
+
+  if (not sortby) or (sortby == "NONE"):
+    sortby = "ObjID"
+  else:
+    sortby = string.strip(string.upper(sortby))
+    if sortby == 'OBJRA':
+      sortby = 'fObjRA'
+    elif sortby == 'OBJDEC':
+      sortby = 'fObjDec'
+
+  if count:
+    squery = """
+      select count(*) as num
+      from objects left join objtemp on objects.ObjID = objtemp.ObjID
+      where 
+        (objects.ObjID like "%s") and
+        ( (fObjRA >= %s) and (fObjRA <= %s) ) and
+        ( (fObjDec >= %s) and (fObjDec <= %s) ) and
+        ( ( (to_days(now())-IFNULL(to_days(LastObs),0)) >= %s) and 
+          ( (to_days(now())-IFNULL(to_days(LastObs),0)) <= %s) ) and
+        (type like "%s")
+    """
+    squery = squery % (sid, sramin, sramax, sdecmin, sdecmax, slodmin, slodmax, stype)
+    curs.execute(squery)
+    if curs.rowcount:
+      try:
+        return int(curs.fetchallDict()[0]['num'])
+      except:
+        return 0
+    else:
+      return 0
+
+  squery = """
+    select objects.ObjID 
+    from objects left join objtemp on objects.ObjID = objtemp.ObjID
+    where 
+      (objects.ObjID like "%s") and
+      ( (fObjRA >= %s) and (fObjRA <= %s) ) and
+      ( (fObjDec >= %s) and (fObjDec <= %s) ) and
+      ( ( (to_days(now())-IFNULL(to_days(LastObs),0)) >= %s) and 
+        ( (to_days(now())-IFNULL(to_days(LastObs),0)) <= %s) ) and
+      (type like "%s")
+    order by %s 
+    limit %d, %d
+  """
+  squery = squery % (sid, sramin, sramax, sdecmin, sdecmax, slodmin, slodmax, stype,
+                     sortby, (page-1)*pagesize, pagesize)
+#  print squery + "\n<br>"
+  curs.execute(squery)
+
+  olist = []
+  if curs.rowcount:
+    ulist = curs.fetchallDict()
+    for c in ulist:        
+      olist.append(Object(c['ObjID']))
+  return olist
+
+
 def sortid(o,p):
   return cmp(o.ObjID,p.ObjID)
 
