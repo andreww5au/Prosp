@@ -28,13 +28,14 @@ def filtid(s):
      If it's a narrow-band filter where the name is all digits, return the entire
      filter name.
   """
-  s.strip().lower().capitalize()
+  s = s.strip().lower().capitalize()
   if not s:
     return ''
   sn = ''
   for fn in filters:
-    if (s == fn) or (s[0].isalpha() and (s[0] == fn[0])):
-      sn = fn
+    fns = fn.strip().lower().capitalize()
+    if (s == fns) or (s[0].isalpha() and (s[0] == fns[0])):
+      sn = fns
   if not sn:
     return ''
   else:
