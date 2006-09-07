@@ -22,6 +22,28 @@ except:
 filters=['Clear', 'Red', '4450', '9500', 'Visual', 'Infrared', 'Empty', '7260']
 
 
+def filtid(s):
+  """Given a filter name, make sure it's in the current filter set, and return
+     an ID for it. If the filter name is a string, this is the first letter. 
+     If it's a narrow-band filter where the name is all digits, return the entire
+     filter name.
+  """
+  s.strip().lower().capitalize()
+  if not s:
+    return ''
+  sn = ''
+  for fn in filters:
+    if (s == fn) or (s[0].isalpha() and (s[0] == fn[0])):
+      sn = fn
+  if not sn:
+    return ''
+  else:
+    if sn[0].isdigit():
+      return sn
+    else:
+      return sn[0]
+
+
 def filtname(filt=2):
   """Return filter name given number.
      eg: filtname(6)

@@ -5,30 +5,6 @@ DictCursor=safecursor.SafeCursor
 
 import string
 
-def _gets(prompt='', df=''):
-  "Ask the user for a string, return the value given in def as a default"
-  str=raw_input(prompt+' ('+df+'): ')
-  if str=='':
-    return df
-  else:
-    return str
-
-def _getn(prompt='', df=0.0):
-  "Ask the user for a number, return the value given in def as a default"
-  str=raw_input(prompt+' ('+`df`+'): ')
-  if str=='':
-    return df
-  else:
-    return float(str)
-
-def _gett(prompt='', df=(0,0)):
-  "Ask the user for a tuple, return the value given in def as a default"
-  str=raw_input(prompt+' ('+`df`+'): ')
-  if str=='':
-    return df
-  else:
-    return eval(str)
-
 
 class Object:
 
@@ -41,6 +17,8 @@ class Object:
     self.ObjEpoch=0
     self.filtname=''
     self.exptime=1
+    self.subframes=1
+    self.sublist=[('',0.0)]
     self.XYpos=(0,0)
     self.type=''
     self.period=0.0
@@ -68,8 +46,9 @@ class Object:
       self.ObjRA=c['ObjRA']
       self.ObjDec=c['ObjDec']
       self.ObjEpoch=float(c['ObjEpoch'])
-      self.filtname=c['filtname']
-      self.exptime=float(c['exptime'])
+      filtnames = c['filtnames']
+      exptimes = c['exptimes']
+      self.subframes,self.sublist = psl(filtnames,exptimes)
       self.XYpos=(int(c['XYpos_X']),int(c['XYpos_Y']))
       self.type=c['type']
       try:
@@ -85,26 +64,20 @@ class Object:
         self.ObjRA=''
       if not self.ObjDec:
         self.ObjDec=''
-      if not self.filtname:
-        self.filtname=''
       if not self.type:
         self.type=''
       if not self.comment:
         self.comment=''
       self.errors=''
+      self.subframe(0)
 
-  def edit(self):
-    self.ObjID=_gets('ObjID',self.ObjID)
-    self.name=_gets('Name',self.name)
-    self.ObjRA=_gets('RA',self.ObjRA)
-    self.ObjDec=_gets('Dec',self.ObjDec)
-    self.ObjEpoch=_getn('Epoch',self.ObjEpoch)
-    self.filtname=_gets('Filter',self.filtname)
-    self.exptime=_getn('ExpTime',self.exptime)
-    self.XYpos=_gett('XY pos',self.XYpos)
-    self.type=_gets('Type',self.type)
-    self.period=_getn('Period', self.period)
-    self.comment=_gets('Comment',self.comment)
+  def subframe(self, n=0):
+    """Change the exposure time and filter to the n'th pair in the subframes list
+    """
+    if (n > self.subframes) or (n > len(subframes)-1):
+      print "Invalid subframe number ",n," in object ",self.ObjID
+    else:
+      self.filtname, self.exptime = self.sublist[n]
 
   def updatetime(self, curs=None):
     if not curs:
@@ -112,27 +85,29 @@ class Object:
     curs.execute("update objects set lastobs=NOW() where ObjID='"+self.ObjID+"'")
 
   def display(self):
-    print '%9s:%11s %11s (%6.1f)%8s%6.5g (%5d,%5d)%8s' % (self.ObjID,
+    print '%9s:%11s %11s (%6.1f)%8s%6.5g (%5d,%5d)%8s * %d' % (self.ObjID,
              self.ObjRA,
              self.ObjDec,
              self.ObjEpoch,
              self.filtname,
              self.exptime,
              self.XYpos[0],self.XYpos[1],
-             self.type)
+             self.type,
+             self.subframes)
 
   def __repr__(self):
     return "Object[" + self.ObjID + "]"
 
   def __str__(self):
-    return 'O[%9s:%11s %11s (%6.1f)%8s%6.5g (%5d,%5d)%8s]' % (self.ObjID,
+    return 'O[%9s:%11s %11s (%6.1f)%8s%6.5g (%5d,%5d)%8s * %d]' % (self.ObjID,
              self.ObjRA,
              self.ObjDec,
              self.ObjEpoch,
              self.filtname,
              self.exptime,
              self.XYpos[0],self.XYpos[1],
-             self.type)
+             self.type,
+             self.subframes)
  
 
   def save(self,ask=1,force=0, curs=None):
@@ -141,17 +116,18 @@ class Object:
     if self.ObjID=='':
       print "Empty ObjID, can't save object."
       return 0
+    filtnames,exptimes = pls(self.sublist)
     if not curs.execute("select * from objects where ObjID='"+self.ObjID+"'"):
-      curs.execute("insert into objects (ObjID,name,ObjRA,ObjDec,ObjEpoch,filtname,"+
-         "exptime,"+
+      curs.execute("insert into objects (ObjID,name,ObjRA,ObjDec,ObjEpoch,filtnames,"+
+         "exptimes,"+
          "XYpos_X,XYpos_Y,type,period,comment) values ("+
          "'"+self.ObjID+"', "+
          "'"+self.name+"', "+
          "'"+self.ObjRA+"', "+
          "'"+self.ObjDec+"', "+
          `self.ObjEpoch`+", "+
-         "'"+self.filtname+"', "+
-         `self.exptime`+", "+
+         "'"+filtnames+"', "+
+         "'"+exptimes+"', "+
          `self.XYpos[0]`+", "+
          `self.XYpos[1]`+", "+
          "'"+self.type+"', "+
@@ -177,8 +153,8 @@ class Object:
          "ObjRA='"+self.ObjRA+"', "+
          "ObjDec='"+self.ObjDec+"', "+
          "ObjEpoch="+`self.ObjEpoch`+", "+
-         "filtname='"+self.filtname+"', "+
-         "exptime="+`self.exptime`+", "+
+         "filtnames='"+filtnames+"', "+
+         "exptimes='"+exptimes+"', "+
          "XYpos_X="+`self.XYpos[0]`+", "+
          "XYpos_Y="+`self.XYpos[1]`+", "+
          "type='"+self.type+"', "+
@@ -220,6 +196,51 @@ def ZapPeriods(period=0, type='', curs=None):
   if type:
     curs.execute("update teljoy.objects set period="+`period`+" where type='"+type+"' and ObjID not like 'P%'")
    
+
+
+def psl(filtnames='I',exptimes='1.0'):
+  """Given filtnames and exptimes, return subframes and sublist.
+  """
+  filtlist = filtnames.split()
+  exptlist = exptimes.split()
+  if not filtlist:
+    filtlist = ['I']
+  if not exptlist:
+    exptlist = [10.0]
+  sublist = []
+  if len(exptlist) == 1:
+    subframes = len(filtlist)
+    for fn in filtlist:
+      sublist.append( (fn,float(exptlist[0])) )
+  else:
+    if len(filtlist) == 1:
+      subframes = len(exptlist)
+      for et in exptlist:
+        sublist.append( (filtlist[0],float(et)) )
+    else:
+      if len(filtlist) == len(exptlist):
+        subframes = len(exptlist)
+        for i in range(len(filtlist)):
+          sublist.append( (filtlist[i],float(exptlist[i])) )
+      else:
+        print "No match between number of filts and number of exptimes in object: "+self.ObjID
+        subframes = 1
+        sublist.append( (filtlist[0],float(exptlist[0])) )
+  return subframes,sublist
+
+
+def pls(sublist):
+  """Given a subframe list of (filter,exptime) pairs, return
+     filtnames and exptimes strings for putting in the database.
+  """
+  filtnames = ''
+  exptimes = ''
+  for p in sublist:
+    filtnames += p[0]+' '
+    exptimes += `p[1]`+' '
+  return filtnames.strip(), exptimes.strip()
+
+
 
 
 def allobjects(curs=None):

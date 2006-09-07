@@ -71,7 +71,7 @@ class dObject(objects.Object):
     if prefix:
       ArCommands.filename(prefix)
     else:
-      ArCommands.filename(self.ObjID)
+      ArCommands.filename(self.ObjID+filtid(self.filtname))
 
   def preset(self):
     "Carry out any parameter changes desired before the image (override with actual code)"
@@ -121,13 +121,15 @@ class dObject(objects.Object):
     self.errors=""
     self.jump()
     if not self.errors:
-      self.preset()
-      self.fileprefix()
-      self.set()
-      self.updatetime()
-      self.get()
-      self.reduce()
-      self.log()
+      for frame in range(self.subframes):
+        self.subframe(frame)
+        self.preset()
+        self.fileprefix()
+        self.set()
+        self.updatetime()
+        self.get()
+        self.reduce()
+        self.log()
     else:
       print "Errors: "+self.errors
       return self.errors
