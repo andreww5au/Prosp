@@ -5,6 +5,7 @@ DictCursor=safecursor.SafeCursor
 
 import string
 
+import globals
 
 class Object:
 
