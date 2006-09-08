@@ -201,8 +201,8 @@ def ZapPeriods(period=0, type='', curs=None):
 def psl(filtnames='I',exptimes='1.0'):
   """Given filtnames and exptimes, return subframes and sublist.
   """
-  filtlist = filtnames.split()
-  exptlist = exptimes.split()
+  filtlist = filtnames.replace(',',' ').split()
+  exptlist = exptimes.replace(',',' ').split()
   if not filtlist:
     filtlist = ['I']
   if not exptlist:
