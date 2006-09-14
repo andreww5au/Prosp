@@ -23,7 +23,7 @@ import threading
 os.environ['http_proxy']='http://192.168.25.74:3128'
 
 base='http://skyview.gsfc.nasa.gov/cgi-bin/nnskcall.pl'
-params={'SURVEY':'Digitized Sky Survey',
+params={'SURVEY':'DSS2 Red',
         'SCOORD':'Equatorial',
         'MAPROJ':'Gnomonic',
         'GRIDDD':'Yes',
