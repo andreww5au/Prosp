@@ -74,9 +74,7 @@ for f in args:
   ccdtemp=float(img.headers['CCDTEMP'])
   if not img.headers.has_key('FWHM'):
     img=improc.FITS(f,'r')     #Load full image
-    img.fwhmsky()    #If there's no FWHM card, calculate FWHM and sky now
-  fwhm=float(img.headers['FWHM'])
-  sky=float(img.headers['SKY'])
+    fwhm,sky = img.fwhmsky()    #If there's no FWHM card, calculate FWHM and sky now
   if fwhm < 0:
     print fmt % vars()
     if flag == 'd':
