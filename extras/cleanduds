@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 
 #File info lister - an argument of '-d' will produce an ISIS dates list format
 #(filename, HJD-2450000, seeing), and no flag or a '-i' will produce a full 
