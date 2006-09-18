@@ -1,0 +1,84 @@
+#!/usr/bin/python2
+
+#File info lister - an argument of '-d' will produce an ISIS dates list format
+#(filename, HJD-2450000, seeing), and no flag or a '-i' will produce a full 
+#list (filename, object, filter, HJD-2450000, CCDtemp, seeing, sky).
+# An arg of -s will produce image statistics, and be much slower
+#
+#eg:
+#  finfo *.fits 
+#  finfo -d *.fits > ../register/dates
+
+import os
+import sys
+
+import improc
+
+
+def help():
+  "Usage information."
+  print """FITS File Dud-image remover - Usage:
+    cleanduds [-d] [filenames]       or
+    cleanduds [-n] [filenames]       or
+    cleanduds [-h]
+
+    cleanduds will look for and optionally delete those images that
+    don't contain stars (ie return a FWHM of -1.00). These could be
+    due to the shutter not opening, or the dome closing due to bad
+    weather during the exposure.
+
+    -n gives details of the files that will be deleted, but doesn't
+       actually carry out the deletion (the default behaviour)
+    -d will delete the dud images
+    -h prints this usage information.
+       """
+
+
+fmt="%(filename)-20s %(objectid)-9s %(filterid)1s %(pjd)8.5f  %(ccdtemp)5.1f  %(fwhm)5.2f %(sky)5d  %(secz)4.2f"
+header="#filename, object, filter, HJD-2450000.0, CCDtemp, FWHM, Sky, SecZ"
+
+
+flag='n'
+if len(sys.argv)==1:
+  help()
+  sys.exit()                  #No arguments supplied, print usage and exit
+elif sys.argv[1][0]=='-':
+  flag=sys.argv[1][1:]
+  args=sys.argv[2:]
+else:
+  args=sys.argv[1:]           #leave with 'args' a list of files to process
+
+if (not args) or ((flag<>'n') and (flag<>'d')):
+  help()
+  sys.exit()            #Print usage and exit
+
+
+if flag == 'n':
+  print "The following images would be deleted (use -d to actually delete them):\n"
+else:
+  print "The following images have been deleted:\n"
+print header
+
+for f in args:
+  img=improc.FITS(f,'h')     #Load FITS headers only
+
+  filename=os.path.basename(f)
+  objectid=img.headers['OBJECT'][1:-1].strip()
+  exptime=float(img.headers['EXPTIME'])
+  dateobs=img.headers['DATE-OBS'][1:-1].strip()
+  timeobs=img.headers['TIME-OBS'][1:-1].strip()
+  filterid=img.headers['FILTERID'][1].strip()
+  secz=float(img.headers['SECZ'])
+  hjd=float(img.headers['HJD'])
+  pjd=hjd-2450000.0
+  ccdtemp=float(img.headers['CCDTEMP'])
+  if not img.headers.has_key('FWHM'):
+    img=improc.FITS(f,'r')     #Load full image
+    img.fwhmsky()    #If there's no FWHM card, calculate FWHM and sky now
+  fwhm=float(img.headers['FWHM'])
+  sky=float(img.headers['SKY'])
+  if fwhm < 0:
+    print fmt % vars()
+    if flag == 'd':
+      os.remove(f)
+
