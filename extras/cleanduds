@@ -75,6 +75,10 @@ for f in args:
   if not img.headers.has_key('FWHM'):
     img=improc.FITS(f,'r')     #Load full image
     fwhm,sky = img.fwhmsky()    #If there's no FWHM card, calculate FWHM and sky now
+  else:
+    fwhm=float(img.headers['FWHM'])
+    sky=float(img.headers['SKY'])
+
   if fwhm < 0:
     print fmt % vars()
     if flag == 'd':
