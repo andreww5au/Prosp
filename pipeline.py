@@ -54,7 +54,7 @@ class dObject(objects.Object):
     while teljoy.status.paused:
       print "Waiting for weather to clear"
       time.sleep(60)
-    swrite("Moving to object "+self.ObjID)
+    swrite("Moving to object ... "+self.ObjID)
     teljoy.jump(id=self.ObjID, ra=self.ObjRA, dec=self.ObjDec,
                 epoch=self.ObjEpoch)
     time.sleep(3)
@@ -62,6 +62,7 @@ class dObject(objects.Object):
     while teljoy.status.moving or teljoy.status.DomeInUse:
       time.sleep(1)
       teljoy.status.update()
+    swrite("Teljoy has jumped to "+self.ObjID+teljoy.status.name)
     if string.upper(teljoy.status.name) <> string.upper(self.ObjID):   #Teljoy hasn't jumped to this object
       ewrite("Teljoy hasn't jumped to "+self.ObjID+" - possibly too low")
       self.errors=self.errors+"Teljoy hasn't jumped to "+self.ObjID+" - possibly too low\n"
