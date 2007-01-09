@@ -16,10 +16,10 @@ DictCursor=safecursor.SafeCursor
 AltCutoff = 30
 
 
-types={'PLANET':1.00, 'STORE':1.00, 'IMAGE':0.0001}  
+types={'PLANET':0.00001, 'STORE':1.00, 'IMAGE':1.0001}  
 
 candidates={}
-cantimestamp=MySQLdb.Timestamp(0)
+cantimestamp=MySQLdb.Timestamp(1970,1,1)
 best=None
 
 
