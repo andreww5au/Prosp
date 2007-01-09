@@ -1,4 +1,4 @@
-#!/usr/bin/python2 -i
+#!/usr/bin/python -i
 
 backgrounds=[]
 
@@ -42,6 +42,8 @@ import utils
 from utils import *
 import ephemint
 from ephemint import *
+import focuser
+from focuser import Goto,getPos,Home
 
 
 def help(func):
