@@ -41,8 +41,8 @@ def _background():
     if (not weather.status.weathererror) and (weather.status.dewpoint is not None):
       try:
         desired = weather.status.dewpoint + dewheadroom      #Temperature to try and keep chiller setpoint near
-        if desired < 2.0:
-          desired = 2.0
+        if desired < 5.0:
+          desired = 5.0
 
         if (abs(desired-status.setpoint) >= 1.0):
           newSetpoint(desired)
