@@ -14,8 +14,8 @@ pi=math.pi
 halfpi=math.pi/2.0
 twopi=math.pi*2.0
 
-obslat=ephem.scanSexagesimal('-32:00:29.1')/180.0*pi
-obslong=ephem.scanSexagesimal('116:8:6.1')/180.0*pi
+obslat=ephem.degrees('-32:00:29.1')
+obslong=ephem.degrees('116:8:6.1')
 twilight=12/180.0*pi    #Nautical Twilight, 12 degrees below horizon
 fullday=-6/180.0*pi     #Full daytime, sun 6 degrees above horizon
 
@@ -29,7 +29,7 @@ def mjdnow():
 def radRA(raString):
 # convert RA string in hours minutes and seconds to radians
   try:
-    RAradians=ephem.scanSexagesimal(raString)/12.0*pi
+    RAradians=ephem.hours(raString)
     return RAradians 
   except:
     return -1
@@ -38,7 +38,7 @@ def radRA(raString):
 def radDec(decString):
 # convert dec string in degrees minutes and seconds to radians
   try:
-    Decradians=ephem.scanSexagesimal(decString)/180.0*pi
+    Decradians=ephem.degrees(decString)
     return Decradians 
   except:
     return -1
@@ -59,33 +59,34 @@ def tosecs(mjd):
 
 
 def herenow():
-  c=ephem.Circumstance()
-  c.mjd=mjdnow()
-  c.latitude=obslat
-  c.longitude=obslong
-  c.timezone=time.timezone/3600
+  c=ephem.Observer()
+  c.date=ephem.now()
+  c.lat=obslat
+  c.long=obslong
   c.pressure=1013.0
-  c.temperature=20.0
-  c.epoch=ephem.J2000
+  c.temp=20.0
+  c.epoch=2000
   return c
 
 
 def isdark():
-  h=herenow()
-  tw=ephem.computeTwilight(h,twilight)
-  if h.mjd>tw[1] or h.mjd<tw[0]:
-    return 1
-  else:
+  h = herenow()
+  sun = ephem.Sun()
+  sun.compute(h)
+  if (float(sun.alt)*180/pi) > -12:
     return 0
+  else:
+    return 1
 
 
 def isday():
-  h=herenow()
-  tw=ephem.computeTwilight(h,fullday)
-  if h.mjd>tw[1] or h.mjd<tw[0]:
-    return 0
-  else:
+  h = herenow()
+  sun = ephem.Sun()
+  sun.compute(h)
+  if float(sun.alt) > 0:
     return 1
+  else:
+    return 0
 
 
 def precess(ra=0.0, dec=-0.5587):
@@ -97,13 +98,12 @@ def precess(ra=0.0, dec=-0.5587):
 
 
 def altaz(ra=0.0, dec=-0.5587, epoch=2000):
-  obj=ephem.Obj()
-  obj.any.type=ephem.FIXED
-  obj.f.ra=ra
-  obj.f.dec=dec
-  obj.f.epoch=epoch
-  ephem.computeLocation(herenow(), obj)
-  return obj.any.altitude, obj.any.azimuth
+  obj=ephem.FixedBody()
+  obj._ra=ra
+  obj._dec=dec
+  obj._epoch=epoch
+  obj.compute(herenow())
+  return float(obj.alt)*180/pi, float(obj.az)*180/pi
 
 
 def alaz(ra=0.0,dec=-0.5587):
