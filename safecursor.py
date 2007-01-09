@@ -2,7 +2,7 @@
 from globals import ewrite
 
 import MySQLdb
-from MySQLdb.cursors import DictCursorNW as DictCursor
+from MySQLdb.cursors import DictCursor
 
 
 class SafeCursor(DictCursor):
