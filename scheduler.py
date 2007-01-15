@@ -109,7 +109,7 @@ def Ptest3(o):
   """Flat priority function, useful mostly for PLANET or other objects observed many
      times per night. No dependence on position apart from being =0 for alt<AltCutoff and abs(HA)>5
   """
-  timefactor = abs((float(MySQLdb.TimestampFromTicks(time.time())) - o.LastObs) / (o.period*86400))
+  timefactor = abs( (time.mktime(MySQLdb.TimestampFromTicks(time.time()).timetuple()) - o.LastObs) / (o.period*86400) )
 
   if o.ALT < AltCutoff:
     altfactor=0.0
