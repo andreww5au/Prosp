@@ -165,9 +165,9 @@ def _background():
 
 
 
-db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
                       db='misc', cursorclass=DictCursor)
-b_db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+b_db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
                         db='misc', cursorclass=DictCursor)
 status=_Weather()
 status.update()

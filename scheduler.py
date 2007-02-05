@@ -211,7 +211,7 @@ Pfunction=Ptest3
 
 
 #print 'connecting to database for objects database access'
-db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor)
 curs=db.cursor()
 #print 'connected'

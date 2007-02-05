@@ -10,7 +10,7 @@ import safecursor
 DictCursor=safecursor.SafeCursor
 
 #Create a new database connection to use in the background email-monitoring thread
-b_db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+b_db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
                         db='teljoy', cursorclass=DictCursor)
 grb_curs=b_db.cursor()
 

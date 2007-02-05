@@ -4,6 +4,7 @@ import safecursor
 DictCursor=safecursor.SafeCursor
 
 import string
+import time
 
 import globals
 
@@ -58,8 +59,8 @@ class Object:
         self.period=0.0
       self.comment=c['comment']
       try:
-        self.LastObs=float(c['LastObs'])
-      except TypeError:
+        self.LastObs=time.mktime(c['LastObs'].timetuple())
+      except (TypeError,AttributeError):
         self.LastObs=0
       if not self.ObjRA:
         self.ObjRA=''
@@ -398,7 +399,7 @@ def sorttype(o,p):
 
 
 #print 'connecting to database for objects database access'
-db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor)
 #print 'connected'
 

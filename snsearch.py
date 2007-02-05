@@ -171,7 +171,7 @@ class SNObject(dObject):
 pipeline.Pipelines['IMAGE']=SNObject
 
 swrite('SNSearch module connecting to database')
-db=MySQLdb.Connection(host='lear', user='honcho', passwd='',
+db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor)
 curs=db.cursor()
 swrite('connected')
