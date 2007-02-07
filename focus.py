@@ -1,4 +1,7 @@
 
+from pyraf.iraf import noao
+noao.obsutil()
+
 import focuser
 import pipeline
 import ArCommands
@@ -7,6 +10,51 @@ from pipeline import dObject
 
 coarsestep = 100
 finestep = 10
+
+noao()
+noao.obsutil()
+
+noao.obsutil.starfocus.nexposures = 9
+noao.obsutil.starfocus.step = 25
+noao.obsutil.starfocus.direction = "+line"
+noao.obsutil.starfocus.gap = "none"
+noao.obsutil.starfocus.logfile = ""
+noao.obsutil.starfocus.coords = "center"
+noao.obsutil.starfocus.wcs = "physical"
+noao.obsutil.starfocus.display = "No"
+noao.obsutil.starfocus.level = 0.5
+noao.obsutil.starfocus.size = "FWHM"
+noao.obsutil.starfocus.beta = "INDEF"
+noao.obsutil.starfocus.scale = 1.0
+noao.obsutil.starfocus.radius = 15
+noao.obsutil.starfocus.sbuffer = 15
+noao.obsutil.starfocus.swidth = 15
+noao.obsutil.starfocus.saturation = 65500
+noao.obsutil.starfocus.ignore_sat = "No"
+noao.obsutil.starfocus.iterations = 3
+noao.obsutil.starfocus.logfile = ""
+noao.obsutil.starfocus.imagecur = "/dev/null"
+noao.obsutil.starfocus.graphcur = "/dev/null"
+noao.obsutil.starfocus.mode = "al"
+
+
+def parse_starfocus(s):
+  """Parses the output of the IRAF 'starfocus' task, and returns a tuple 
+     containing the best focus value and best FWHM determined.
+  """
+  if (s==[]) or (type(s)<>type([])):
+    print "No input to parse_starfocus"
+    return 0,0
+  line = s[-1].strip().split()
+  if len(line)<>8:
+    print "Last line wrong length in input to parse_starfocus"
+    return 0,0
+  if (line[0]<>"Best") or (line[1]<>"focus") or (line[2]<>"of"):
+    print "Unexpected text in input to parse_starfocus"
+    return 0,0
+  else:
+    return float(line[3]), float(line[7])
+  
 
 
 def best(center = 0, step = 100, average = 1):
@@ -17,12 +65,12 @@ def best(center = 0, step = 100, average = 1):
   """
   totpos = 0
   for i in range(average):
-    for pos in range(center-4*step, center+5*step, step)
+    for pos in range(center-4*step, center+5*step, step):
       focuser.Goto(pos)
       ArCommands.foclines(25)
     imgname = ArCommands.foclines(-1)
-
-    #PyRAF processing stuff here
+    
+    guesspos,fwhm = parse_starfocus(noao.obsutil.starfocus(images=imgname, focus=center-4*step, fstep=step, Stdout=1))
    
     totpos = totpos + guesspos
   return totpos / average
