@@ -32,6 +32,8 @@ import snsearch
 import scheduler
 import grb
 import chiller
+import focuser
+import focus
 
 backgrounds.append(teljoy._background)
 backgrounds.append(weather._background)
@@ -42,7 +44,6 @@ import utils
 from utils import *
 import ephemint
 from ephemint import *
-import focuser
 from focuser import Goto,getPos,Home
 
 
@@ -170,10 +171,15 @@ def monitor(arg=None, close=None, open=None, delay=None):
     if type(delay)==types.FloatType or type(delay)==types.IntType:
       status.weather.WeatherOpenDelay=int(delay)
 
-    if not isdark():
-      print "It's not dark yet, monitoring mode would pause immediately."
-      print "Monitor mode aborted."
-      return 0
+    while (not isdark()):
+      print 'waiting for it to get dark:'
+      time.sleep(45)
+
+#    Put this code back and take out the while statement
+#    if not isdark():
+#      print "It's not dark yet, monitoring mode would pause immediately."
+#      print "Monitor mode aborted."
+#      return 0
     if not status.weather.clear:
       print "Monitor mode aborted:\n",
       if status.weathererror:
@@ -217,6 +223,8 @@ try:
   chiller.init()
   status.chiller = chiller.status
   status.chiller.CCDsettemp = status.settemp    #Make CCD settemp available to chiller module
+  focuser.init()
+  status.focuser = focuser.status
 except Ariel.ArielError:
   GotAriel=0
   ewrite("Ariel init failed.")
