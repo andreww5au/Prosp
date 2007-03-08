@@ -179,7 +179,7 @@ class _Chiller:
 
 def init():   #Initialise at runtime, including connection to chiller and downloading initial BOM data
   global status, ser, logfile  
-  ser = serial.Serial('/dev/ttyS2', 9600, timeout=1)
+  ser = serial.Serial('/dev/ttyS1', 9600, timeout=1)
   logfile = open('/data/templog','a')
   logfile.write("%s\t%s\t%s\t%s\t%s \n" % (time.asctime(),"Air","Water","Set","Dew") )
 
