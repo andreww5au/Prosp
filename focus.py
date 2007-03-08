@@ -1,4 +1,6 @@
 
+import time
+
 from pyraf.iraf import noao
 noao.obsutil()
 
@@ -8,8 +10,8 @@ import ArCommands
 import fits
 from pipeline import dObject
 
-coarsestep = 100
-finestep = 10
+coarsestep = 20
+finestep = 5 
 
 noao()
 noao.obsutil()
@@ -23,7 +25,7 @@ noao.obsutil.starfocus.coords = "center"
 noao.obsutil.starfocus.wcs = "physical"
 noao.obsutil.starfocus.display = "No"
 noao.obsutil.starfocus.level = 0.5
-noao.obsutil.starfocus.size = "FWHM"
+noao.obsutil.starfocus.size = "MFWHM"   #Radius, FWHM, GFWHM, MFWHM
 noao.obsutil.starfocus.beta = "INDEF"
 noao.obsutil.starfocus.scale = 1.0
 noao.obsutil.starfocus.radius = 15
@@ -42,6 +44,8 @@ def parse_starfocus(s):
   """Parses the output of the IRAF 'starfocus' task, and returns a tuple 
      containing the best focus value and best FWHM determined.
   """
+  for l in s:
+    print l
   if (s==[]) or (type(s)<>type([])):
     print "No input to parse_starfocus"
     return 0,0
@@ -57,7 +61,7 @@ def parse_starfocus(s):
   
 
 
-def best(center = 0, step = 100, average = 1):
+def best(center = 0, step = coarsestep, average = 1):
   """Take images at 9 focus positions, from center-4*step to center+4*step
      At each position, open the shutter and shift the readout 25 lines, then
      read out the whole image at the end. Pass the image to PyRAF for analysis,
@@ -65,13 +69,16 @@ def best(center = 0, step = 100, average = 1):
   """
   totpos = 0
   for i in range(average):
-    for pos in range(center-4*step, center+5*step, step):
+    for p in [-4,-3,-2,-1,0,1,2,3]:
+      pos = center + p * step
       focuser.Goto(pos)
+      time.sleep(1)
       ArCommands.foclines(25)
+    focuser.Goto(center+4*step)
     imgname = ArCommands.foclines(-1)
     
     guesspos,fwhm = parse_starfocus(noao.obsutil.starfocus(images=imgname, focus=center-4*step, fstep=step, Stdout=1))
-   
+    print "Focus estimate:",guesspos
     totpos = totpos + guesspos
   return totpos / average
 
@@ -82,7 +89,7 @@ def saveraw(fobj=None, fname=''):
   """
   if fobj and fname:
     f = open(fname,'w')
-    f.write(fobj.data.astype(fits.Float32))
+    f.write(fobj.data.astype(fits.Float32).tostring())
     f.close()
 
 
