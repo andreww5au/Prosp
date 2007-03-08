@@ -97,10 +97,10 @@ def precess(ra=0.0, dec=-0.5587):
   return pra,pdec
 
 
-def altaz(ra=0.0, dec=-0.5587, epoch=2000):
+def altaz(ra=0.0, dec=-32.0, epoch=2000):
   obj=ephem.FixedBody()
-  obj._ra=ra
-  obj._dec=dec
+  obj._ra=ra/12.0*pi
+  obj._dec=dec/180.0*pi
   obj._epoch=epoch
   obj.compute(herenow())
   return float(obj.alt)*180/pi, float(obj.az)*180/pi
