@@ -171,6 +171,8 @@ def take(objs=[], force=0):
   if type(objs)==type(''):
     objs=string.replace(objs, ',', ' ')
     objs=string.split(objs)
+
+
   if (not status.MonitorActive) and (not force) and len(objs)>6:
     swrite("Monitoring mode is not switched on - aborting take command run.")
     print "Use monitor('on') to switch on monitoring, or override by"
@@ -237,10 +239,8 @@ def sched(objs=[],force=0,mode=0):
     if grbflag < 1 and monEmail < 1: #no email request not monitoring old request
       observeThis(ob)
     else:  #Email request received.
-      ra=ephemint.radRA(grb.self.RA)          #convert from string to radians
-      dec=ephemint.radDec(grb.self.Dec)
-      alt,az=ephemint.altaz(ra,dec)           #get the alt az of the object
-      if alt > 0.523598776: #Object is above telescope horizon (30 degrees)
+      alt,az=ephemint.altaz(grb.self.RA,grb.self.Dec)           #get the alt az of the object
+      if alt > 30: #Object is above telescope horizon (30 degrees)
 #       take it's picture
         observeThis(grb.self.obj)
         grbRequest(flag='false') #reset the override flag
@@ -267,10 +267,8 @@ def sched(objs=[],force=0,mode=0):
       if grbflag < 1 and monEmail < 1:  #no email request and not monitoring
         time.sleep(1) #Sleep for 10 seconds
       else:  #Email request received.
-        ra=ephemint.radRA(grb.self.RA)          #convert from string to radians
-        dec=ephemint.radDec(grb.self.Dec)
-        alt,az=ephemint.altaz(ra,dec)           #get the alt az of the object
-        if alt > 0.523598776: #Object is above telescope horizon (30 degrees)
+        alt,az=ephemint.altaz(grb.self.RA,grb.self.Dec)           #get the alt az of the object
+        if alt > 30: #Object is above telescope horizon (30 degrees)
           tile(grb.self.obj, side=3)           #take picture
           grbRequest(flag='false')             #reset the override flag
 #         grb.self.flag=0                      #reset the override flag
