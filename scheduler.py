@@ -109,7 +109,7 @@ def Ptest3(o):
   """Flat priority function, useful mostly for PLANET or other objects observed many
      times per night. No dependence on position apart from being =0 for alt<AltCutoff and abs(HA)>5
   """
-  timefactor = abs( (time.mktime(MySQLdb.TimestampFromTicks(time.time()).timetuple()) - o.LastObs) / (o.period*86400) )
+  timefactor = abs( (time.time() - o.LastObs) / (o.period*86400) )
 
   if o.ALT < AltCutoff:
     altfactor=0.0
@@ -117,6 +117,10 @@ def Ptest3(o):
     altfactor = 1.0  
 
   ha=o.RA - teljoy.status.LST
+  if ha > 12:
+    ha = ha -24
+  elif ha < -12:
+    ha = ha + 24
   if abs(ha) > 5:
     hafactor = 0.0           #Don't allow any jumps outside -5 < HA < +5 hours 
   else:                      #No matter what the altitude
@@ -155,6 +159,7 @@ def UpdateCandidates():
       for row in c:
         id=row['ObjID']
         o=pipeline.getobject(id)
+        print id, cantimestamp,o.LastObs
         o.RA=stringsex(o.ObjRA)
         o.DEC=stringsex(o.ObjDec)
         if _valid(o):
@@ -179,8 +184,7 @@ def UpdateCandidates():
   cantimestamp=temptime
   best=None
   for o in candidates.values():
-    al,az=ephemint.altaz(o.RA/12*math.pi, o.DEC/180*math.pi)
-    o.ALT, o.AZ = al/math.pi*180,  az/math.pi*180
+    o.ALT, o.AZ = ephemint.altaz(o.RA, o.DEC)
     if _weights:
       o.PRIORITY = Pfunction(o) * _weights[string.upper(o.type)]
     else:
