@@ -538,19 +538,19 @@ def findstar(img=None, n=1):
      3 pixels from any other star-like object already listed.
   """
   starlist = []
-  m,n = img.data.shape
+  rows,cols = img.data.shape
   sortflat = argsort(img.data.flat)
   i = -1
   offsets = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
-  while (len(starlist)<n) and (i>(-m*n)):
-    x,y = divmod(sortflat[i],m)
+  while (len(starlist)<n) and (i>(-rows*cols)):
+    x,y = divmod(sortflat[i],rows)
     reject = 0
     for ix,iy in offsets:
       try:
         if (img.data[x+ix,y+iy] > img.data[x,y]) or (img.data[x+ix,y+iy] < img.data[x,y]/3.0):
           reject = 1
-        except IndexError:
-          pass    #Edge of chip, no adjoining pixels
+      except IndexError:
+        pass    #Edge of chip, no adjoining pixels
     if not reject:
       for ox,oy in starlist:
         if (ox-x)*(ox-x) + (oy-y)*(oy-y) < 9:
