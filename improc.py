@@ -557,7 +557,8 @@ def findstar(img=None, n=1):
           reject = 1
     if not reject:
       starlist.append((x,y))
-
+    i -= 1
+  return starlist
 
 def to8bit(img=None):
   """Return an array of floats in the range 0-255 given a FITS image object. 
