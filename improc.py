@@ -530,6 +530,31 @@ def doflat(files=[], filt=None):
 
 
 
+def findstar(img=None, n=1):
+  """Given a FITS image, return a list of coordinates for the 'n' brightest
+     star-like objects. The search is done by finding the brightest pixel, and 
+     calling it the coordinates of a 'star-like' object if the 8 pixels surrounding
+     it are dimmer than it, but have at least 1/3rd it's value, and if it's at least 
+     3 pixels from any other star-like object already listed.
+  """
+  starlist = []
+  m,n = img.data.shape
+  sortflat = argsort(img.data.flat)
+  i = -1
+  offsets = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
+  while (len(starlist)<n) and (i>(-m*n)):
+    x,y = divmod(sortflat[i],m)
+    reject = 0
+    for ix,iy in offsets:
+      if (img.data[x+ix,y+iy] > img.data[x,y]) or (img.data[x+ix,y+iy] < img.data[x,y]/3.0):
+        reject = 1
+    if not reject:
+      for ox,oy in starlist:
+        if (ox-x)*(ox-x) + (oy-y)*(oy-y) < 9:
+          reject = 1
+    if not reject:
+      starlist.append((x,y)
+
 
 def to8bit(img=None):
   """Return an array of floats in the range 0-255 given a FITS image object. 
