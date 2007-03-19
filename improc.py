@@ -560,6 +560,7 @@ def findstar(img=None, n=1):
     i -= 1
   return starlist
 
+
 def to8bit(img=None):
   """Return an array of floats in the range 0-255 given a FITS image object. 
      Sorts the data, and uses the 5th and 95th percentile as low and high
