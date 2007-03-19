@@ -546,14 +546,17 @@ def findstar(img=None, n=1):
     x,y = divmod(sortflat[i],m)
     reject = 0
     for ix,iy in offsets:
-      if (img.data[x+ix,y+iy] > img.data[x,y]) or (img.data[x+ix,y+iy] < img.data[x,y]/3.0):
-        reject = 1
+      try:
+        if (img.data[x+ix,y+iy] > img.data[x,y]) or (img.data[x+ix,y+iy] < img.data[x,y]/3.0):
+          reject = 1
+        except IndexError:
+          pass    #Edge of chip, no adjoining pixels
     if not reject:
       for ox,oy in starlist:
         if (ox-x)*(ox-x) + (oy-y)*(oy-y) < 9:
           reject = 1
     if not reject:
-      starlist.append((x,y)
+      starlist.append((x,y))
 
 
 def to8bit(img=None):
