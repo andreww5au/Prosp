@@ -543,14 +543,13 @@ def findstar(img=None, n=1):
   i = -1
   offsets = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
   while (len(starlist)<n) and (i>(-rows*cols)):
-    x,y = divmod(sortflat[i],rows)
+    x,y = divmod(sortflat[i],cols)
     reject = 0
     for ix,iy in offsets:
-      try:
-        if (img.data[x+ix,y+iy] > img.data[x,y]) or (img.data[x+ix,y+iy] < img.data[x,y]/3.0):
-          reject = 1
-      except IndexError:
-        reject = 1    #Edge of chip, no adjoining pixels
+      if x<5 or y<5 or x>(rows-5) or y>(cols-5):
+        reject = 1
+      elif (img.data[x+ix,y+iy] > img.data[x,y]) or (img.data[x+ix,y+iy] < img.data[x,y]/3.0):
+        reject = 1
     if not reject:
       for ox,oy in starlist:
         if (ox-x)*(ox-x) + (oy-y)*(oy-y) < 9:
@@ -559,7 +558,6 @@ def findstar(img=None, n=1):
       starlist.append((x,y))
     i -= 1
   return starlist
-
 
 def to8bit(img=None):
   """Return an array of floats in the range 0-255 given a FITS image object. 
