@@ -548,8 +548,10 @@ def findstar(img=None, n=1):
     for ix,iy in offsets:
       if x<5 or y<5 or x>(rows-5) or y>(cols-5):
         reject = 1
-      elif (img.data[x+ix,y+iy] > img.data[x,y]) or (img.data[x+ix,y+iy] < img.data[x,y]/3.0):
-        reject = 1
+      else:
+        print x,y
+        if (img.data[x+ix,y+iy] > img.data[x,y]) or (img.data[x+ix,y+iy] < img.data[x,y]/3.0):
+          reject = 1
     if not reject:
       for ox,oy in starlist:
         if (ox-x)*(ox-x) + (oy-y)*(oy-y) < 9:
