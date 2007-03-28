@@ -536,7 +536,12 @@ def findstar(img=None, n=1):
      calling it the coordinates of a 'star-like' object if the 8 pixels surrounding
      it are dimmer than it, but have at least 1/3rd it's value, and if it's at least 
      3 pixels from any other star-like object already listed.
+
+     Note that the coordinates returned are Numeric array indices into the data, they
+     must be swapped and increased by 1 to correspond to ds9 physical image coordinates,
+     eg 257,261 returned by findstar actually means (262,258) in the image.
   """
+  img.bias()
   starlist = []
   rows,cols = img.data.shape
   sortflat = argsort(img.data.flat)
@@ -545,21 +550,22 @@ def findstar(img=None, n=1):
   while (len(starlist)<n) and (i>(-rows*cols)):
     x,y = divmod(sortflat[i],cols)
     reject = 0
-    for ix,iy in offsets:
-      if x<5 or y<5 or x>(rows-5) or y>(cols-5):
-        reject = 1
-      else:
-        print x,y
+    if x<5 or y<5 or x>(rows-5) or y>(cols-5):
+      reject = 1
+    else:
+      for ix,iy in offsets:
+#        print x,y,ix,iy,' : ',img.data[x,y],img.data[x+ix,y+iy]
         if (img.data[x+ix,y+iy] > img.data[x,y]) or (img.data[x+ix,y+iy] < img.data[x,y]/3.0):
           reject = 1
     if not reject:
       for ox,oy in starlist:
-        if (ox-x)*(ox-x) + (oy-y)*(oy-y) < 9:
+        if (ox-x)*(ox-x) + (oy-y)*(oy-y) < 16:
           reject = 1
     if not reject:
       starlist.append((x,y))
     i -= 1
   return starlist
+
 
 def to8bit(img=None):
   """Return an array of floats in the range 0-255 given a FITS image object. 
