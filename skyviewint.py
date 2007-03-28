@@ -20,7 +20,7 @@ import webbrowser
 import urllib
 import threading
 
-os.environ['http_proxy']='http://192.168.25.74:3128'
+os.environ['http_proxy']='http://squid:3128'
 
 base='http://skyview.gsfc.nasa.gov/cgi-bin/nnskcall.pl'
 params={'SURVEY':'DSS2 Red',
