@@ -1,12 +1,15 @@
 
 import time
+import tempfile
 
 from pyraf.iraf import noao
 noao.obsutil()
 
+import improc
 import focuser
 import pipeline
 import ArCommands
+import teljoy
 import fits
 from pipeline import dObject
 
@@ -61,6 +64,17 @@ def parse_starfocus(s):
   
 
 
+def center():
+  """Take a single image and move the telescope to center the brightest star-like
+     object in the field.
+  """
+  imgname = ArCommands.go()
+  f = improc.FITS(imgname,'r')
+  y,x = improc.findstar(f)
+  teljoy.offset(x+1,y+1)
+
+
+
 def best(center = 0, step = coarsestep, average = 1):
   """Take images at 9 focus positions, from center-4*step to center+4*step
      At each position, open the shutter and shift the readout 25 lines, then
@@ -76,8 +90,11 @@ def best(center = 0, step = coarsestep, average = 1):
       ArCommands.foclines(25)
     focuser.Goto(center+4*step)
     imgname = ArCommands.foclines(-1)
-    
-    guesspos,fwhm = parse_starfocus(noao.obsutil.starfocus(images=imgname, focus=center-4*step, fstep=step, Stdout=1))
+    f = improc.FITS(imgname,'r')
+    f.bias()
+    oname = tempfile.mktemp(suffix='.fits')
+    f.save(oname)
+    guesspos,fwhm = parse_starfocus(noao.obsutil.starfocus(images=oname, focus=center-4*step, fstep=step, Stdout=1))
     print "Focus estimate:",guesspos
     totpos = totpos + guesspos
   return totpos / average
@@ -145,6 +162,8 @@ class FocObject(dObject):
       print "Errors: "+self.errors
       return self.errors
 
+tempfile.tmpdir='/tmp'       #Set up temp file name structure
+tempfile.template='foctemp'
 
 pipeline.Pipelines['FOCUS'] = FocObject
 
