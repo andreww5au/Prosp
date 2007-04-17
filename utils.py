@@ -517,7 +517,7 @@ def readlist(fname=''):
   return out
 
 
-def runsched(n=0, force=0, planetmode=0):
+def runsched(n=0, force=0, planetmode=1):
   """Run the scheduler repeatedly taking the best object each time. If 'n' is given, and non
      zero, exit after that many objects. If 'force' is given, and non-zero, skip the reminder
      about turning on monitoring for more than 6 objects.
