@@ -17,6 +17,8 @@ class Object:
     self.ObjRA=''
     self.ObjDec=''
     self.ObjEpoch=0
+    self.filtnames=''
+    self.exptimes=1
     self.filtname=''
     self.exptime=1
     self.subframes=1
