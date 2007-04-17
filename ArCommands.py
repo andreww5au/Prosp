@@ -96,6 +96,9 @@ def exptime(et=0.02):
   """Change exposure time - default to 0.02 if no argument.
      eg: exptime(0.1)
   """
+  if et < 0.02:
+    et = 0.02
+    ewrite('Exposure time less than 0.02 seconds specified, using 0.02.')
   command('exptime '+`et`,1)
 
 
