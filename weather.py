@@ -9,7 +9,7 @@ from globals import *
 _CloudOpenLevel=100   #Open if cloud < this for more than WeatherOpenDelay sec
 _CloudCloseLevel=150  #Close is cloud > this or raining
 _WeatherOpenDelay=1800  #Wait for 1800 sec of no-rain and cloud < CloudOpenLevel
-_CloudCloseDelay=70    #Wait until at least two cloud readings (1/min) are 'cloudy'
+_CloudCloseDelay=150    #Wait until at least two cloud readings (1/2min) are 'cloudy'
 
 
 def _yn(arg=0):
