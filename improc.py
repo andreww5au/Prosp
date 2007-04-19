@@ -399,7 +399,7 @@ def med10(files='', bias=0):
      on each image before it is medianed (but only on the first pass).
 
   """
-  tempfile.tmpdir='/big/tmp'       #Set up temp file name structure
+  tempfile.tmpdir='/tmp'       #Set up temp file name structure
   tempfile.template='medtemp'
   allfiles=distribute(files,(lambda x: x))    #expand any wildcards
   numfiles=len(allfiles)
