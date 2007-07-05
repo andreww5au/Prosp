@@ -132,7 +132,8 @@ class _Weather:
       self.__dict__.update(u_curs.fetchallDict()[0])
     except:
       self.weathererror="Weather database not OK, can't get current values"
-    if self.lastmod>360:
+#    if self.lastmod>360:
+    if self.lastmod>540:
       self.weathererror="Weather database not updated for " + `self.lastmod` + " seconds."
 
     try:
