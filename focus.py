@@ -70,7 +70,7 @@ def center():
   """
   imgname = ArCommands.go()
   f = improc.FITS(imgname,'r')
-  y,x = improc.findstar(f)
+  y,x = improc.findstar(f)[0]
   teljoy.offset(x+1,y+1)
 
 
