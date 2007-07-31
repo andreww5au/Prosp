@@ -4,13 +4,28 @@ import os
 import tempfile
 import fits
 from globals import *
+
 try:
-  import Numeric
-  from Numeric import *
-  import MLab
-  GotNum=1
+  import numarray
+  from numarray import *
+  from numarray import mlab as MLab
+  from numarray.nd_image import convolve
+  Gotnumarray = 1
+  Gotnumeric = 0
+  GotNum = 1
 except ImportError:
-  GotNum=0
+  try:
+    import Numeric
+    from Numeric import *
+    import MLab
+    GotNum = 1
+    Gotnumarray = 0
+    Gotnumeric = 1
+  except:
+    GotNum = 0
+    Gotnumarray = 0
+    Gotnumeric = 0
+
 
 lastdark=None     #Contains the last Dark image used, to cache the data.
 lastbias=None
@@ -529,41 +544,65 @@ def doflat(files=[], filt=None):
   im.save(outfile, bitpix=-32)
 
 
+def gaussian(size=9, sigma=3.0):
+  """Return a 2D array of shape (size,size) containing a normalised Gaussian 
+     function with stdev of 'sigma', centered on the array. 'size' must be an 
+     odd number.
+  """
+  c,r = divmod(size,2)
+  m = 1/(sigma*math.sqrt(2*math.pi))
+  if r == 1:  #If size is odd:
+    k = fromfunction(lambda x,y: m*exp(-((x-c)**2+(y-c)**2)/(2*sigma*sigma)), (size,size) )
+    k = k/k.sum()
+    return k  
+
 
 def findstar(img=None, n=1):
   """Given a FITS image, return a list of coordinates for the 'n' brightest
-     star-like objects. The search is done by finding the brightest pixel, and 
-     calling it the coordinates of a 'star-like' object if the 8 pixels surrounding
-     it are dimmer than it, but have at least 1/3rd it's value, and if it's at least 
-     3 pixels from any other star-like object already listed.
+     star-like objects. The search is done by convolving the image with a 2D gaussian
+     with the appropriate sigma (derived from fwhmsky), normalising to one, and then
+     working down from the brightest pixel, calling it the coordinates of a
+     'star-like' object if the 8 pixels surrounding it are dimmer than it, and if
+     it's at least 4 pixels from any other star-like object already listed.
 
      Note that the coordinates returned are Numeric array indices into the data, they
      must be swapped and increased by 1 to correspond to ds9 physical image coordinates,
      eg 257,261 returned by findstar actually means (262,258) in the image.
   """
   img.bias()
+  fwhm,sky = img.fwhmsky()
+  if fwhm < 0:
+    return []   #No stars in field
+  k = gaussian(size=21, sigma=(fwhm/0.6)/2.3548 )
+  xim = convolve(img.data, k, mode='nearest')
+  sq = convolve(img.data*img.data, ones((21,21)), mode='constant')
+  sf = sqrt((k*k).sum())
+  out = xim/(sf*sqrt(sq))
   starlist = []
-  rows,cols = img.data.shape
-  sortflat = argsort(img.data.flat)
+  rows,cols = out.shape
+  sortflat = argsort(out.flat)
   i = -1
   offsets = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
-  while (len(starlist)<n) and (i>(-rows*cols)):
+  while (len(starlist)<(3*n+3)) and (i>(-rows*cols)):
     x,y = divmod(sortflat[i],cols)
-    reject = 0
     if x<5 or y<5 or x>(rows-5) or y>(cols-5):
-      reject = 1
+      pass
     else:
+      reject = 0
       for ix,iy in offsets:
-#        print x,y,ix,iy,' : ',img.data[x,y],img.data[x+ix,y+iy]
-        if (img.data[x+ix,y+iy] > img.data[x,y]) or (img.data[x+ix,y+iy] < img.data[x,y]/3.0):
+        if (out[x+ix,y+iy] > out[x,y]):
           reject = 1
-    if not reject:
-      for ox,oy in starlist:
-        if (ox-x)*(ox-x) + (oy-y)*(oy-y) < 16:
-          reject = 1
-    if not reject:
-      starlist.append((x,y))
+      if not reject:
+        for val,ox,oy in starlist:
+          if (ox-x)*(ox-x) + (oy-y)*(oy-y) < 16:
+            reject = 1
+      if not reject:
+        starlist.append((xim[x,y],x,y))
     i -= 1
+  starlist.sort(lambda b,a: cmp(a[0],b[0]))  #Sort by brightness instead of gaussian fit
+  slout = []
+  for val,x,y in starlist:
+    slout.append((x,y))
   return starlist
 
 
@@ -572,11 +611,11 @@ def to8bit(img=None):
      Sorts the data, and uses the 5th and 95th percentile as low and high
      cutoffs.
   """
-  sdata = Numeric.sort(Numeric.ravel(img.data))
+  sdata = sort(ravel(img.data))
   lcut = sdata[int(sdata.shape[0]*0.05)]
   hcut = sdata[int(sdata.shape[0]*0.95)]
 
-  return 255 * (Numeric.clip(img.data, lcut, hcut) - lcut) / (hcut - lcut)
+  return 255 * (clip(img.data, lcut, hcut) - lcut) / (hcut - lcut)
 
 
 #
