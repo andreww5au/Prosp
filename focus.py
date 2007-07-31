@@ -8,6 +8,7 @@ noao.obsutil()
 import improc
 import focuser
 import pipeline
+import Ariel
 import ArCommands
 import teljoy
 import fits
@@ -82,6 +83,8 @@ def best(center = 0, step = coarsestep, average = 1):
      parse the output, and return the best focus position.
   """
   totpos = 0
+  saveobject = Ariel.status.object
+  ArCommands.object('FOCUS '+`center`+' '+`step`)
   for i in range(average):
     for p in [-4,-3,-2,-1,0,1,2,3]:
       pos = center + p * step
@@ -90,14 +93,33 @@ def best(center = 0, step = coarsestep, average = 1):
       ArCommands.foclines(25)
     focuser.Goto(center+4*step)
     imgname = ArCommands.foclines(-1)
-    f = improc.FITS(imgname,'r')
-    f.bias()
-    oname = tempfile.mktemp(suffix='.fits')
-    f.save(oname)
-    guesspos,fwhm = parse_starfocus(noao.obsutil.starfocus(images=oname, focus=center-4*step, fstep=step, Stdout=1))
-    print "Focus estimate:",guesspos
+    guesspos = analyse(imgname=imgname, center=center, step=step)
     totpos = totpos + guesspos
+  ArCommands.object(saveobject)
   return totpos / average
+
+
+def analyse(imgname='', center = 0, step = coarsestep):
+  """Analyse an existing image on disk, assumed to have 9 star images at different 
+     focus positions. If the image was taken with the 'best' funtion (above), extract
+     the focus positions from the header, otherwise use the arguments passed to the 
+     function. Pass the image to PyRAF for analysis, parse the output, and return
+     the best focus position.
+  """
+  f = improc.FITS(imgname,'r')
+  obname = f.headers['OBJECT'][1:-1].strip().split()
+  if len(obname) == 3:
+    onm,cen,stp = tuple(obname)
+    if onm == 'FOCUS':
+      center = int(cen)
+      step = int(stp)
+  f.bias()
+  oname = tempfile.mktemp(suffix='.fits')
+  f.save(oname)
+  guesspos,fwhm = parse_starfocus(noao.obsutil.starfocus(images=oname, focus=center-4*step, fstep=step, Stdout=1))
+  print "Focus estimate:",guesspos
+  return guesspos
+
 
 
 def saveraw(fobj=None, fname=''):
