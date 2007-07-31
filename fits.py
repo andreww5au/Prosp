@@ -48,16 +48,22 @@ import types
 import time
 
 try:
-  import Numeric
-  from Numeric import *
+  import numarray
+  from numarray import *
+  Gotnumarray = 1
+  Gotnumeric = 0
   GotNum = 1
 except ImportError:
   try:
-    import numarray
-    from numarray import *
+    import Numeric
+    from Numeric import *
     GotNum = 1
+    Gotnumarray = 0
+    Gotnumeric = 1
   except:
-    GotNum=0
+    GotNum = 0
+    Gotnumarray = 0
+    Gotnumeric = 0
 
 #Define two lists of cards that will be saved in the specified order, one at
 #the start of the FITS headers, one at the end. The rest will be in
