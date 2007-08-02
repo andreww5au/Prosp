@@ -8,7 +8,7 @@ import globals
 import weather
 
 headroom = 43.0    #Try and maintain chiller setpoint temp this far above CCD settemp
-dewheadroom = 5.0  #Make sure to keep chiller setpoint this far above dewpoint
+dewheadroom = 1.0  #Make sure to keep chiller setpoint this far above dewpoint
 errortemp = 12.0   #If we lose data from the weather station, use this as setpoint
 
 ReadSetpoint = [0x01,0x03,0x00,0x7F,0x00,0x01]
