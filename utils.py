@@ -9,6 +9,11 @@ import os
 import string
 import threading
 
+domeflatHA =  -2.68    #-2.68, -2.79, 
+domeflatDec = -20.9    #-20.9, -24.0, 
+flatlist=[ ('V',5,13.0), ('R',7,4.0), ('I',7,2.0) ]
+
+
 
 from ArCommands import *   #Make camera functions usable without module name qualifier
 import improc
@@ -350,6 +355,7 @@ def observeThis(takeobj):
   else:
     p.take()
 
+
 def foc():
   "Takes a focus image - 10 successive exposures on the same frame, offset."
   for i in range(9):
@@ -546,3 +552,28 @@ def runsched(n=0, force=0, planetmode=1):
       ewrite("No object above horizon, sleeping for 300 seconds")
       time.sleep(300)
   print "runsched sequence of ",n," scheduler objects completed."
+
+
+def domeflats():
+  """Move the telescope and dome to the correct position for dome flats, and take
+     V,R, and I images with appropriate exposure times, then reduce them.
+  """
+
+  teljoy.jump(id='flats', ra=sexstring(teljoy.status.LST+domeflatHA), dec=sexstring(domeflatDec) )
+  exptime(0.1)
+  filename('junk')
+  print "Dummy exposure to loosen up sticky shutter"
+  go()   #Dummy exposure to loosen up sticky shutter
+  while (teljoy.status.moving or teljoy.status.DomeInUse):
+    print "Waiting for telescope slew..."
+    time.sleep(5)
+  teljoy.freeze(1)
+  teljoy.dome(90)
+  print "Dummy exposure to loosen up sticky shutter"
+  go()  #Another dummy exposure while dome is moving
+  while (teljoy.status.DomeInUse):
+    print "Waiting for Dome slew..."
+    time.sleep(5)
+  for filt,n,expt in flatlist:
+    getflats(filt,n,expt)
+
