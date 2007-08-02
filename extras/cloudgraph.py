@@ -10,7 +10,7 @@ db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
 
 curs=db.cursor()
 try:
-  curs.execute('select (unix_timestamp(time)-unix_timestamp(now()))/3600 as age, cloud from weathlog where time > '+
+  curs.execute('select (unix_timestamp(time)-unix_timestamp(now()))/3600 as age, skytemp from weather where time > '+
                     'from_unixtime(unix_timestamp(now())-14400) order by time' )
   res=curs.fetchallDict()     
 except:
@@ -20,13 +20,13 @@ times=[]
 clouds=[]
 for r in res:
   times.append(float(r['age']))
-  clouds.append(float(r['cloud']))
+  clouds.append(float(r['skytemp']))
 
 import matplotlib
 matplotlib.use('Agg')
 from pylab import *
 
 plot(times,clouds)
-ylabel('cloud')
+ylabel('skytemp')
 xlabel('hours before present')
 savefig('/tmp/clouds.png')

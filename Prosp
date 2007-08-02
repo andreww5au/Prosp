@@ -128,48 +128,48 @@ def monitor(arg=None, close=None, open=None, delay=None):
   Turns weather monitoring on or off. Uses default cloud parameters, or the
   values previously set if the command has been used previously in a session.
     or:
-  monitor('ON', close=150, open=100, delay=1800)
+  monitor('ON', close=-28, open=None, delay=1800)
   Use monitor() with no arguments to get the current weather status.
 
   If the 'close', 'open' and 'delay' parameters are given, uses these for
-  CloudCloseLevel, CloudOpenLevel and WeatherOpenDelay respectively.
+  SkyCloseTemp, SkyOpenTemp and WeatherOpenDelay respectively.
   These parameters are:
-  CloudCloseLevel:  When the current cloud level is this much above the 
-                    'clear sky' value, the dome closes and the system pauses.
-  CloudOpenLevel:   If the system is paused, the cloud level needs to be less
-                    than the 'clear sky' plus this value for it to be 'clear'.
+  SkyCloseTemp:  When the current sky temp is above this value, the dome 
+                    closes and the system pauses.
+  SkyOpenTemp:   If the system is paused, the sky temp needs to be less
+                    than this value for it to be 'clear'. If this is not given,
+                    it defaults to the same as the close value.
   WeatherOpenDelay: If the system is paused, the weather needs to be 'clear'
                     (see above) for this many seconds before the system is
                     un-paused.
-  Both CloudOpenLevel and CloudCloseLevel are relative to the 'clear sky' value,
-  which is equal to the lowest cloud level since monitoring started. DO NOT TURN
-  ON MONITORING WHEN IT'S ALREADY CLOUDY!!!
   """
+  if open is None:
+    open = close
   if type(arg)==types.StringType:
-    arg=string.upper(arg)
-  if arg=='OFF':
+    arg = string.upper(arg)
+  if arg == 'OFF':
     print "Monitoring OFF."
     status.MonitorActive=0
 
     if type(close)==types.FloatType or type(close)==types.IntType:
-      status.weather.CloudCloseLevel=int(close)
+      status.weather.SkyCloseTemp = float(close)
     if type(open)==types.FloatType or type(open)==types.IntType:
-      status.weather.CloudOpenLevel=int(open)
+      status.weather.SkyOpenTemp = float(open)
     if type(delay)==types.FloatType or type(delay)==types.IntType:
-      status.weather.WeatherOpenDelay=int(delay)
+      status.weather.WeatherOpenDelay = int(delay)
 
 #Don't open up dome again if we switch off monitoring after it's paused due to bad weather
 #    if not teljoy.Active.isSet():
 #      teljoy.unpause()
-  elif arg=='ON':
+  elif arg == 'ON':
     status.weather.__init__()
-    status.lastact=time.time()   #In case it's been a while since an image
+    status.lastact = time.time()   #In case it's been a while since an image
     if type(close)==types.FloatType or type(close)==types.IntType:
-      status.weather.CloudCloseLevel=int(close)
+      status.weather.SkyCloseTemp = float(close)
     if type(open)==types.FloatType or type(open)==types.IntType:
-      status.weather.CloudOpenLevel=int(open)
+      status.weather.SkyOpenTemp = float(open)
     if type(delay)==types.FloatType or type(delay)==types.IntType:
-      status.weather.WeatherOpenDelay=int(delay)
+      status.weather.WeatherOpenDelay = int(delay)
 
     while (not isdark()):
       print 'waiting for it to get dark:'
