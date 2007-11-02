@@ -84,14 +84,17 @@ def best(center = 0, step = coarsestep, average = 1):
   """
   totpos = 0
   saveobject = Ariel.status.object
-  ArCommands.object('FOCUS '+`center`+' '+`step`)
+#  saveexp = Ariel.status.exptime  #debugging
+  ArCommands.object('FOCTEST: '+`center`+' '+`step`)
+#  ArCommands.exptime(saveexp*2)   #debugging
   for i in range(average):
-    for p in [-4,-3,-2,-1,0,1,2,3]:
+    for p in [4,3,2,1,0,-1,-2,-3]:
       pos = center + p * step
       focuser.Goto(pos)
       time.sleep(1)
       ArCommands.foclines(25)
-    focuser.Goto(center+4*step)
+#      ArCommands.exptime(saveexp)  #debugging
+    focuser.Goto(center-4*step)
     imgname = ArCommands.foclines(-1)
     guesspos = analyse(imgname=imgname, center=center, step=step)
     totpos = totpos + guesspos
@@ -110,7 +113,7 @@ def analyse(imgname='', center = 0, step = coarsestep):
   obname = f.headers['OBJECT'][1:-1].strip().split()
   if len(obname) == 3:
     onm,cen,stp = tuple(obname)
-    if onm == 'FOCUS':
+    if onm == 'FOCTEST:':
       center = int(cen)
       step = int(stp)
   f.bias()
