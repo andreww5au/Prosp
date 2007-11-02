@@ -13,10 +13,10 @@ import MySQLdb
 import safecursor
 DictCursor=safecursor.SafeCursor
 
-AltCutoff = 30
+AltCutoff = 25
 
 
-types={'PLANET':10.0, 'STORE':1.0, 'IMAGE':0.0}  
+types={'PLANET':1.0, 'STORE':1.0, 'IMAGE':1.0}  
 
 candidates={}
 cantimestamp=MySQLdb.Timestamp(1970,1,1)
@@ -106,8 +106,9 @@ def Ptest2(o):
 
 
 def Ptest3(o):
-  """Flat priority function, useful mostly for PLANET or other objects observed many
-     times per night. No dependence on position apart from being =0 for alt<AltCutoff and abs(HA)>5
+  """Flatter priority function, useful mostly for PLANET or other objects observed many
+     times per night. Priority =0 for alt<AltCutoff and abs(HA)>5, and has cos factor for
+     the max of dome or telescope azimuth difference
   """
   timefactor = abs( (time.time() - o.LastObs) / (o.period*86400) )
 
@@ -126,7 +127,16 @@ def Ptest3(o):
   else:                      #No matter what the altitude
     hafactor = 1.0
 
-  return timefactor * altfactor * hafactor
+  try:
+    moveangle=min( anglediff(teljoy.status.Azi, o.AZ), 
+                   anglediff(teljoy.status.RawRA*15, o.RA*15))
+
+  except TypeError:
+    moveangle = 0              #Teljoy appears inactive, ignore moveangle factor for testing
+  movefactor = abs(math.cos(moveangle/360*math.pi))            #Cos(moveangle/2) in degrees
+
+
+  return timefactor * altfactor * hafactor * movefactor
 
 
 
