@@ -62,8 +62,8 @@ class dObject(objects.Object):
     while teljoy.status.moving or teljoy.status.DomeInUse:
       time.sleep(1)
       teljoy.status.update()
-    swrite("Teljoy has jumped to "+self.ObjID+teljoy.status.name)
-    if string.upper(teljoy.status.name) <> string.upper(self.ObjID):   #Teljoy hasn't jumped to this object
+    swrite("Teljoy has jumped to "+self.ObjID+": "+teljoy.status.name)
+    if string.upper(teljoy.status.name)[:8] <> string.upper(self.ObjID)[:8]:   #Teljoy hasn't jumped to this object
       ewrite("Teljoy hasn't jumped to "+self.ObjID+" - possibly too low")
       self.errors=self.errors+"Teljoy hasn't jumped to "+self.ObjID+" - possibly too low\n"
 
