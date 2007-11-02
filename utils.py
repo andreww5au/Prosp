@@ -30,6 +30,7 @@ import grb
 import objects
 import math
 import scheduler
+import focuser
 global grbflag
 
 def gord(n=1):
@@ -358,9 +359,12 @@ def observeThis(takeobj):
 
 def foc():
   "Takes a focus image - 10 successive exposures on the same frame, offset."
+  saveob = status.object
+  object('Foc: %d' % (focuser.status.pos,) )
   for i in range(9):
     foclines(25)
   foclines(-1)
+  object(saveob)
 
 
 def viewer(vw=''):
@@ -523,7 +527,7 @@ def readlist(fname=''):
   return out
 
 
-def runsched(n=0, force=0, planetmode=1):
+def runsched(n=0, force=0, planetmode=0):
   """Run the scheduler repeatedly taking the best object each time. If 'n' is given, and non
      zero, exit after that many objects. If 'force' is given, and non-zero, skip the reminder
      about turning on monitoring for more than 6 objects.
