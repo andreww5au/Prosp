@@ -603,7 +603,7 @@ def findstar(img=None, n=1):
   slout = []
   for val,x,y in starlist:
     slout.append((x,y))
-  return starlist
+  return slout
 
 
 def to8bit(img=None):
