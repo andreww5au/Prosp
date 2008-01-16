@@ -145,6 +145,8 @@ class SNObject(dObject):
     while curs.execute("select * from vistabox"):
       print 'Waiting for Vista to finish:'
       time.sleep(5)
+#    print "WARNING! Communication with Vista disables, uncomment"
+#    print "the three lines above this message in snsearch.py!"
     self.writesqlbox()
     swrite("snsearch - SQL mailbox written to Vista")
 
