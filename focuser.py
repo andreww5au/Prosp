@@ -8,7 +8,7 @@ import time
 import commands
 
 MinPos = 0
-MaxPos = 1000    #Maximum focuser position
+MaxPos = 2000    #Maximum focuser position
 
 focmd = './focuser/focus 0 '    #Name and first arg of C program
 
@@ -53,7 +53,7 @@ def Goto(N=0):
   "Moves the focuser to ABSOLUTE position N"
   if (N <= MaxPos) and (N >= MinPos):
     status.update()
-    if N is not None:
+    if status.pos is not None:
       dif = N - status.pos
       txt = commands.getoutput(focmd + 'offset ' + `dif`)
       print txt
@@ -74,5 +74,5 @@ def init():
   global status
   status = _FocusStatus()
   Home()
-"  Goto(500)"
-"  status.update()"
+  Goto(1000)
+  status.update()
