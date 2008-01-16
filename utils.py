@@ -360,7 +360,10 @@ def observeThis(takeobj):
 def foc():
   "Takes a focus image - 10 successive exposures on the same frame, offset."
   saveob = status.object
-  object('Foc: %d' % (focuser.status.pos,) )
+  if focuser.status.pos is not None:
+    object('Foc: %d' % (focuser.status.pos,) )
+  else:
+    object('Foc: 0')
   for i in range(9):
     foclines(25)
   foclines(-1)
