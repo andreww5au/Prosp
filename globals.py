@@ -19,8 +19,14 @@ except:
   sfile=open('/dev/null','a')
   efile=open('/dev/null','a')
 
-filters=['Clear', 'Red', '4450', '9500', 'Visual', 'Infrared', 'Empty', '7260']
+#filters=['Clear', 'Red', '4450', '9500', 'Visual', 'Infrared', 'Empty', '7260']
+#Old PLANET filter set, plus Peter's narrowband filters. Clear slot was empty,
+#not glass filter.
 
+filters=['Clear','Red','Ultraviolet','Blue','Visual','Infrared','Empty','Hole']
+#New filter set inserted 15/1/2008. New Clear filter in glass included.
+#Two empty slots labeled 'Empty' and 'Hole' so they don't have the same
+#first letter.
 
 def filtid(s):
   """Given a filter name, make sure it's in the current filter set, and return
