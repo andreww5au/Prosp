@@ -44,6 +44,35 @@ noao.obsutil.starfocus.graphcur = "/dev/null"
 noao.obsutil.starfocus.mode = "al"
 
 
+def avglists(totlist):
+  """Take a list of lists of focus values and merge them, finding the
+     median of N values if there is more than one measurement of FWHM
+     for a given focus value.
+  """
+  totdict = {}
+  outlist = []
+  for reslist in totlist:
+    for fv,fwhm in reslist:
+      if totdict.has_key(fv):
+        totdict[fv].append(fwhm)
+      else:
+        totdict[fv] = [fwhm]
+  for fv in totdict.keys():
+    if len(totdict[fv]) == 1:
+      totdict[fv] = totdict[fv][0]
+    else:
+      lt = len(totdict[fv])
+      totdict[fv].sort()
+      if divmod(lt,2)[1] == 0:
+        totdict[fv] = sum(totdict[fv][(lt/2-1):(lt/2+1)])/2.0
+      else:
+        totdict[fv] = totdict[fv][lt/2]
+  for fv in totdict.keys():
+    outlist.append( (fv,totdict[fv]) )
+  outlist.sort()
+  return outlist
+        
+
 def parse_starfocus(s):
   """Parses the output of the IRAF 'starfocus' task, and returns a tuple 
      containing the best focus value and best FWHM determined.
@@ -62,6 +91,35 @@ def parse_starfocus(s):
     return 0,0
   else:
     return float(line[3]), float(line[7])
+  
+def nparse_starfocus(s):
+  """Parses the output of the IRAF 'starfocus' task, and returns a list 
+     containing (focusvalue,FWHM) tuples, and the best focus value tuple.
+  """
+  retlist = []
+  for l in s:
+    print l
+  if (s==[]) or (type(s)<>type([])):
+    print "No input to parse_starfocus"
+    return [],(0,0)
+  if len(s)>4:
+    for l in s[3:-2]:
+      if len(l)>57:
+        try:
+          fv,fwhm = map(float,l[40:56].strip().split())
+          retlist.append((fv,fwhm))
+        except:
+          print "Error parsing:'"+l+"'"
+  print retlist
+  line = s[-1].strip().split()
+  if len(line)<>8:
+    print "Last line wrong length in input to parse_starfocus"
+    return retlist,(0,0)
+  if (line[0]<>"Best") or (line[1]<>"focus") or (line[2]<>"of"):
+    print "Unexpected text in input to parse_starfocus"
+    return retlist,(0,0)
+  else:
+    return retlist, (float(line[3]), float(line[7]))
   
 
 
@@ -82,7 +140,7 @@ def best(center = 0, step = coarsestep, average = 1):
      read out the whole image at the end. Pass the image to PyRAF for analysis,
      parse the output, and return the best focus position.
   """
-  totpos = 0
+  totres = []
   saveobject = Ariel.status.object
 #  saveexp = Ariel.status.exptime  #debugging
   ArCommands.object('FOCTEST: '+`center`+' '+`step`)
@@ -96,8 +154,8 @@ def best(center = 0, step = coarsestep, average = 1):
 #      ArCommands.exptime(saveexp)  #debugging
     focuser.Goto(center-4*step)
     imgname = ArCommands.foclines(-1)
-    guesspos = analyse(imgname=imgname, center=center, step=step)
-    totpos = totpos + guesspos
+    retlist,ftuple = analyse(imgname=imgname, center=center, step=step)
+    totres.append(retlist)
   ArCommands.object(saveobject)
   return totpos / average
 
@@ -119,9 +177,10 @@ def analyse(imgname='', center = 0, step = coarsestep):
   f.bias()
   oname = tempfile.mktemp(suffix='.fits')
   f.save(oname)
-  guesspos,fwhm = parse_starfocus(noao.obsutil.starfocus(images=oname, focus=center-4*step, fstep=step, Stdout=1))
+  retlist,ftuple = nparse_starfocus(noao.obsutil.starfocus(images=oname, focus=center-4*step, fstep=step, Stdout=1))
+  guesspos,fwhm = ftuple
   print "Focus estimate:",guesspos
-  return guesspos
+  return retlist,ftuple
 
 
 
