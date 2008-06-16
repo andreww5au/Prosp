@@ -11,7 +11,8 @@ import threading
 
 domeflatHA =  -2.68    #-2.68, -2.79, 
 domeflatDec = -20.9    #-20.9, -24.0, 
-flatlist=[ ('V',5,13.0), ('R',7,4.0), ('I',7,2.0) ]
+#flatlist=[ ('V',5,13.0), ('R',7,4.0), ('I',7,2.0) ]
+flatlist = [ ('B',5,None), ('V',7,None), ('R',7,None), ('I',7,None) ]
 
 
 
@@ -26,7 +27,7 @@ from xpa import display
 from globals import *
 import ephemint
 import skyviewint
-import grb
+#import grb
 import objects
 import math
 import scheduler
@@ -93,7 +94,7 @@ def getdarks(n=1, et=900, name='dark'):
   dodark(files)
   
 
-def getflats(filt='R', n=1, et=1):
+def getflats(filt='R', n=1, et=None):
   """Take and process n images in filter 'filt', exptime 'et' and create flat.
      The flatfield created will be 'flatX.fits' where 'X' is the filter name.
 
@@ -110,14 +111,66 @@ def getflats(filt='R', n=1, et=1):
          getflats(filt='I', n=5, et=3)
   """
   oet=status.exptime
-  exptime(et)
-  flat('flat'+filt)
-  fn=status.nextfile[:-8]
+  oldfn=status.nextfile[:-8]
+  if len(status.object)>2:
+    oldob = status.object[1:-1]
+  else:
+    oldob=''
+  if not et:
+    autoexp = True
+    filter(filtnum(filt))
+    exptime(0.1)
+    filename('testflat'+filt)
+    flat('flat'+filt)
+    tim = improc.FITS(go(),'r')
+    tim.bias()
+    testlevel = tim.median()
+    et = 35000*0.1/testlevel
+    if et < 2.0:
+      print "Too bright, desired exposure time only %3.1f seconds." % (et,)
+      filename(oldfn) #Restore filename to orig, stripping counter
+      object(oldob)  #Swap to object type, not dark type
+      exptime(oet)  #restore original exposure time
+      return 0
+    elif et>90.0:
+      print "Too dark, exposure time %3.1f seconds." % (et,)
+      filename(oldfn) #Restore filename to orig, stripping counter
+      object(oldob)  #Swap to object type, not dark type
+      exptime(oet)  #restore original exposure time
+      return 0
+  else:
+    autoexp = False
+
   filename('flat'+filt)
   filter(filtnum(filt))
-  files=go(n)
-  filename(fn) #Restore filename to orig, stripping counter
-  object(fn)  #Swap to object type, not dark type
+  files=[]
+  numf = 0
+  while len(files) < n:
+    exptime(et)
+    newfile=go()
+    tim = improc.FITS(newfile,'r')
+    tim.bias()
+    testlevel = tim.median()
+    if autoexp:
+      if testlevel < 10000:
+        print "Not enough signal in flatfield image - discarding."
+      elif testlevel>50000:
+        print "Signal level too high in flatfield image - discarding."
+      else:
+        files.append(newfile)
+      if testlevel > 2000:    #If the shutter didn't open at all, don't try and adjust exptime
+        et = 35000*et/testlevel
+        if et < 1.0:
+          print "Too bright, desired exposure time only %3.1f seconds." % (et,)
+          break
+        elif et>120.0:
+          print "Too dark, exposure time %3.1f seconds." % (et,)
+          break
+    else:
+      files.append(newfile)
+
+  filename(oldfn) #Restore filename to orig, stripping counter
+  object(oldob)  #Swap to object type, not dark type
   exptime(oet)  #restore original exposure time
   doflat(files)
 
@@ -575,12 +628,16 @@ def domeflats():
     print "Waiting for telescope slew..."
     time.sleep(5)
   teljoy.freeze(1)
-  teljoy.dome(90)
-  print "Dummy exposure to loosen up sticky shutter"
-  go()  #Another dummy exposure while dome is moving
-  while (teljoy.status.DomeInUse):
-    print "Waiting for Dome slew..."
-    time.sleep(5)
-  for filt,n,expt in flatlist:
-    getflats(filt,n,expt)
+  try:
+    teljoy.dome(90)
+    print "Dummy exposure to loosen up sticky shutter"
+    go()  #Another dummy exposure while dome is moving
+    while (teljoy.status.DomeInUse):
+      print "Waiting for Dome slew..."
+      time.sleep(5)
+    for filt,n,expt in flatlist:
+      getflats(filt,n,expt)
+  finally:
+    teljoy.freeze(0)
+
 
