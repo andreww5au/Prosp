@@ -1,6 +1,7 @@
 
 import time
 import tempfile
+import commands
 
 from pyraf.iraf import noao
 noao.obsutil()
@@ -13,6 +14,7 @@ import ArCommands
 import teljoy
 import fits
 from pipeline import dObject
+focuscmd = './focusat '    #Name and first arg of C program
 
 coarsestep = 20
 finestep = 5 
@@ -151,7 +153,7 @@ def best(center = 0, step = coarsestep, average = 1):
       focuser.Goto(pos)
       time.sleep(1)
       ArCommands.foclines(25)
-#      ArCommands.exptime(saveexp)  #debugging
+#     ArCommands.exptime(saveexp)  #debugging
     focuser.Goto(center-4*step)
     imgname = ArCommands.foclines(-1)
     retlist,ftuple = analyse(imgname=imgname, center=center, step=step)
@@ -159,6 +161,68 @@ def best(center = 0, step = coarsestep, average = 1):
   ArCommands.object(saveobject)
   return totpos / average
 
+def custombest(center = 0, step = coarsestep, average = 1):
+  """Take images at 9 focus positions, from center-4*step to center+4*step
+     At each position, open the shutter and shift the readout 25 lines, then
+     read out the whole image at the end. Pass the image to PyRAF for analysis,
+     parse the output, and return the best focus position.
+  """
+  totres = zeros([average,10,4],float)
+  saveobject = Ariel.status.object
+#  saveexp = Ariel.status.exptime  #debugging
+  ArCommands.object('FOCTEST: '+`center`+' '+`step`)
+#  ArCommands.exptime(saveexp*2)   #debugging
+  for i in range(average):
+    for p in [4,3,2,1,0,-1,-2,-3]:
+       pos = center + p * step
+       focuser.Goto(pos)
+       time.sleep(1)
+       ArCommands.foclines(25)
+#      ArCommands.exptime(saveexp)  #debugging
+    focuser.Goto(center-4*step)
+    imgname = ArCommands.foclines(-1)
+    print "Analysing image -- ",imname
+    try:
+       retlist,ftuple = customanalyse(imgname=imgname, center=center, step=step)
+    except:
+       print "There is an error in customanalyse -- called by custombest."
+       sys.exit()
+    totres.append(retlist)
+  ArCommands.object(saveobject)
+
+  totpos=zeros([10,4],float)
+  for j in range(10):
+    for k in range(4):
+	totpos[j][k]=totres[0][j][k]
+  for i in range(average):
+     for j in range(10):
+        if float(totres[i][j][1]) > 0.0:
+           if float(totres[i][j][1]) < float(totpos[j][1]):
+               for k in range(4):
+                  totpos[j][k] = totres[i][j][k]
+  print totpos
+  oname = tempfile.mktemp(suffix='.lst')
+  f=open(oname,'w')
+  for ll in range(nmb):
+    s={}
+    s = str(totpos[ll][0])+' '+str(totpos[ll][1])+' '+str(totpos[ll][2])+' '+str(totpos[ll][3])
+    f.write(s+' \n')
+  f.close()
+  try:
+      commands.getstatusoutput('./focussel '+oname)
+  except:
+      print "There is an error in focussel -- called by custombest"
+      sys.exit()
+  print oname
+  retlis=[]
+  f=open(oname,'r')
+  for ll in f.readlines():
+      print 'this is ll ',ll
+      s=ll.strip().split()
+      ftuple=[float(x) for x in s]
+  f.close()
+# print ftuple
+  return ftuple[0]
 
 def analyse(imgname='', center = 0, step = coarsestep):
   """Analyse an existing image on disk, assumed to have 9 star images at different 
@@ -182,7 +246,49 @@ def analyse(imgname='', center = 0, step = coarsestep):
   print "Focus estimate:",guesspos
   return retlist,ftuple
 
+def customanalyse(imgname='', center = 0, step = coarsestep):
+  """Analyse an existing image on disk, assumed to have 9 star images at different 
+     focus positions. If the image was taken with the 'best' funtion (above), extract
+     the focus positions from the header, otherwise use the arguments passed to the 
+     function. Pass the image to focusat for analysis, parse the output, and return
+     the best focus position.
+  """
+  totres=[]
+  retlist=[]
+  f = improc.FITS(imgname,'r')
+  obname = f.headers['OBJECT'][1:-1].strip().split()
+  if len(obname) == 3:
+    onm,cen,stp = tuple(obname)
+    if onm == 'FOCTEST:':
+      center = int(cen)
+      step = int(stp)
+  f.bias()
+  oname = tempfile.mktemp(suffix='.raw')
+  saveraw(fobj=f,fname=oname)
+  commands.getstatusoutput('./focusat '+oname)
+  oname = oname.replace('.raw','.dat')
+  f=open(oname,'r')
+  nmb=0
+  for ll in f.readlines():
+       s=ll.strip().split()
+       retlist=[float(x) for x in s]
+       if retlist[0] != retlist[3]: # vertex written in both columns
+	  nmb=nmb+1
+	  totres.append(retlist)
+  f.close()
+  ftuple= float(retlist[0]), float(retlist[1])
+  pos = center+((ftuple[0]-totres[4][0])/25.0)*step
+  epos = step*ftuple[1]/25.0
+  ftuple=pos,epos
+  fpos=totres[4][0]
+  for i in range(nmb):
+  	totres[i][0] = center+((totres[i][0]-fpos)/25.0)*step
+  print "Focus estimate: ",ftuple[0]," +/- ", ftuple[1]
 
+
+#  test code
+#  print retlis
+  return totres,ftuple
 
 def saveraw(fobj=None, fname=''):
   """Given a FITS file object and a filename, save the data section of the image
@@ -204,7 +310,6 @@ class FocObject(dObject):
       self.updatetime()
       startpos = focuser.status.pos
       print "Focussing. Original focus position: ", startpos
-
       tries = 0
       done = 0
       p = startpos
