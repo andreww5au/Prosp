@@ -6,8 +6,8 @@ DictCursor=safecursor.SafeCursor
 from globals import *
 
 #These are the initial defaults, copied to the status object on module init.
-_SkyOpenTemp=100   #Open if skytemp < this for more than WeatherOpenDelay sec
-_SkyCloseTemp=150  #Close is skytemp > this or raining
+_SkyOpenTemp = -26  #Open if skytemp < this for more than WeatherOpenDelay sec
+_SkyCloseTemp = -25  #Close is skytemp > this or raining
 _WeatherOpenDelay=1800  #Wait for 1800 sec of no-rain and cloud < CloudOpenLevel
 _CloudCloseDelay=150    #Wait until at least two cloud readings (1/2min) are 'cloudy'
 
@@ -59,7 +59,7 @@ class _Weather:
     self.senstemp = 0.0
     self.weathererror = ""
     self.SkyCloseTemp = _SkyCloseTemp
-    self.SkyOpenLevel = _SkyOpenTemp
+    self.SkyOpenTemp = _SkyOpenTemp
     self.WeatherOpenDelay = _WeatherOpenDelay
     self.CloudCloseDelay = _CloudCloseDelay    #No interface for setting this at runtime
     self.OKforsec = 86400   #Assume it's clear when we start up
