@@ -1,12 +1,47 @@
-""" Gamma ray burst - monitor for GRB email"""
+#""" Gamma ray burst - monitor for GRB email"""
+
+#!/usr/bin/python -i
+backgrounds=[]
+try:
+  import readline
+except ImportError:
+  ewrite("Module readline not available.")
+else:
+  import rlcompleter
+  readline.parse_and_bind("tab: complete")
+
+
+import ArCommands
+import sys
+import time       #for the 'sleep' function
+import types
+import threading
+import improc
+from improc import reduce
+import autorun
+from autorun import auto
+import planet
+from planet import *
+import teljoy
+from teljoy import *
+from snlists import *
+import weather
+import pipeline
+import snsearch
+import scheduler
+#import grb
+import chiller
+import focuser
+import focus
+
 from globals import *
 import utils
 import poplib,getpass
 import threading
 import objects
-
 import MySQLdb
 import safecursor
+
 DictCursor=safecursor.SafeCursor
 
 #Create a new database connection to use in the background email-monitoring thread
@@ -52,7 +87,6 @@ def email():
        print "Error establishing a link to the email server"
        time.sleep(7)
        continue
-
     try:
        M.user("perthobs")
 #      M.user("ralphm")
@@ -113,11 +147,17 @@ def checkgrb(self, M):
          else:
             continue # not GRB email
 
+         if string.find (message,'SWIFT-BAT GRB POSITION') > -1 or string.find(message,'SWIFT-BAT GRB NACK-POSITION') >-1
+#           format  NOTICE_TYPE:   Swift-BAT GRB Postion
+            print 'Found Swift position notice'
+         else:
+            continue # not GRB email
+
          if string.find (message,'TRIGGER_NUM:')  >-1:
 #           format  TRIGGER_NUM:   5450
             print 'Found trigger number'
             lowpos=string.find(message,'TRIGGER_NUM:')
-            endpos=string.find(message,"',",lowpos)
+            endpos=string.find(message,",",lowpos)
             self.name = message [lowpos+12:endpos-1]
             self.name = string.strip (self.name)
             self.obj = self.name   # object = name
@@ -129,48 +169,12 @@ def checkgrb(self, M):
          if string.find (message,'GRB_RA:') >-1:
             lowpos = string.find (message,'GRB_RA:')
             extRA(self,message,lowpos)
-         elif   string.find (message,'WXM_CNTR_RA:')>-1:
-            lowpos = string.find (message,'WXM_CNTR_RA:')
-            extRA(self,message,lowpos)
-         elif    string.find (message,'SXC_CNTR_RA:') >-1:
-            lowpos = string.find (message,'SXC_CNTR_RA:')
-            extRA(self,message,lowpos)
-         elif    string.find (message,'GRB_RXTE_RA:') >-1:
-            lowpos = string.find (message,'GRB_RXTE_RA:')
-            extRA(self,message,lowpos)
-         elif    string.find (message,'GRB_IPN_RA:') >-1:
-            lowpos = string.find (message,'GRB_IPN_RA:')
-            extRA(self,message,lowpos)
-         elif    string.find (message,'TRANS_RA:') >-1:
-            lowpos = string.find (message,'TRANS_RA:')
-            extRA(self,message,lowpos)
-         elif    string.find (message,'HUNT_RA:') >-1:
-            lowpos = string.find (message,'HUNT_RA:')
-            extRA(self,message,lowpos)
          else:
             continue # not GRB email
 
 #        Search for a Dec
          if string.find (message,'GRB_DEC:') >-1:
             lowpos = string.find (message,'GRB_DEC:')
-            extDec(self,message,lowpos)
-         elif   string.find (message,'WXM_CNTR_DEC:')>-1:
-            lowpos = string.find (message,'WXM_CNTR_DEC:')
-            extDec(self,message,lowpos)
-         elif    string.find (message,'SXC_CNTR_DEC:') >-1:
-            lowpos = string.find (message,'SXC_CNTR_DEC:')
-            extDec(self,message,lowpos)
-         elif    string.find (message,'GRB_RXTE_DEC:') >-1:
-            lowpos = string.find (message,'GRB_RXTE_DEC:')
-            extDec(self,message,lowpos)
-         elif    string.find (message,'GRB_IPN_DEC:') >-1:
-            lowpos = string.find (message,'GRB_IPN_DEC:')
-            extDec(self,message,lowpos)
-         elif    string.find (message,'TRANS_DEC:') >-1:
-            lowpos = string.find (message,'TRANS_DEC:')
-            extDec(self,message,lowpos)
-         elif    string.find (message,'HUNT_DEC:') >-1:
-            lowpos = string.find (message,'HUNT_DEC:')
             extDec(self,message,lowpos)
          else:
             continue # not GRB email
@@ -273,16 +277,19 @@ def grbDB(self):
      newob.name = self.name
      newob.ObjRA = self.RA
      newob.ObjDec = self.Dec
-     newob.ObjEpoch=2000
+     newob.ObjEpoch=2000.0
      newob.filtname='I'
+     newob.filtnames='I'
      newob.exptime=90
-     newob.XYpos=(10,10)
+     newob.exptimes=90
+     newob.sublist=[('I',90.0)]
+     newob.XYpos=(0,0)
      newob.type='STORE'
-     newob.period=0.7
+     newob.period=0.0001
      newob.comment=''
      newob.LastObs=0.0
      newob.errors=''
- 
+
 #  force the database to accept this object
 #  as more accurate information vcomes in the data base is updated
      try:
