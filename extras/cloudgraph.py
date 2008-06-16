@@ -19,8 +19,11 @@ except:
 times=[]
 clouds=[]
 for r in res:
-  times.append(float(r['age']))
-  clouds.append(float(r['skytemp']))
+  ag,st = float(r['age']), float(r['skytemp'])
+  if st < -100:
+    st = 0
+  times.append(ag)
+  clouds.append(st)
 
 import matplotlib
 matplotlib.use('Agg')
