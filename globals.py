@@ -23,10 +23,18 @@ except:
 #Old PLANET filter set, plus Peter's narrowband filters. Clear slot was empty,
 #not glass filter.
 
-filters=['Clear','Red','Ultraviolet','Blue','Visual','Infrared','Empty','Hole']
+#filters=['Clear','Red','Ultraviolet','Blue','Visual','Infrared','Empty','Hole']
 #New filter set inserted 15/1/2008. New Clear filter in glass included.
 #Two empty slots labeled 'Empty' and 'Hole' so they don't have the same
 #first letter.
+
+#filters=['Empty','Red','3871','4060','4450','5140','5260','Hole']
+#Dave Schleiker's narrowband filter set, inserted 2008/01/30
+
+filters=['Clear','Red','Ultraviolet','Blue','Visual','Infrared','Empty','Hole']
+#New filter set replaced 2008/02/19 but with Dave's 3871 (NCN) filter instead 
+#of Ultraviolet
+
 
 def filtid(s):
   """Given a filter name, make sure it's in the current filter set, and return
