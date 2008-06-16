@@ -235,9 +235,14 @@ class FITSold(fits.FITS):
           flatimage=flt
     if not flatimage:              #Look for the default filename/s
       filedir=os.path.abspath(os.path.dirname(self.filename))
-      filt=self.headers['FILTERID'][1]  #Get first letter of filter name
-      if filt==' ':
-        filt='I'     #Default filter is I on Ariel startup
+      try:
+        filt=self.headers['FILTERID'][1:-1].split()[0].strip()
+      except:
+        filt = 'I'   #Default filter is I on Ariel startup
+      if filt[0].isdigit():
+        pass  #Use full filter name
+      else:
+        filt = filt[0]  #Get first letter of filter name
       if not os.path.exists(filedir+'/flat'+filt+'.fits'):
         if os.path.exists(filedir+'/flat'+string.lower(filt)+'.fits'):
           filt=string.lower(filt)
@@ -522,9 +527,11 @@ def doflat(files=[], filt=None):
      argument is used to generate the filename.
   """
   nfiles=distribute(files, lambda x: x)   #Expand each name for wildcards, etc
-  if len(nfiles)>8:
-    swrite("doflat - Too many files to median, truncating to first 8 images.")
-    nfiles=nfiles[:8]
+  if type(nfiles) == type(''):
+    nfiles = [nfiles]
+  if len(nfiles)>15:
+    swrite("doflat - Too many files to median, truncating to first 15 images.")
+    nfiles=nfiles[:15]
   if not nfiles:
     swrite("doflat - No images to process.")
     return 0
@@ -537,7 +544,14 @@ def doflat(files=[], filt=None):
     di.append(im)
   im=median(di)
   if im.headers.has_key('FILTERID'):
-    filt=im.headers['FILTERID'][1]          #First letter of filter name
+    try:
+      filt=im.headers['FILTERID'][1:-1].split()[0].strip()
+    except:
+      filt = 'I'
+    if filt[0].isdigit():
+      pass  #Use full filter name
+    else:
+      filt = filt[0]  #Get first letter of filter name
   outfile=os.path.abspath(os.path.dirname(di[0].filename))+'/flat'+filt+'.fits'
   if os.path.exists(outfile):
     os.remove(outfile)
