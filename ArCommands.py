@@ -16,10 +16,13 @@ filters=globals.filters
 
 def filtnum(fname):
   "Return filter slot number given name"
-  id=string.upper(fname[0])
-  num=2   #Default if not found
+  if fname[0].isdigit():
+    id = fname
+  else:
+    id = string.upper(fname[0])
+  num = 2   #Default if not found
   for nm in filters:
-    if id==nm[0]:
+    if (id==nm) or (id==nm[0]):
       num=filters.index(nm)+1
   return num
 
@@ -72,7 +75,7 @@ def zguider():
   gzero.gxoff=status.xguider+gzero.gxoff
   gzero.gyoff=status.yguider+gzero.gyoff
   guider(0,0)
-  f=open('/tmp/guidezero','w')
+  f=open('/data/guidezero','w')
   cPickle.dump(gzero,f)
   f.close()
 
@@ -107,7 +110,7 @@ def _ctrn(s=''):  #Used in 'filename' to find filectr's for matching files
   bname=os.path.basename(s).split('.')[0]
   im=''
   for i in range(len(bname)-1,0,-1):
-    if bname[i].isdigit():
+    if bname[i].isdigit() and len(im)<5:
       im = bname[i] + im
     else:
       break
@@ -363,8 +366,8 @@ def go(n=1):
 #Module initialisation section
 
 gzero=Ariel.GuideZero(0,0)
-if os.path.exists('/tmp/guidezero'):
-  f=open('/tmp/guidezero','r')
+if os.path.exists('/data/guidezero'):
+  f=open('/data/guidezero','r')
   gzero=cPickle.load(f)
   f.close()
 
