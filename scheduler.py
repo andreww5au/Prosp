@@ -16,7 +16,7 @@ DictCursor=safecursor.SafeCursor
 AltCutoff = 25
 
 
-types={'PLANET':1.0, 'STORE':1.0, 'IMAGE':1.0}  
+types={'PLANET':1000.0, 'STORE':1.0, 'IMAGE':10.0}  
 
 candidates={}
 cantimestamp=MySQLdb.Timestamp(1970,1,1)
@@ -117,23 +117,30 @@ def Ptest3(o):
   else:
     altfactor = 1.0  
 
-  ha=o.RA - teljoy.status.LST
-  if ha > 12:
-    ha = ha -24
-  elif ha < -12:
-    ha = ha + 24
-  if abs(ha) > 5:
-    hafactor = 0.0           #Don't allow any jumps outside -5 < HA < +5 hours 
-  else:                      #No matter what the altitude
-    hafactor = 1.0
+  try:
+    ha=o.RA - teljoy.status.LST
+  except TypeError:
+    ha = None   #Teljoy appears inactive, ignore LST and HA for now
+
+  if ha is None:
+    hafactor = 0.0
+  else:
+    if ha > 12:
+      ha = ha -24
+    elif ha < -12:
+      ha = ha + 24
+    if abs(ha) > 5:
+      hafactor = 0.0           #Don't allow any jumps outside -5 < HA < +5 hours 
+    else:                      #No matter what the altitude
+      hafactor = 1.0
 
   try:
     moveangle=min( anglediff(teljoy.status.Azi, o.AZ), 
                    anglediff(teljoy.status.RawRA*15, o.RA*15))
 
   except TypeError:
-    moveangle = 0              #Teljoy appears inactive, ignore moveangle factor for testing
-  movefactor = abs(math.cos(moveangle/360*math.pi))            #Cos(moveangle/2) in degrees
+    moveangle = 0       #Teljoy appears inactive, ignore moveangle factor for testing
+  movefactor = abs(math.cos(moveangle/360*math.pi))      #Cos(moveangle/2) in degrees
 
 
   return timefactor * altfactor * hafactor * movefactor
