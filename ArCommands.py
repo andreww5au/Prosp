@@ -114,7 +114,10 @@ def _ctrn(s=''):  #Used in 'filename' to find filectr's for matching files
       im = bname[i] + im
     else:
       break
-  return float(im)
+  try:
+    return float(im)
+  except:
+    return 0.0
 
 
 def filename(fname='apogee'):
