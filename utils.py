@@ -126,13 +126,31 @@ def getflats(filt='R', n=1, et=None):
     tim.bias()
     testlevel = tim.median()
     et = 35000*0.1/testlevel
+    if et < 0.0 or et > 500:
+      tim = improc.FITS(go(),'r')
+      tim.bias()
+      testlevel = tim.median()
+      et = 35000*0.1/testlevel
+    if et < 0.0 or et > 500:
+      tim = improc.FITS(go(),'r')
+      tim.bias()
+      testlevel = tim.median()
+      et = 35000*0.1/testlevel
+    if et < 0.0 or et > 500:
+      tim = improc.FITS(go(),'r')
+      tim.bias()
+      testlevel = tim.median()
+      et = 35000*0.1/testlevel
+    if et < 0.0 or et > 500:
+      print "Tried 4 times, no signal im image. Is shutter opening?"
+      return 0
     if et < 2.0:
       print "Too bright, desired exposure time only %3.1f seconds." % (et,)
       filename(oldfn) #Restore filename to orig, stripping counter
       object(oldob)  #Swap to object type, not dark type
       exptime(oet)  #restore original exposure time
       return 0
-    elif et>90.0:
+    elif et>120.0:
       print "Too dark, exposure time %3.1f seconds." % (et,)
       filename(oldfn) #Restore filename to orig, stripping counter
       object(oldob)  #Swap to object type, not dark type
