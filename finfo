@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 
 #File info lister - an argument of '-d' will produce an ISIS dates list format
 #(filename, HJD-2450000, seeing), and no flag or a '-i' will produce a full 
@@ -96,8 +96,12 @@ for f in args:
     img=improc.FITS(f,'r')     #Load full image
   else:
     img=improc.FITS(f,'h')     #Load FITS headers only
-  if dofwhmsky and (not img.headers.has_key('FWHM')):
-    img.fwhmsky()        #If there's no FWHM card, calculate FWHM and sky now
+  gotfwhm = 1
+  try:
+    if dofwhmsky and (not img.headers.has_key('FWHM')):
+      img.fwhmsky()        #If there's no FWHM card, calculate FWHM and sky now
+  except:
+    gotfwhm = 0
 
 #Calculate or grab any params we might want to print from the image header
   
@@ -108,7 +112,7 @@ for f in args:
       exptime=float(img.headers['EXPTIME'])
       dateobs=string.strip(img.headers['DATE-OBS'][1:-1])
       timeobs=string.strip(img.headers['TIME-OBS'][1:-1])
-      filterid=string.strip(img.headers['FILTERID'][1])
+      filterid=string.strip(img.headers['FILTERID'][1:5])
       secz=float(img.headers['SECZ'])
       hjd=float(img.headers['HJD'])
       pjd=hjd-2450000.0
@@ -133,10 +137,14 @@ for f in args:
     max=img.max()
     min=img.min()
   if dofwhmsky:
-    if not img.headers.has_key('FWHM'):
-      img.fwhmsky()    #If there's no FWHM card, calculate FWHM and sky now
-    fwhm=float(img.headers['FWHM'])
-    sky=float(img.headers['SKY'])
+#    if not img.headers.has_key('FWHM'):
+#      img.fwhmsky()    #If there's no FWHM card, calculate FWHM and sky now
+    if gotfwhm and img.headers.has_key('FWHM'):
+      fwhm=float(img.headers['FWHM'])
+      sky=float(img.headers['SKY'])
+    else:
+      fwhm = 0
+      sky = 0
 
   
   print fmt % vars()      #Print the data using the format string
