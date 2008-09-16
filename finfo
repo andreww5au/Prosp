@@ -109,16 +109,46 @@ for f in args:
   if needheaders:
     try:
       object=string.strip(img.headers['OBJECT'][1:-1])
+    except:
+      object=''
+    try:
       exptime=float(img.headers['EXPTIME'])
+    except:
+      try:
+        exptime = float(img.headers['PEXP'])
+      except:
+        exptime = 0.0
+    try:
       dateobs=string.strip(img.headers['DATE-OBS'][1:-1])
+    except:
+      dateobs = ''
+    try:
       timeobs=string.strip(img.headers['TIME-OBS'][1:-1])
+    except:
+      timeobs = ''
+    try:
       filterid=string.strip(img.headers['FILTERID'][1:5])
+    except:
+      filterid = ''
+    try:
       secz=float(img.headers['SECZ'])
-      hjd=float(img.headers['HJD'])
-      pjd=hjd-2450000.0
+    except:
+      secz = 0.0
+    try:
+      hjd = float(img.headers['PHJDMID'])
+    except:
+      try:
+        hjd = float(img.headers['HJD'])
+      except:
+        hjd = 0.0
+    if hjd <> 0:
+      pjd = hjd - 2450000.0
+    else:
+      pjd = 0
+    try:
       ccdtemp=float(img.headers['CCDTEMP'])
     except:
-      pass     #Assume missing headers aren't needed, or get an error from fmt
+      ccdtemp = 0.0
   if needoldheaders:
     try:
       object=string.strip(img.headers['OBJECT'][1:-1])
