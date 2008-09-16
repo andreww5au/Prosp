@@ -225,6 +225,11 @@ class FITS:
         mi.append(self.data[i,amin[i]])
       dmin = min(mi)         #Lowest and highest data values in the image
       dmax = max(ma)
+      if dmin < -100:
+        dmin = -100
+      if dmax > 100000:
+        dmax = 100000:     #Stop cosmic rays hits and other nasties from blatting 
+                           #dynamic range if converted to integer.
 
       if bitpix == 16:
         fitsmin = -32767.0
