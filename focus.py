@@ -4,7 +4,7 @@ import tempfile
 import commands
 
 from pyraf.iraf import noao
-noao.obsutil()
+#noao.obsutil() /home/observer/PyDevel/AP72/weather.py:
 
 import improc
 import focuser
@@ -14,10 +14,21 @@ import ArCommands
 import teljoy
 import fits
 from pipeline import dObject
+
+try:
+  import numarray
+  from numarray import *
+except ImportError:
+  import Numeric
+  from Numeric import *
+
 focuscmd = './focusat '    #Name and first arg of C program
 
-coarsestep = 20
-finestep = 5 
+#coarsestep = 20
+#finestep = 5 
+coarsestep = 100
+finestep = 25 
+
 
 noao()
 noao.obsutil()
@@ -149,7 +160,7 @@ def best(center = 0, step = coarsestep, average = 1):
 #  ArCommands.exptime(saveexp*2)   #debugging
   for i in range(average):
     for p in [4,3,2,1,0,-1,-2,-3]:
-      pos = center + p * step
+      pos = center + p * step      
       focuser.Goto(pos)
       time.sleep(1)
       ArCommands.foclines(25)
@@ -161,68 +172,79 @@ def best(center = 0, step = coarsestep, average = 1):
   ArCommands.object(saveobject)
   return totpos / average
 
-def custombest(center = 0, step = coarsestep, average = 1):
+def custombest(center = 1000, step = coarsestep, average = 1):
   """Take images at 9 focus positions, from center-4*step to center+4*step
      At each position, open the shutter and shift the readout 25 lines, then
-     read out the whole image at the end. Pass the image to PyRAF for analysis,
-     parse the output, and return the best focus position.
+     read out the whole image at the end.
   """
-  totres = zeros([average,10,4],float)
+  totres = zeros([average,10,4],Float)
   saveobject = Ariel.status.object
-#  saveexp = Ariel.status.exptime  #debugging
+# saveexp = Ariel.status.exptime  #debugging
   ArCommands.object('FOCTEST: '+`center`+' '+`step`)
-#  ArCommands.exptime(saveexp*2)   #debugging
+# ArCommands.exptime(saveexp*2)   #debugging
   for i in range(average):
     for p in [4,3,2,1,0,-1,-2,-3]:
-       pos = center + p * step
-       focuser.Goto(pos)
-       time.sleep(1)
-       ArCommands.foclines(25)
-#      ArCommands.exptime(saveexp)  #debugging
+          pos = center + p * step
+          focuser.Goto(pos)
+          time.sleep(1)
+          ArCommands.foclines(25)
     focuser.Goto(center-4*step)
     imgname = ArCommands.foclines(-1)
-    print "Analysing image -- ",imname
+#    imgname='/data/rd081216/plat017.fits' # debug
+#    print "Analysing image -- ",imgname # debug
     try:
-       retlist,ftuple = customanalyse(imgname=imgname, center=center, step=step)
+         retlist=[]
+         retlist,ftuple = customanalyse(imgname=imgname, center=center, step=step)
     except:
-       print "There is an error in customanalyse -- called by custombest."
-       sys.exit()
-    totres.append(retlist)
+         return
+
+#   Copy results in to hold array
+    nmp=0
+#   print 'image number = ', i # debug
+    for j in range(10):
+       nmp=nmp+1
+       for k in range(4):
+	  try:
+            totres[i][j][k] = retlist[j][k]
+          except:
+            nmp=nmp-1
+            break
+    print '		Number of focus stars found = ', nmp
+    print '		LSQ cetre estimate is ',ftuple[0],' +/- ',ftuple[1]
   ArCommands.object(saveobject)
 
-  totpos=zeros([10,4],float)
-  for j in range(10):
-    for k in range(4):
-	totpos[j][k]=totres[0][j][k]
-  for i in range(average):
-     for j in range(10):
-        if float(totres[i][j][1]) > 0.0:
-           if float(totres[i][j][1]) < float(totpos[j][1]):
-               for k in range(4):
-                  totpos[j][k] = totres[i][j][k]
-  print totpos
   oname = tempfile.mktemp(suffix='.lst')
-  f=open(oname,'w')
-  for ll in range(nmb):
-    s={}
-    s = str(totpos[ll][0])+' '+str(totpos[ll][1])+' '+str(totpos[ll][2])+' '+str(totpos[ll][3])
-    f.write(s+' \n')
-  f.close()
   try:
-      commands.getstatusoutput('./focussel '+oname)
+     f=open(oname,'a')
+  except:
+     print "Error opening the file ",oname
+     return
+  for i in range(average):
+     for j in range(nmp):    # nmp stars in an image (0..(nmp-1))
+    	 try:
+      	    s = "%.4f %.4f %.4f %.4f \n" % (totres[i][j][0], totres[i][j][1], totres[i][j][2], totres[i][j][3])
+      	    f.write(s)
+    	 except:
+      	    print "error constructing or writing s:",s
+            break
+  f.close()
+  print oname
+  try:
+      commands.getstatusoutput('/home/observer/PyDevel/AP72/focussel '+oname)
   except:
       print "There is an error in focussel -- called by custombest"
-      sys.exit()
+      return
   print oname
   retlis=[]
   f=open(oname,'r')
   for ll in f.readlines():
-      print 'this is ll ',ll
       s=ll.strip().split()
       ftuple=[float(x) for x in s]
   f.close()
-# print ftuple
-  return ftuple[0]
+
+  fc = int(ftuple[0])
+  print '		focus for this image is  =',fc  
+  return fc
 
 def analyse(imgname='', center = 0, step = coarsestep):
   """Analyse an existing image on disk, assumed to have 9 star images at different 
@@ -255,39 +277,42 @@ def customanalyse(imgname='', center = 0, step = coarsestep):
   """
   totres=[]
   retlist=[]
+  print ' imagename ',imgname
   f = improc.FITS(imgname,'r')
   obname = f.headers['OBJECT'][1:-1].strip().split()
   if len(obname) == 3:
     onm,cen,stp = tuple(obname)
     if onm == 'FOCTEST:':
-      center = int(cen)
+      center = int(float(cen))
       step = int(stp)
   f.bias()
   oname = tempfile.mktemp(suffix='.raw')
+  print ' name of raw image ',oname
   saveraw(fobj=f,fname=oname)
-  commands.getstatusoutput('./focusat '+oname)
+  commands.getstatusoutput('/home/observer/PyDevel/AP72/focusat '+oname)
   oname = oname.replace('.raw','.dat')
-  f=open(oname,'r')
+  try:
+    f=open(oname,'r')
+  except:
+    print "Can't open results file ",oname
+    return
   nmb=0
   for ll in f.readlines():
        s=ll.strip().split()
+       print s
        retlist=[float(x) for x in s]
-       if retlist[0] != retlist[3]: # vertex written in both columns
+       if retlist[0] != retlist[3]:	# vertex written in both columns
 	  nmb=nmb+1
 	  totres.append(retlist)
   f.close()
   ftuple= float(retlist[0]), float(retlist[1])
-  pos = center+((ftuple[0]-totres[4][0])/25.0)*step
+  pos = center+((ftuple[0]-totres[4][0])/25.0)*step    # check the sign on this
   epos = step*ftuple[1]/25.0
-  ftuple=pos,epos
+  ftuple=pos,epos	# position and error position
   fpos=totres[4][0]
   for i in range(nmb):
   	totres[i][0] = center+((totres[i][0]-fpos)/25.0)*step
-  print "Focus estimate: ",ftuple[0]," +/- ", ftuple[1]
-
-
-#  test code
-#  print retlis
+  print "Focus estimate is: ",ftuple[0]," +/- ", ftuple[1]
   return totres,ftuple
 
 def saveraw(fobj=None, fname=''):
@@ -306,6 +331,7 @@ class FocObject(dObject):
     self.errors=""
     self.jump()
     if not self.errors:
+  
       self.set()
       self.updatetime()
       startpos = focuser.status.pos
@@ -314,37 +340,55 @@ class FocObject(dObject):
       done = 0
       p = startpos
       while (tries<5) and (not done):
-        print "Coarse-step focus run, centered on ", p
-        q = best(center=p, step=coarsestep, average=2)   #Try -4*coarstep to +4*coarsestep, and return best pos
-        print "Best pos is ", q
-        if abs(q-p) < (3*coarsestep):
-          done = 1
+	if (p-4*coarsestep) < 10:
+	    p = 10 + 4*coarsestep
+        elif (p+4*coarsestep) > 2000:
+            p = 2000 - 4*coarsestep
+#       q = best(center=p, step=coarsestep, average=2)   #Try -4*coarstep to +4*coarsestep, and return best pos
+        q = custombest(center=p, step=coarsestep, average=2)   #Try -4*coarstep to +4*coarsestep, and return best pos
+        print " Lastest coarse position is - ", q
+        if abs(q-p) < (1*coarsestep):
+            fnl=(q+p)/2
+            done = 1
+	if q < p-2*coarsestep:
+            q = p-2*coarsestep
+	elif q > p+2*coarsestep:
+            q = p+2*coarsestep
         p = q
         tries = tries + 1
 
       if not done:
-        print "Focus not converging at coarse level, aborting."
+        print " ****** Focus not converging at coarse level, shift focuser to the start position."
         focuser.Goto(startpos)
-        return 
-      
+        return
+      p=fnl
+      print " ****** Focus has converged at the coarse level, best coarse focus is ",p
+
       tries = 0
       done = 0
-      bestcoarse = p   #Use best coarse position as startpoint for fine steps
+      bestcoarse = p   #Save the best coarse position as startpoint for fine steps
       while (tries<5) and (not done):
         print "Fine-step focus run, centered on ", p
-        q = best(center=p, step=coarsestep, average=3)   #Try -4*coarstep to +4*coarsestep, and return best pos
-        print "Best pos is ", q
-        if abs(q-p) < (3*finestep):
+#       q = best(center=p, step=finestep, average=2)   #Try -4*coarstep to +4*coarsestep, and return best pos
+        q = custombest(center=p, step=finestep, average=3)   #Try -4*coarstep to +4*coarsestep, and return best pos
+        print "Latest fine position is - ", q
+        if abs(q-p) < (1.5*finestep):
           done = 1
+	  fnl=(q+p)/2
+	if q < p-2*finestep:
+            q = p-2*finestep
+	elif q > p+2*finestep:
+            q = p+2*finestep
         p = q
         tries = tries + 1
 
       if not done:
-        print "Focus not converging at fine level, reverting to best coarse position."
+        print " ****** Focus has not converged at the fine level, reverting to best coarse position."
         focuser.Goto(bestcoarse)
         return 
 
-      print "Focus converged. Best position is now ",p
+      p=fnl
+      print " ****** Focus has converged, the best focus position is - ",p
       focuser.Goto(p)
 
     else:
@@ -356,3 +400,40 @@ tempfile.template='foctemp'
 
 pipeline.Pipelines['FOCUS'] = FocObject
 
+
+
+
+#  totpos=zeros([nmp,4],Float)
+#  for j in range(nmp):   # nmp stars in an image (0..(nmp-1))
+#    if float(totres[0][j][1]) > 0.0:
+#        for k in range(4):
+#	    try:
+#	      totpos[j][k]=totres[0][j][k]
+#            except:
+#              break
+
+#  for i in range(average):
+#     for j in range(nmp):
+#        if float(totres[i][j][1]) > 0.0:
+#           if float(totres[i][j][1]) < float(totpos[j][1]):
+#               for k in range(4):
+#		  try:
+#                    totpos[j][k] = totres[i][j][k]
+#                  except:
+#                    break
+
+
+#  for i in range(average):
+#     for j in range(nmp):
+#         for k in range(4):
+#	    try:
+#               totpos[j][k] = totpos[j][k]+totres[i][j][k]
+#            except:
+#               break
+
+#  for j in range(nmp):   # nmp stars in an image (0..(nmp-1))
+#      for k in range(4):
+#	 try:
+#	   totpos[j][k]=totpos[j][k]/average
+#         except:
+#           break
