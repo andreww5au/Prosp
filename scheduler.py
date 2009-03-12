@@ -16,7 +16,7 @@ DictCursor=safecursor.SafeCursor
 AltCutoff = 25
 
 
-types={'PLANET':1000.0, 'STORE':1.0, 'IMAGE':10.0}  
+types={'PLANET':465.0, 'STORE':1.0, 'IMAGE':500.0}  
 
 candidates={}
 cantimestamp=MySQLdb.Timestamp(1970,1,1)
@@ -176,9 +176,11 @@ def UpdateCandidates():
       for row in c:
         id=row['ObjID']
         o=pipeline.getobject(id)
-        print id, cantimestamp,o.LastObs
+#        print id, cantimestamp,o.LastObs
         o.RA=stringsex(o.ObjRA)
         o.DEC=stringsex(o.ObjDec)
+        if (o.RA is None) or (o.DEC is None):
+          print "Bad RA or dec in object: ", id
         if _valid(o):
           candidates[id] = o
   else:
@@ -191,6 +193,8 @@ def UpdateCandidates():
         o=pipeline.getobject(id)
         o.RA=stringsex(o.ObjRA)
         o.DEC=stringsex(o.ObjDec)
+        if (o.RA is None) or (o.DEC is None):
+          print "Bad RA or dec in object: ", id
         if _valid(o):
           candidates[id] = o
 
