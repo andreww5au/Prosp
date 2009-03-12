@@ -198,7 +198,7 @@ class FITS:
       for h in hlast:             #Write the final header cards
         f.write(_fh(self, h))
 
-      if self.data:
+      if self.data is not None:
         if bitpix == 0:             #Writing header only
           print "Warning: writing header only, no data, to "+fname
           return 0
