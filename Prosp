@@ -173,7 +173,7 @@ def monitor(arg=None, close=None, open=None, delay=None):
 
     while (not isdark()):
       print 'waiting for it to get dark:'
-      time.sleep(45)
+      time.sleep(90)
 
 #    Put this code back and take out the while statement
 #    if not isdark():
