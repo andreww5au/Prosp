@@ -10,7 +10,7 @@ import commands
 MinPos = 0
 MaxPos = 2000    #Maximum focuser position
 
-focmd = './focuser/focus 0 '    #Name and first arg of C program
+focmd = '/home/observer/PyDevel/AP72/focuser/focus 0 '    #Name and first arg of C program
 
 class _FocusStatus:
   """Focuser status object.
@@ -27,7 +27,7 @@ def getPos():
   "Returns the current focuser position"
   global status
   txt = commands.getoutput(focmd + 'position 0')
-#  print txt
+  print txt
   status.pos = None
   for l in txt.split('\n'):
     llist = l.split(':')
@@ -43,9 +43,10 @@ def getPos():
 
 def Home():
   "Homes the focuser (returns to zero position)"
+  Goto(100);
   commands.getoutput(focmd + 'home 0')
   print "Focuser moved to position 0"
-  time.sleep(0.5)
+# time.sleep(0.5)
   status.update()
 
 
@@ -56,8 +57,8 @@ def Goto(N=0):
     if status.pos is not None:
       dif = N - status.pos
       txt = commands.getoutput(focmd + 'offset ' + `dif`)
-      print txt
-      time.sleep(0.5)
+#     print txt
+#     time.sleep(0.5) 
       status.update()
       if status is not None:
         print "Focuser moved to position",status.pos
@@ -73,6 +74,7 @@ def Goto(N=0):
 def init():
   global status
   status = _FocusStatus()
+  status.update
   Home()
   Goto(1000)
-  status.update()
+
