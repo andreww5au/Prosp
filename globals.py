@@ -31,7 +31,7 @@ except:
 #filters=['Empty','Red','3871','4060','4450','5140','5260','Hole']
 #Dave Schleiker's narrowband filter set, inserted 2008/01/30
 
-filters=['Clear','Red','Ultraviolet','Blue','Visual','Infrared','Empty','Hole']
+filters=['Clear','Red','NCN','Blue','Visual','Infrared','Empty','Hole']
 #New filter set replaced 2008/02/19 but with Dave's 3871 (NCN) filter instead 
 #of Ultraviolet
 
@@ -129,6 +129,7 @@ def stringsex(value=""):
      requires all three components (H:M:S not H:M or H:M.mmm).
   """
   try:
+    value = value.strip()
     components=string.split(value,':')
     if len(components)<>3:
       components=string.split(value,' ')
