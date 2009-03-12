@@ -44,24 +44,27 @@ class Object:
         return
       else:
         c=curs.fetchallDict()[0]
-      self.ObjID=c['ObjID']
+      self.ObjID=c['ObjID'].strip()
       self.name=c['name']
+#     self.name=c['name'].strip()
       self.origid=self.ObjID
-      self.ObjRA=c['ObjRA']
-      self.ObjDec=c['ObjDec']
+      self.ObjRA=c['ObjRA'].strip()
+      self.ObjDec=c['ObjDec'].strip()
       self.ObjEpoch=float(c['ObjEpoch'])
-      filtnames = c['filtnames']
-      exptimes = c['exptimes']
+#     self.ObjEpoch=float(c['ObjEpoch'].strip())
+      filtnames = c['filtnames'].strip()
+      exptimes = c['exptimes'].strip()
       self.subframes,self.sublist = psl(filtnames,exptimes)
       self.XYpos=(int(c['XYpos_X']),int(c['XYpos_Y']))
-      self.type=c['type']
+      self.type=c['type'].strip()
       try:
         self.period=float(c['period'])
+#       self.period=float(c['period'].strip())
       except TypeError:
         self.period=0.0
-      self.comment=c['comment']
+      self.comment=c['comment'.strip()]
       try:
-        self.LastObs=time.mktime(c['LastObs'].timetuple())
+        self.LastObs=time.mktime(c['LastObs'.strip()].timetuple())
       except (TypeError,AttributeError):
         self.LastObs=0
       if not self.ObjRA:
@@ -125,18 +128,18 @@ class Object:
       curs.execute("insert into objects (ObjID,name,ObjRA,ObjDec,ObjEpoch,filtnames,"+
          "exptimes,"+
          "XYpos_X,XYpos_Y,type,period,comment) values ("+
-         "'"+self.ObjID+"', "+
-         "'"+self.name+"', "+
-         "'"+self.ObjRA+"', "+
-         "'"+self.ObjDec+"', "+
+         "'"+self.ObjID.strip()+"', "+
+         "'"+self.name.strip()+"', "+
+         "'"+self.ObjRA.strip()+"', "+
+         "'"+self.ObjDec.strip()+"', "+
          `self.ObjEpoch`+", "+
-         "'"+filtnames+"', "+
-         "'"+exptimes+"', "+
+         "'"+filtnames.strip()+"', "+
+         "'"+exptimes.strip()+"', "+
          `self.XYpos[0]`+", "+
          `self.XYpos[1]`+", "+
-         "'"+self.type+"', "+
+         "'"+self.type.strip()+"', "+
          `self.period`+", "+
-         "'"+self.comment+"') ")
+         "'"+self.comment.strip()+"') ")
       if string.upper(self.origid)<>string.upper(self.ObjID):
         if self.origid<>'':
           curs.execute("delete from objects where ObjID='"+self.origid+"'")
