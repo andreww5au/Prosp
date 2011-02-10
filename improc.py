@@ -5,6 +5,54 @@ import tempfile
 import fits
 from globals import *
 
+GotNum = False
+Gotnumpy = False
+Gotnumarray = False
+Gotnumeric = False
+
+trylibs = ['numpy','numarray','Numeric']
+
+for libname in trylibs:
+  if libname == 'numpy':
+    try:
+      import numpy
+      from numpy import *
+      from numpy.numarray import mlab as MLab
+      from numpy.numarray.nd_image import convolve
+      GotNum = True
+      Gotnumpy = True
+      Int16 = int16
+      Int32 = int32
+      Float = float32
+      Float32 = float32
+      Float64 = float64
+    except ImportError:
+      pass
+  elif libname == 'numarray':
+    try:
+      import numarray
+      from numarray import *
+      from numarray import mlab as MLab
+      from numarray.nd_image import convolve
+      GotNum = True
+      Gotnumarray = True
+    except ImportError:
+      pass
+  elif libname == 'Numeric':
+    try:
+      import Numeric
+      from Numeric import *
+      import MLab
+      GotNum = True
+      Gotnumeric = True
+    except ImportError:
+      pass
+  if GotNum:
+    break    
+
+
+
+
 try:
   import numarray
   from numarray import *
