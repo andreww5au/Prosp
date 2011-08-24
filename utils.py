@@ -659,3 +659,27 @@ def domeflats():
     teljoy.freeze(0)
 
 
+def gpos():
+  """For the current telescope position, request a guide star position in RA and Dec, 
+     then return the X/Y guider coordinates for that position.
+  """
+  if (teljoy.status.RawRA is None) or (teljoy.status.RawDec is None):
+    print "Current telescope coordinates undefined - enter centre position:"
+    cen = guidestar.xyglobs.Coord(stringsex(raw_input("RA:  ")),stringsex(raw_input("Dec: ")))
+  else:
+    cen = guidestar.xyglobs.Coord(teljoy.status.RawRA,teljoy.status.RawDec)
+
+  print "Enter guide star coordinates:"
+  star = guidestar.xyglobs.Coord(stringsex(raw_input("RA:  ")),stringsex(raw_input("Dec: ")))
+  p = guidestar.starposc.Eq2XY(star,cen)
+  print "X=%d, Y=%d" % (gs.x*guidestar.xyglobs.X_Steps, gs.y*guidestar.xyglobs.Y_Steps)
+  tst1 = ( (p.x<guidestar.xyglobs.Xmax) and (p.x>guidestar.xyglobs.Xmin) and 
+           (p.y<guidestar.xyglobs.Ymax) and (p.y>guidestar.xyglobs.Ymin) )
+  tst2 = ( sqrt(p.x**2 + p.y**2 ) > guidestar.xyglobs.hole_radius)
+  if not tst1:
+    print "Target star outside maximum travel limits for XY stage!"
+  if not tst2:
+    print "Target star too close to centre, inside hole in offset mirror!"
+
+
+
