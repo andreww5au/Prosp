@@ -254,7 +254,7 @@ def auto(force=0):
   status.ObsType=''
   try:
     swrite('connecting to database for mailbox info')
-    db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
+    db=MySQLdb.Connection(host='mysql', user='honcho', passwd='',
                           db='teljoy', cursorclass=DictCursor)
     curs=db.cursor()
     swrite('connected')
