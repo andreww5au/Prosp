@@ -2,6 +2,7 @@
 import string
 import math
 import time
+import datetime
 
 from globals import *
 
@@ -16,7 +17,9 @@ DictCursor=safecursor.SafeCursor
 AltCutoff = 25
 
 
-types={'PLANET':465.0, 'STORE':1.0, 'IMAGE':500.0}  
+#types={'PLANET':1000.0, 'STORE':1.0, 'IMAGE':20.0} 
+types={'PLANET':5.0, 'STORE':1.0, 'IMAGE':1.0} 
+ 
 
 candidates={}
 cantimestamp=MySQLdb.Timestamp(1970,1,1)
@@ -236,7 +239,7 @@ Pfunction=Ptest3
 
 
 #print 'connecting to database for objects database access'
-db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
+db=MySQLdb.Connection(host='mysql', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor)
 curs=db.cursor()
 #print 'connected'
