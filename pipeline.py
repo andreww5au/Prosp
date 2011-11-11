@@ -120,6 +120,7 @@ class dObject(objects.Object):
   def take(self):
     "Carry out a full observation and reduction for this object."
     self.errors=""
+    self.set()
     self.jump()
     if not self.errors:
       for frame in range(self.subframes):
