@@ -35,6 +35,27 @@ class marker:
     print cmd
 
 
+class wcsmarker:
+  """Defines a class for storing SAO(tng/ds9) regions where x and y are
+     strings containing sexagesimal RA and Dec in FK5, J2000. Size, if
+     relevant for the marker type (eg circle) can be, for example 5" 
+     (5 arcseconds) or 0.5' (half an arcminute).
+     Create an instance with:  m=xpa.marker('12:34:56', '-32:10:54, 'lens'),
+     for example.
+  """
+  def __init__(self,x='',y='',label='',type='point',size=''):
+    self.x=x
+    self.y=y
+    self.label=label
+    self.type=type
+    self.size=size
+  def display(self):   #Sends an XPA message to the viewer to show this marker
+    if self.type=='point':  #Points don't have a size attribute
+      cmd="'wcs; "+self.type+" "+self.x+" "+self.y+" # text={"+self.label+"} '"
+      commands.getoutput('echo '+cmd+' | xpaset '+viewer+' regions')
+    print cmd
+
+
 def deleteregions():
   """Send an XPA message to the viewer to delete all markers.
   """
