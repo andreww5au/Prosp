@@ -27,11 +27,12 @@ from xpa import display
 from globals import *
 import ephemint
 import skyviewint
-#import grb
 import objects
 import math
 import scheduler
 import focuser
+import service 
+
 global grbflag
 
 def gord(n=1):
@@ -66,9 +67,9 @@ def getbiases(n=1, name='bias'):
   """
   exptime(0.02)
   bias(name)
-  fn=status.nextfile[:-8]
+  fn = status.nextfile[:-8]
   filename('bias')
-  files=go(n)
+  files = go(n)
   filename(fn)   #Restore filename to orig, stripping counter
   object(fn)  #Swap to object type, not dark type
   dobias(files)
@@ -86,9 +87,9 @@ def getdarks(n=1, et=900, name='dark'):
   """
   exptime(et)
   dark(name)
-  fn=status.nextfile[:-8]
+  fn = status.nextfile[:-8]
   filename('dark')
-  files=go(n)
+  files = go(n)
   filename(fn)   #Restore filename to orig, stripping counter
   object(fn)  #Swap to object type, not dark type
   dodark(files)
@@ -110,12 +111,12 @@ def getflats(filt='R', n=1, et=None):
      eg: getflats('R',5,0.7)
          getflats(filt='I', n=5, et=3)
   """
-  oet=status.exptime
-  oldfn=status.nextfile[:-8]
+  oet = status.exptime
+  oldfn = status.nextfile[:-8]
   if len(status.object)>2:
     oldob = status.object[1:-1]
   else:
-    oldob=''
+    oldob = ''
   if not et:
     autoexp = True
     filter(filtnum(filt))
@@ -144,28 +145,25 @@ def getflats(filt='R', n=1, et=None):
     if et < 0.0 or et > 500:
       print "Tried 4 times, no signal im image. Is shutter opening?"
       return 0
-    if et < 2.0:
+    if et < 1.0:
       print "Too bright, desired exposure time only %3.1f seconds." % (et,)
       filename(oldfn) #Restore filename to orig, stripping counter
       object(oldob)  #Swap to object type, not dark type
       exptime(oet)  #restore original exposure time
       return 0
-    elif et>120.0:
-      print "Too dark, exposure time %3.1f seconds." % (et,)
-      filename(oldfn) #Restore filename to orig, stripping counter
-      object(oldob)  #Swap to object type, not dark type
-      exptime(oet)  #restore original exposure time
-      return 0
+    elif et > 120.0:
+      print "Too dark, clipping exposure time %3.1f seconds." % (et,)
+      et = 120
   else:
     autoexp = False
 
   filename('flat'+filt)
   filter(filtnum(filt))
-  files=[]
+  files = []
   numf = 0
   while len(files) < n:
     exptime(et)
-    newfile=go()
+    newfile = go()
     tim = improc.FITS(newfile,'r')
     tim.bias()
     testlevel = tim.median()
@@ -181,9 +179,9 @@ def getflats(filt='R', n=1, et=None):
         if et < 1.0:
           print "Too bright, desired exposure time only %3.1f seconds." % (et,)
           break
-        elif et>120.0:
-          print "Too dark, exposure time %3.1f seconds." % (et,)
-          break
+        elif et > 120.0:
+          print "Too dark, clipping exposure time %3.1f seconds." % (et,)
+          et = 120
     else:
       files.append(newfile)
 
@@ -191,8 +189,6 @@ def getflats(filt='R', n=1, et=None):
   object(oldob)  #Swap to object type, not dark type
   exptime(oet)  #restore original exposure time
   doflat(files)
-
-
 
 
 def set(obj=''):
@@ -204,21 +200,10 @@ def set(obj=''):
      eg: set()
          set('sn99ee')
   """
-  if obj=='':
-    obj=status.TJ.name
-  res=pipeline.getobject(obj)
+  if not obj:
+    obj = status.TJ.name
+  res = pipeline.getobject(obj)
   res.set()
-
-
-def pgo():
-  """Take one image, then preprocess it and do a PLANET DoPhot reduction.
-     eg: pgo()
-  """
-  preduced(go())
-  p=Pevent(status.TJ.name)
-  if p.good:
-    process(p.root)
-    archive(p.root)
 
 
 def take(objs=[], force=0):
@@ -245,10 +230,9 @@ def take(objs=[], force=0):
 
      eg: take('plref ob2k038 ... eb2k05', force=1)
   """
-  if type(objs)==type(''):
-    objs=string.replace(objs, ',', ' ')
-    objs=string.split(objs)
-
+  if type(objs) == str:
+    objs = string.replace(objs, ',', ' ')
+    objs = string.split(objs)
 
   if (not status.MonitorActive) and (not force) and len(objs)>6:
     swrite("Monitoring mode is not switched on - aborting take command run.")
@@ -256,11 +240,12 @@ def take(objs=[], force=0):
     print "calling, for example, ('plref ob2k038 ... eb2k05', force=1)"
     return 0
   for ob in objs:
-    p=pipeline.getobject(ob)
+    p = pipeline.getobject(ob)
     if not p:
       ewrite("Object: "+ob+" not in database, or has unknown reduction pipeline type.")
     else:
       p.take()
+
 
 def grbRequest(flag='false',tile='true'):
   global grbflag
@@ -273,6 +258,7 @@ def grbRequest(flag='false',tile='true'):
       tileside=3
   else:
       tileside=1
+
 
 def sched(objs=[],force=0,mode=0):
   """This function is similar to the take function, however, it monitors for the arrival
@@ -301,7 +287,6 @@ def sched(objs=[],force=0,mode=0):
   global tileside
   tileside=3
   grbflag=0
-  #grb.emailstart()
   time.sleep(10)
   if type(objs)==type(''):
     objs=string.replace(objs, ',', ' ')
@@ -314,24 +299,22 @@ def sched(objs=[],force=0,mode=0):
   monEmail=0
   for ob in objs:
     if grbflag < 1 and monEmail < 1: #no email request not monitoring old request
-      observeThis(ob)
+      take(ob)
     else:  #Email request received.
       alt,az=ephemint.altaz(grb.self.RA,grb.self.Dec)           #get the alt az of the object
       if alt > 30: #Object is above telescope horizon (30 degrees)
 #       take it's picture
-        observeThis(grb.self.obj)
+        take(grb.self.obj)
         grbRequest(flag='false') #reset the override flag
         monEmail=0     #don't monitor
       elif az < 0.0:   #object has transited and is now setting
         grbRequest(flag='false') #reset the override flag
-#       grb.self.flag=0 #email acknowledged
         monEmail=0     #don't monitor
       else: #Object is below the telescope horizon - continue to monitor.
         grbRequest(flag='false') #reset the override flag
-#       grb.self.flag=0 #email acknowledged
         monEmail=1     #waiting for object to rise
 #     take the observing list exposure.
-      observeThis(ob)
+      take(ob)
   else: #finished the observing request continue to monitor for email request.
     monEmail=0
     print "running schedule and monitor GRB email: %s" %(monEmail)
@@ -348,17 +331,15 @@ def sched(objs=[],force=0,mode=0):
         if alt > 30: #Object is above telescope horizon (30 degrees)
           tile(grb.self.obj, side=3)           #take picture
           grbRequest(flag='false')             #reset the override flag
-#         grb.self.flag=0                      #reset the override flag
           monEmail=0                           #don't monitor
         elif az < 0.0:                         #object has transited and is now setting
           grbRequest(flag='false')             #reset the override flag
-#         grb.self.flag=0                      #email acknowledged
           monEmail=0                           #don't monitor
         else: #Object is below the telescope horizon - continue to monitor.
           grbRequest(flag='false')             #reset the override flag
-#         grb.self.flag=0                      #email acknowledged
           monEmail=1                           #waiting for object to rise
         time.sleep(2)                          #sleep for 10 seconds
+
 
 def tile(ob, side=1, offsetRA=340, offsetDec=340 ):
 #  side = take exposures to cover an area of side x side -- default 1x1
@@ -373,7 +354,7 @@ def tile(ob, side=1, offsetRA=340, offsetDec=340 ):
    offsetRA=offsetRA/3600.0
    offsetDec=offsetDec/3600.0
    if side == 1:
-     observeThis(ob)
+     take(ob)
    else:
      centreob=objects.Object(ob)              # get details of the object from the data base
      if not centreob.ObjRA:
@@ -415,17 +396,10 @@ def tile(ob, side=1, offsetRA=340, offsetDec=340 ):
            centreob.ObjRA  = sexstring(centreRA + ii*offsetRA)
            centreob.ObjDec = sexstring(centreDec + jj*offsetDec)
            centreob.save(ask=0,force=1) # save the observation
-           observeThis(obtile)
+           take(obtile)
          if redo==1:
            break
        continue
-
-def observeThis(takeobj):
-  p=pipeline.getobject(takeobj)
-  if not p:
-    ewrite("Object: "+takeobj+" not in database, or has unknown reduction pipeline type.")
-  else:
-    p.take()
 
 
 def foc():
@@ -441,53 +415,13 @@ def foc():
   object(saveob)
 
 
-def viewer(vw=''):
-  """Change the display program used - arguments are 'ds9' or 'SAOtng'.
-     eg: viewer('ds9')
-         viewer('SAOtng')
-  """
-  if vw=='':
-    return xpa.viewer
-  if vw<>'ds9' and vw<>'SAOtng':
-    ewrite("Valid viewers - SAOtng, ds9.")
-    return 0
-  xpa.viewer=vw
-
-
-def doall(yrs=['99','2K','01','02']):
-  """Processes and archives all waiting images for all objects in the season.
-     This does not run in the background, do it last thing before you go home
-     in the morning and leave it running. Can take quite a long time...
-     eg: doall()
-  """
-  if type(yrs)==type('frog'):
-    yrs=[yrs]
-  for yr in yrs:
-    counts=planet.countimgs(status.path)
-    processall(yr)
-    archiveall(yr)
-#  for f in dircache.listdir(planet.PipeHome+'/outgoing/'):
-#    os.remove(planet.PipeHome+'/outgoing/'+f)
-  for o in counts.keys():
-    swrite("Object "+o+": "+`counts[o]`+" images.")
-#    ob=planet.Pevent(o)
-#    if ob.good:
-#      os.system('cp '+ob.archivedir+'/'+planet.site+ob.root+'I '+ 
-#           planet.PipeHome+'/outgoing/'+planet.site+ob.root+'I ;'+
-#           ' gzip '+planet.PipeHome+'/outgoing/'+planet.site+ob.root+'I')
-  wd=os.getcwd()
-  os.chdir('/home/observer/PLANET-archives')
-  os.system('./SyncArchives')
-  os.chdir(wd)
-
-
 def ephemjump(ob=None):
   """Takes an ephemeris object (created with the 'elements()' function) and 
      jumps the telescope to the current position. Use 'ephempos()' if you
      just want the current coordinates displayed.
   """
   try:
-    id,ra,dec=ephemint.ephempos(ob)
+    id,ra,dec = ephemint.ephempos(ob)
     teljoy.jump(id=id, ra=ra, dec=dec, epoch=2000)
   except:
     print "Problem with the object - use 'elements' to create an object."
@@ -517,12 +451,12 @@ def skyview(posn='', equinox=2000):
     skyviewint.skyview(posn, equinox)
   else:
     if status.TJ.ObjRA:
-      posn=sexstring(status.TJ.ObjRA,' ')+', '+sexstring(status.TJ.ObjDec,' ')
-      equinox=status.TJ.ObjEpoch
+      posn = sexstring(status.TJ.ObjRA,' ') + ', ' + sexstring(status.TJ.ObjDec,' ')
+      equinox = status.TJ.ObjEpoch
     elif status.TJ.RawRA:
-      posn=sexstring(status.TJ.RawRA,' ')+', '+sexstring(status.TJ.RawDec,' ')
-      t=time.localtime(time.time())
-      equinox=t[0]+t[7]/365.246      #Raw coords are epoch-of-date
+      posn = sexstring(status.TJ.RawRA,' ') + ', ' + sexstring(status.TJ.RawDec,' ')
+      t = time.localtime(time.time())
+      equinox = t[0] + t[7]/365.246      #Raw coords are epoch-of-date
     else:
       print "No position specified, and Teljoy is not running."
       return
@@ -539,117 +473,84 @@ def newdir():
   """Create a new working directory based on the current date, and copy in
      bias and dark frames appropriate for the current CCD temperature.
   """
-  obsname=raw_input("Enter Observers Name: ")
+  obsname = raw_input("Enter Observers Name: ")
   observer(obsname)          #Set tonights observer name in FITS headers
-  t=time.localtime(time.time())
-  if t[3]<12:
-    t=time.localtime(time.time() - (t[3]+1)*3600 )
-  dirname='/data/rd'+time.strftime('%y%m%d',t)
-  print "Making directory: "+dirname
+  t = time.localtime(time.time())
+  if t[3] < 12:
+    t = time.localtime(time.time() - (t[3]+1)*3600 )
+  dirname = '/data/rd' + time.strftime('%y%m%d',t)
+  print "Making directory: " + dirname
   os.system('mkdir '+dirname)
   os.chdir(dirname)
   path(dirname)
-  darks=glob.glob('/data/dark-??Cmaster.fits')
-  temps=[]
+  darks = glob.glob('/data/dark-??Cmaster.fits')
+  temps = []
   for n in darks:
-    mpos=string.find(n,'-')
+    mpos = string.find(n,'-')
     temps.append(int(n[mpos:mpos+3]))
-  tempnow=ccdtemp(5)
-  print "Current temperature: "+`tempnow`
-  besttemp=100
+  tempnow = ccdtemp(5)
+  print "Current temperature: " + `tempnow`
+  besttemp = 100
   for t in temps:
     if abs(tempnow-t) < abs(tempnow-besttemp):
-      besttemp=t
-  print "Using bias+dark images for "+`besttemp`+"C."
+      besttemp = t
+  print "Using bias+dark images for " + `besttemp` + "C."
   os.system("cp /data/bias"+`besttemp`+"Cmaster.fits "+dirname+"/bias.fits")
   os.system("cp /data/dark"+`besttemp`+"Cmaster.fits "+dirname+"/dark.fits")
 
 
-def readlist(fname=''):
-  """Read a list of object names from the file specified. If no path is given,
-     the file is assumed to be in /tmp. The file format is flexible, simply 
-     requiring the object names to be seperated by whitespace (spaces, tabs,
-     or newlines in any combination), any number of objects per line. 
-
-     Returns the list as a string (space seperated, 6 objects per line),
-     which can be assigned to a variable if needed: 
-
-     EG:
-
-     mylist=readlist('/tmp/test.lis')
-     take(mylist + eo2to8r)
-
-     or
-
-     take( readlist('test.lis') + eo2to8r)
-  """
-  if not os.path.dirname(fname):
-    fname=os.path.join('/tmp',fname)
-  try:
-    tmplist=open(fname,'r').read().split()
-  except IOError:
-    ewrite('File: '+fname+' not found')
-    return None
-
-  out=''
-  i=0
-  for o in tmplist:
-    out=out+o.ljust(10)
-    i=i+1
-    if (i/6.0)==(i/6):
-      out=out+'\n'
-  return out
-
-
-def runsched(n=0, force=0, planetmode=0):
+def runsched(n=0, force=0, planetmode=1):
   """Run the scheduler repeatedly taking the best object each time. If 'n' is given, and non
      zero, exit after that many objects. If 'force' is given, and non-zero, skip the reminder
      about turning on monitoring for more than 6 objects.
      If 'planetmode' is given, and non-zero, run planet.UpdatePriorities() regularly to keep up
      homebase changes.
   """
-  if n==0:
-    n=9999
+  if n == 0:
+    n = 9999
   if (not status.MonitorActive) and (not force) and (n>6):
     swrite("Monitoring mode is not switched on - aborting take command run.")
     print "Use monitor('on') to switch on monitoring, or override by"
-    print "calling, for example, ('plref ob2k038 ... eb2k05', force=1)"
+    print "calling, for example, runsched(force=1)"
     return 0
 
   for i in range(n):
-    errors=""
+    try:
+	service.check()  # service.check if its time to focus the telescope
+    except:
+	print 'Exception while trying to focus telescope.'
+    errors = ""
     if planetmode:
       planet.UpdatePriorities()
     scheduler.UpdateCandidates()
     if scheduler.best:
-      errors=scheduler.best.take()
+      errors = scheduler.best.take()
       if errors:
         ewrite("Errors in moving to object, sleeping for 300 seconds")
         time.sleep(300)
     else:    #No object above horizon
       ewrite("No object above horizon, sleeping for 300 seconds")
       time.sleep(300)
-  print "runsched sequence of ",n," scheduler objects completed."
+  print "runsched sequence of %d scheduler objects completed." % n
 
 
 def domeflats():
   """Move the telescope and dome to the correct position for dome flats, and take
      V,R, and I images with appropriate exposure times, then reduce them.
   """
-
   teljoy.jump(id='flats', ra=sexstring(teljoy.status.LST+domeflatHA), dec=sexstring(domeflatDec) )
   exptime(0.1)
   filename('junk')
-  print "Dummy exposure to loosen up sticky shutter"
-  go()   #Dummy exposure to loosen up sticky shutter
+#  print "Dummy exposure to loosen up sticky shutter"
+#  go()   #Dummy exposure to loosen up sticky shutter
   while (teljoy.status.moving or teljoy.status.DomeInUse):
     print "Waiting for telescope slew..."
     time.sleep(5)
   teljoy.freeze(1)
   try:
     teljoy.dome(90)
-    print "Dummy exposure to loosen up sticky shutter"
-    go()  #Another dummy exposure while dome is moving
+#    print "Dummy exposure to loosen up sticky shutter"
+#    go()  #Another dummy exposure while dome is moving
     while (teljoy.status.DomeInUse):
       print "Waiting for Dome slew..."
       time.sleep(5)
@@ -659,27 +560,37 @@ def domeflats():
     teljoy.freeze(0)
 
 
-def gpos():
+def gpos(ra=None, dec=None):
   """For the current telescope position, request a guide star position in RA and Dec, 
      then return the X/Y guider coordinates for that position.
   """
   if (teljoy.status.RawRA is None) or (teljoy.status.RawDec is None):
     print "Current telescope coordinates undefined - enter centre position:"
-    cen = guidestar.xyglobs.Coord(stringsex(raw_input("RA:  ")),stringsex(raw_input("Dec: ")))
+    cra,cdec = stringsex(raw_input("RA:  ")), stringsex(raw_input("Dec: "))
+    cen = guidestar.xyglobs.Coord(cdec,cra)
   else:
-    cen = guidestar.xyglobs.Coord(teljoy.status.RawRA,teljoy.status.RawDec)
+    cen = guidestar.xyglobs.Coord(teljoy.status.RawDec,teljoy.status.RawRA)
 
-  print "Enter guide star coordinates:"
-  star = guidestar.xyglobs.Coord(stringsex(raw_input("RA:  ")),stringsex(raw_input("Dec: ")))
+  if (ra is None) or (dec is None):
+    print "Enter guide star coordinates:"
+    ra,dec = stringsex(raw_input("RA:  ")), stringsex(raw_input("Dec: "))
+  else:
+    if type(ra) == string:
+      ra = stringsex(ra)
+    if type(dec) == string:
+      dec = stringsex(dec)
+
+  star = guidestar.xyglobs.Coord(dec,ra)
   p = guidestar.starposc.Eq2XY(star,cen)
-  print "X=%d, Y=%d" % (gs.x*guidestar.xyglobs.X_Steps, gs.y*guidestar.xyglobs.Y_Steps)
+  print "X=%d, Y=%d" % (p.x*guidestar.xyglobs.X_Steps, p.y*guidestar.xyglobs.Y_Steps)
   tst1 = ( (p.x<guidestar.xyglobs.Xmax) and (p.x>guidestar.xyglobs.Xmin) and 
            (p.y<guidestar.xyglobs.Ymax) and (p.y>guidestar.xyglobs.Ymin) )
-  tst2 = ( sqrt(p.x**2 + p.y**2 ) > guidestar.xyglobs.hole_radius)
+  tst2 = ( (p.x**2 + p.y**2) > guidestar.xyglobs.hole_radius**2)
   if not tst1:
     print "Target star outside maximum travel limits for XY stage!"
   if not tst2:
     print "Target star too close to centre, inside hole in offset mirror!"
+  return (int(p.x*guidestar.xyglobs.X_Steps), int(p.y*guidestar.xyglobs.Y_Steps), tst1 and tst2)
 
 
 
