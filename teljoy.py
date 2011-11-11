@@ -314,9 +314,9 @@ def _background():
     print "a teljoy exception"
 
 
-db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
+db=MySQLdb.Connection(host='mysql', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor) 
-b_db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
+b_db=MySQLdb.Connection(host='mysql', user='honcho', passwd='',
                         db='teljoy', cursorclass=DictCursor)
 
 curs=db.cursor()
