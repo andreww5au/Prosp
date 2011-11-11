@@ -28,12 +28,13 @@ from teljoy import *
 from snlists import *
 import weather
 import pipeline
+import service
 import snsearch
 import scheduler
-#import grb
 import chiller
 import focuser
 import focus
+from focus import *
 
 backgrounds.append(teljoy._background)
 backgrounds.append(weather._background)
@@ -162,6 +163,10 @@ def monitor(arg=None, close=None, open=None, delay=None):
 #    if not teljoy.Active.isSet():
 #      teljoy.unpause()
   elif arg == 'ON':
+    while (not ephemint.isdark()):
+      print 'waiting for it to get dark:'
+      time.sleep(90)
+    status.isdark=ephemint.isdark
     status.weather.__init__()
     status.lastact = time.time()   #In case it's been a while since an image
     if type(close)==types.FloatType or type(close)==types.IntType:
@@ -170,22 +175,16 @@ def monitor(arg=None, close=None, open=None, delay=None):
       status.weather.SkyOpenTemp = float(open)
     if type(delay)==types.FloatType or type(delay)==types.IntType:
       status.weather.WeatherOpenDelay = int(delay)
-
-    while (not isdark()):
-      print 'waiting for it to get dark:'
-      time.sleep(90)
-
-#    Put this code back and take out the while statement
-#    if not isdark():
-#      print "It's not dark yet, monitoring mode would pause immediately."
-#      print "Monitor mode aborted."
-#      return 0
+    if not isdark():
+      print "It's not dark yet, monitoring mode would pause immediately."
+      print "Monitor mode aborted."
+      return 0
     if not status.weather.clear:
       print "Monitor mode aborted:\n",
       if status.weathererror:
         print status.weathererror
       else:
-        print "Wather unstable"
+        print "Weather unstable"
       status.weather.display()
       return 0
 
