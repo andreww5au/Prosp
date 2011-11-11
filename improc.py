@@ -1,83 +1,26 @@
 
-import string        #load string handling library
 import os
 import tempfile
 import fits
 from globals import *
 
-GotNum = False
-Gotnumpy = False
-Gotnumarray = False
-Gotnumeric = False
-
-trylibs = ['numpy','numarray','Numeric']
-
-for libname in trylibs:
-  if libname == 'numpy':
-    try:
-      import numpy
-      from numpy import *
-      from numpy.numarray import mlab as MLab
-      from numpy.numarray.nd_image import convolve
-      GotNum = True
-      Gotnumpy = True
-      Int16 = int16
-      Int32 = int32
-      Float = float32
-      Float32 = float32
-      Float64 = float64
-    except ImportError:
-      pass
-  elif libname == 'numarray':
-    try:
-      import numarray
-      from numarray import *
-      from numarray import mlab as MLab
-      from numarray.nd_image import convolve
-      GotNum = True
-      Gotnumarray = True
-    except ImportError:
-      pass
-  elif libname == 'Numeric':
-    try:
-      import Numeric
-      from Numeric import *
-      import MLab
-      GotNum = True
-      Gotnumeric = True
-    except ImportError:
-      pass
-  if GotNum:
-    break    
-
-
-
-
-try:
-  import numarray
-  from numarray import *
-  from numarray import mlab as MLab
+if fits.Gotnumpy:
+  import numpy as num
+  from numpy.numarray import mlab
+  from numpy.numarray.nd_image import convolve
+elif fits.Gotnumarray:
+  import numarray as num
+  from numarray import mlab
   from numarray.nd_image import convolve
-  Gotnumarray = 1
-  Gotnumeric = 0
-  GotNum = 1
-except ImportError:
-  try:
-    import Numeric
-    from Numeric import *
-    import MLab
-    GotNum = 1
-    Gotnumarray = 0
-    Gotnumeric = 1
-  except:
-    GotNum = 0
-    Gotnumarray = 0
-    Gotnumeric = 0
+elif fits.Gotnumeric:
+  import Numeric as num
+  import MLab as mlab
+  import Numeric.convolve
 
 
-lastdark=None     #Contains the last Dark image used, to cache the data.
-lastbias=None
-lastflats=[]      #A cache of the last few flatfield images used.
+lastdark = None     #Contains the last Dark image used, to cache the data.
+lastbias = None
+lastflats = []      #A cache of the last few flatfield images used.
 
 
 class FITSold(fits.FITS):
@@ -95,24 +38,24 @@ class FITSold(fits.FITS):
   """
 
   def noise(self,region=''):
-    t=MLab.std(_parseregion(self,region))
+    t = mlab.std(_parseregion(self,region))
     return _ndmedian(t)
 
   def median(self,region=''):
-    t=_ndmedian(_parseregion(self,region))
+    t = _ndmedian(_parseregion(self,region))
     return _ndmedian(t)
 
   def mean(self,region=''):
-    t=MLab.mean(_parseregion(self,region))
-    return MLab.mean(t)
+    t = mlab.mean(_parseregion(self,region))
+    return mlab.mean(t)
 
   def max(self,region=''):
-    t=MLab.max(_parseregion(self,region))
-    return MLab.max(t)
+    t = mlab.max(_parseregion(self,region))
+    return mlab.max(t)
 
   def min(self,region=''):
-    t=MLab.min(_parseregion(self,region))
-    return MLab.min(t)
+    t = mlab.min(_parseregion(self,region))
+    return mlab.min(t)
 
 
 
@@ -160,7 +103,7 @@ class FITSold(fits.FITS):
 
     #bias=sum(sum(bregion)) / product(bregion.shape)  #Mean
     #bias=sort(ravel(bregion))[product(bregion.shape)/2]   #Median
-    bias=sum(sort(ravel(bregion))[100:-100]) / (product(bregion.shape) - 200)
+    bias = num.sum(num.sort(num.ravel(bregion))[100:-100]) / (num.product(bregion.shape) - 200)
          #Mean with highest and lowest 200 points discarded
 
     self.data=dregion - bias                      #Subtract and trim image
@@ -204,7 +147,7 @@ class FITSold(fits.FITS):
       return 0
 
     darkimage=None
-    if type(darkfile)==types.StringType and darkfile<>'':
+    if type(darkfile) == str and darkfile <> '':
       darkimage=FITS(darkfile)      #If a filename is supplied, load the image
     elif isinstance(darkfile,FITS):
       darkimage=darkfile           #If it's a FITS image, use it as-is
@@ -271,7 +214,7 @@ class FITSold(fits.FITS):
       return 0
 
     flatimage=None
-    if type(flatfile)==types.StringType and flatfile<>'':
+    if type(flatfile) == str and flatfile <> '':
       flatimage=FITS(flatfile)         #If given a filename, load the image
     elif isinstance(flatfile,FITS):
       flatimage=flatfile               #If given a FITS image, use as-is
@@ -387,11 +330,11 @@ class FITSnew(FITSold):
                 #in bias region, startx is _not_ inclusive. That's
                 #true for all images from Ariel++, and seems
                 #unlikely to be fixed.
-    bias=sum(sort(ravel(bregion))[100:-100]) / (product(bregion.shape) - 200)
+    bias=num.sum(num.sort(num.ravel(bregion))[100:-100]) / (num.product(bregion.shape) - 200)
 
     biasimage=None
     if biasfile<>None:
-      if type(biasfile)==types.StringType and biasfile<>'':
+      if type(biasfile) == str and biasfile <> '':
         biasimage=FITS(biasfile)      #If a filename is supplied, load the image
       elif isinstance(biasfile,fits.FITS):
         biasimage=biasfile           #If it's a FITS image, use it as-is
@@ -434,19 +377,23 @@ def median(l=[]):
   """Returns a FITS object which is the median of all the provided FITS
      objects (either as a list or a tuple).
   """
-  myl=[]
-  temps=[]
+  myl = []
+  temps = []
   for i in l:
     if not hasattr(i,'data'):
       print "FITS object has no data section to operate on."
       return 0
     myl.append(i.data)
-    temps.append(float(i.headers['CCDTEMP']))
-  out=FITS()
-  out.headers=l[0].headers
-  out.comments=l[0].comments
-  out.data=_ndmedian(array(myl))
-  out.headers['CCDTEMP']=`_ndmedian(array(temps))`
+    try:
+      temps.append(float(i.headers['CCDTEMP']))
+    except KeyError:
+      pass   #No CCDTEMP in header
+  out = FITS()
+  out.headers = l[0].headers
+  out.comments = l[0].comments
+  out.data = _ndmedian(num.array(myl))
+  if temps:
+    out.headers['CCDTEMP'] = `_ndmedian(num.array(temps))`
   return out
 
 
@@ -588,7 +535,7 @@ def doflat(files=[], filt=None):
     im=FITS(d,'r')
     im.bias()
     im.dark()
-    divide(im.data, sum(sum(im.data))/product(im.data.shape), im.data)
+    num.divide(im.data, num.sum(num.sum(im.data))/num.product(im.data.shape), im.data)
     di.append(im)
   im=median(di)
   if im.headers.has_key('FILTERID'):
@@ -614,7 +561,7 @@ def gaussian(size=9, sigma=3.0):
   c,r = divmod(size,2)
   m = 1/(sigma*math.sqrt(2*math.pi))
   if r == 1:  #If size is odd:
-    k = fromfunction(lambda x,y: m*exp(-((x-c)**2+(y-c)**2)/(2*sigma*sigma)), (size,size) )
+    k = num.fromfunction(lambda x,y: m*num.exp(-((x-c)**2+(y-c)**2)/(2*sigma*sigma)), (size,size) )
     k = k/k.sum()
     return k  
 
@@ -637,12 +584,12 @@ def findstar(img=None, n=1):
     return []   #No stars in field
   k = gaussian(size=21, sigma=(fwhm/0.6)/2.3548 )
   xim = convolve(img.data, k, mode='nearest')
-  sq = convolve(img.data*img.data, ones((21,21)), mode='constant')
-  sf = sqrt((k*k).sum())
-  out = xim/(sf*sqrt(sq))
+  sq = convolve(img.data*img.data, num.ones((21,21)), mode='constant')
+  sf = num.sqrt((k*k).sum())
+  out = xim/(sf*num.sqrt(sq))
   starlist = []
   rows,cols = out.shape
-  sortflat = argsort(out.flat)
+  sortflat = num.argsort(out.flat)
   i = -1
   offsets = [(-1,-1),(-1,0),(-1,1),(0,-1),(0,1),(1,-1),(1,0),(1,1)]
   while (len(starlist)<(3*n+3)) and (i>(-rows*cols)):
@@ -673,11 +620,11 @@ def to8bit(img=None):
      Sorts the data, and uses the 5th and 95th percentile as low and high
      cutoffs.
   """
-  sdata = sort(ravel(img.data))
+  sdata = num.sort(num.ravel(img.data))
   lcut = sdata[int(sdata.shape[0]*0.05)]
   hcut = sdata[int(sdata.shape[0]*0.95)]
 
-  return 255 * (clip(img.data, lcut, hcut) - lcut) / (hcut - lcut)
+  return 255 * (num.clip(img.data, lcut, hcut) - lcut) / (hcut - lcut)
 
 
 #
@@ -747,6 +694,7 @@ def _reducefile(fname=''):
 
   fwhm,sky=img.fwhmsky()
   img.save(outfile,bitpix=16)   #Save in Int16 format
+  os.system('/usr/local/bin/imsex.py '+outfile)
   _rlog(fname,filename,filterid,exptime,ccdtemp,pjd,fwhm,sky,secz)
   swrite(filename+' reduced: FWHM=%4.2f pixels, Sky=%d ADU' % (fwhm,sky))
   return outfile
@@ -773,11 +721,11 @@ def _parseregion(im=None, r=''):
 def _msort(m):
   """_msort(m) returns a sort along the first dimension of m as in MATLAB.
   """
-  return transpose(sort(transpose(m)))
+  return num.transpose(num.sort(num.transpose(m)))
 
 
 def _ndmedian(m):
-  """median(m) returns a mean of m along the first dimension of m. Parameter
+  """median(m) returns a median of m along the first dimension of m. Parameter
      is a Numeric array, not a FITS object. Called with a 3-dimensional
      array (N two dimensional images) to create a median image.
   """
