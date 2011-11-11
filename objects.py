@@ -404,7 +404,7 @@ def sorttype(o,p):
 
 
 #print 'connecting to database for objects database access'
-db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
+db=MySQLdb.Connection(host='mysql', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor)
 #print 'connected'
 
