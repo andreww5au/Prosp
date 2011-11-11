@@ -6,8 +6,8 @@ DictCursor=safecursor.SafeCursor
 from globals import *
 
 #These are the initial defaults, copied to the status object on module init.
-_SkyOpenTemp = -33  #Open if skytemp < this for more than WeatherOpenDelay sec
-_SkyCloseTemp = -32  #Close is skytemp > this or raining
+_SkyOpenTemp = -26  #Open if skytemp < this for more than WeatherOpenDelay sec
+_SkyCloseTemp = -25  #Close is skytemp > this or raining
 _WeatherOpenDelay=1800  #Wait for 1800 sec of no-rain and cloud < CloudOpenLevel
 _CloudCloseDelay=150    #Wait until at least two cloud readings (1/2min) are 'cloudy'
 
@@ -166,9 +166,9 @@ def _background():
 
 
 
-db = MySQLdb.Connection(host='cook', user='honcho', passwd='',
+db = MySQLdb.Connection(host='mysql', user='honcho', passwd='',
                       db='misc', cursorclass=DictCursor)
-b_db = MySQLdb.Connection(host='cook', user='honcho', passwd='',
+b_db = MySQLdb.Connection(host='mysql', user='honcho', passwd='',
                         db='misc', cursorclass=DictCursor)
 status = _Weather()
 status.update()
