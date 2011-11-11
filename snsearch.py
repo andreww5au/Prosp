@@ -27,7 +27,7 @@ ftpuser='plat'
 ftppass='sn1993k'
 ftpimagedir='/t/533-Observatory/Astronomical/Images/New'
 ftpmaildir='/t/533-Observatory/Astronomical/Plat/Mail'
-nfsimagedir='/cook/Astronomical/Images/new'
+nfsimagedir='/chef/Astronomical/Images/new'
 
 
 def _dosname(uname):
@@ -173,7 +173,7 @@ class SNObject(dObject):
 pipeline.Pipelines['IMAGE']=SNObject
 
 swrite('SNSearch module connecting to database')
-db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
+db=MySQLdb.Connection(host='mysql', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor)
 curs=db.cursor()
 swrite('connected')
