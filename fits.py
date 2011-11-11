@@ -1,4 +1,4 @@
-#Fits image handling in Python. Andrew Williams, Feb 2000
+#Fits image handling in pure Python. Andrew Williams
 #  andrew@physics.uwa.edu.au
 #
 # or
@@ -40,6 +40,10 @@
 # f.data=(f.data-g.data)*1000
 #
 # f.save("/tmp/outfile.fits",-32)   #Save as 32-bit float: BITPIX=-32
+#
+#   Written by Andrew Williams, Perth Observatory
+#   <andrew@physics.uwa.edu.au>
+
 
 version = "$Revision$"
 
@@ -47,23 +51,46 @@ import string        #load string handling library
 import types
 import time
 
-try:
-  import numarray
-  from numarray import *
-  Gotnumarray = 1
-  Gotnumeric = 0
-  GotNum = 1
-except ImportError:
-  try:
-    import Numeric
-    from Numeric import *
-    GotNum = 1
-    Gotnumarray = 0
-    Gotnumeric = 1
-  except:
-    GotNum = 0
-    Gotnumarray = 0
-    Gotnumeric = 0
+GotNum = False
+Gotnumpy = False
+Gotnumarray = False
+Gotnumeric = False
+
+trylibs = ['numpy','numarray','Numeric']
+
+for libname in trylibs:
+  if libname == 'numpy':
+    try:
+      import numpy
+      from numpy import *
+      GotNum = True
+      Gotnumpy = True
+      Int16 = int16
+      Int32 = int32
+      Float = float32
+      Float32 = float32
+      Float64 = float64
+    except ImportError:
+      pass
+  elif libname == 'numarray':
+    try:
+      import numarray
+      from numarray import *
+      GotNum = True
+      Gotnumarray = True
+    except ImportError:
+      pass
+  elif libname == 'Numeric':
+    try:
+      import Numeric
+      from Numeric import *
+      GotNum = True
+      Gotnumeric = True
+    except ImportError:
+      pass
+  if GotNum:
+    break    
+
 
 #Define two lists of cards that will be saved in the specified order, one at
 #the start of the FITS headers, one at the end. The rest will be in
@@ -160,7 +187,10 @@ class FITS:
             self.data = None
             print "Expected %d bytes, read %d bytes." % (flen, len(fraw))
             return
-          self.data=fromstring(fraw,type).byteswapped().astype(Float64)
+          if Gotnumpy:
+            self.data = fromstring(fraw,type).byteswap(True).astype(Float64)
+          else:
+            self.data = fromstring(fraw,type).byteswapped().astype(Float64)
           self.data.shape=tuple(shape)
 
           if self.headers.has_key('BSCALE') and self.headers.has_key('BZERO'):
@@ -173,7 +203,6 @@ class FITS:
           self.data = self.file.read()
 
         self.file.close()
-
 
   def save(self, fname='/tmp/out.fits', bitpix=None):
     """Saves image to a given file name. The bitpix field has the same meaning
@@ -213,43 +242,70 @@ class FITS:
           return 0
         return 1
 
+    if bitpix <> int(self.headers['BITPIX']):
+      rescale = True     #Rescale if new bitpix value differs from old
+    else:
+      rescale = False
+      
     if bitpix is None:
       bitpix = int(self.headers['BITPIX'])
+      rescale = False    #Don't rescale if bitpix value is None and using old value
 
     if bitpix == 16 or bitpix == 32:   #Pick bscale, bzero & rescale
-      amax=argmax(self.data)  #row containing indices for max in each column
-      amin=argmin(self.data)  #row containing indices for min in each column
-      ma,mi = [], []
-      for i in range(len(amax)):
-        ma.append(self.data[i,amax[i]])  #Create rows with the max/min values
-        mi.append(self.data[i,amin[i]])
-      dmin = min(mi)         #Lowest and highest data values in the image
-      dmax = max(ma)
-      if dmin < -100:
-        dmin = -100
-      if dmax > 100000:
-        dmax = 100000    #Stop cosmic rays hits and other nasties from blatting 
-                         #dynamic range if converted to integer.
-
+    
       if bitpix == 16:
-        fitsmin = -32767.0
+        fitsmin = -32768.0
         fitsmax = 32767.0
         self.headers['BITPIX'] = '16'
       else:
-        fitsmin = -2147483647.0
+        fitsmin = -2147483648.0
         fitsmax = 2147483647.0
         self.headers['BITPIX'] = '32'
-
-      #Calculate BZERO and BSCALE for integer output
-      bzero = (dmin*fitsmax - dmax*fitsmin) / (fitsmax-fitsmin)
-      if dmax > dmin:
-        bscale = (dmax-dmin) / (fitsmax-fitsmin)
+    
+      if Gotnumpy:
+        dmin = self.data.min()
+        dmax = self.data.max()
       else:
-        bscale = 1.0
+        amax=argmax(self.data)  #row containing indices for max in each column
+        amin=argmin(self.data)  #row containing indices for min in each column
+        ma,mi = [], []
+        for i in range(len(amax)):
+          ma.append(self.data[i,amax[i]])  #Create rows with the max/min values
+          mi.append(self.data[i,amin[i]])
+        dmin = min(mi)         #Lowest and highest data values in the image
+        dmax = max(ma)
+
+      if self.headers.has_key('BSCALE') and self.headers.has_key('BZERO'):
+        ibscale = float(self.headers['BSCALE'])
+        ibzero = float(self.headers['BZERO'])
+      else:
+        ibscale = 1.0
+        ibzero = 0.0
+        rescale = True     #Force rescale if there are no scale values in header
+
+      if ((dmin-ibzero)/ibscale < fitsmin) or ((dmax-ibzero)/ibscale > fitsmax):
+        rescale = True      #Force rescale if physical values won't fit with old scale
+
+      if rescale:
+        #Calculate BZERO and BSCALE for integer output
+        if dmin < -100:
+          dmin = -100
+        if dmax > 100000:
+          dmax = 100000    #Stop cosmic rays hits and other nasties from blatting 
+                           #dynamic range if converted to integer.
+        bzero = (dmin*fitsmax - dmax*fitsmin) / (fitsmax-fitsmin)
+        if dmax > dmin:
+          bscale = (dmax-dmin) / (fitsmax-fitsmin)
+        else:
+          bscale = 1.0
+      else:
+        bscale = ibscale
+        bzero = ibzero
+      
 
       tmpdata = self.data + (0.5*bscale - bzero)     #Creates copy of data so original is safe
       divide(tmpdata,bscale,tmpdata)
-      floor(tmpdata,tmpdata) 
+      floor(tmpdata, tmpdata) 
       self.headers['BSCALE'] = `bscale`
       self.headers['BZERO'] = `bzero`
     elif bitpix == -32:               #For floating point, don't scale the data
@@ -290,11 +346,21 @@ class FITS:
       f.write(_fh(self, h))
     if bitpix <> 0:             #Write the data section unless bitpix is 0
       f.write(' ' * (2880*((f.tell()-1)/2880+1)-f.tell()) )    #Pad the header block
-      f.write(tmpdata.astype(type).byteswapped().tostring())
+      if Gotnumpy:
+        f.write(tmpdata.astype(type).byteswap(True).tostring())
+      else:
+        f.write(tmpdata.astype(type).byteswapped().tostring())
       f.write('\0' * (2880*((f.tell()-1)/2880+1)-f.tell()) )    #Pad the data
     f.close()
     return 1
 
+  def saveraw(self, fname=''):
+    """Save the data section of the image (without headers) as a raw array of 32-bit floats.
+    """
+    if self.data and fname:
+      f = open(fname,'w')
+      f.write(self.data.astype(Float32).tostring())
+      f.close()
 
   def histlog(self,str):
     """Adds a HISTORY line containing 'str' to the image.
