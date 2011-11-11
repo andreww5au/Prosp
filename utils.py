@@ -32,6 +32,7 @@ import math
 import scheduler
 import focuser
 import service 
+import guidestar
 
 global grbflag
 
