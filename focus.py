@@ -3,8 +3,18 @@ import time
 import tempfile
 import commands
 
-from pyraf.iraf import noao
-#noao.obsutil() /home/observer/PyDevel/AP72/weather.py:
+USE_IRAF = False       #Set to True to enable IRAF focus functions (adds to startup time)
+
+if USE_IRAF:
+  try:
+    from pyraf.iraf import noao
+    noao()
+    noao.obsutil()
+    GotIRAF = True
+  except:
+    GotIRAF = False
+else:
+  GotIRAF = False
 
 import improc
 import focuser
@@ -12,49 +22,37 @@ import pipeline
 import Ariel
 import ArCommands
 import teljoy
-import fits
-from pipeline import dObject
+import service
 
-try:
-  import numarray
-  from numarray import *
-except ImportError:
-  import Numeric
-  from Numeric import *
+FOCUSATCMD = '/home/observer/PyDevel/AP72/focusat/focusat'    #Path and filename
+FOCUSSELCMD = '/home/observer/PyDevel/AP72/focussel/focussel'
 
-focuscmd = './focusat '    #Name and first arg of C program
-
-#coarsestep = 20
-#finestep = 5 
 coarsestep = 100
-finestep = 25 
+finestep = 50 
 
-
-noao()
-noao.obsutil()
-
-noao.obsutil.starfocus.nexposures = 9
-noao.obsutil.starfocus.step = 25
-noao.obsutil.starfocus.direction = "+line"
-noao.obsutil.starfocus.gap = "none"
-noao.obsutil.starfocus.logfile = ""
-noao.obsutil.starfocus.coords = "center"
-noao.obsutil.starfocus.wcs = "physical"
-noao.obsutil.starfocus.display = "No"
-noao.obsutil.starfocus.level = 0.5
-noao.obsutil.starfocus.size = "MFWHM"   #Radius, FWHM, GFWHM, MFWHM
-noao.obsutil.starfocus.beta = "INDEF"
-noao.obsutil.starfocus.scale = 1.0
-noao.obsutil.starfocus.radius = 15
-noao.obsutil.starfocus.sbuffer = 15
-noao.obsutil.starfocus.swidth = 15
-noao.obsutil.starfocus.saturation = 65500
-noao.obsutil.starfocus.ignore_sat = "No"
-noao.obsutil.starfocus.iterations = 3
-noao.obsutil.starfocus.logfile = ""
-noao.obsutil.starfocus.imagecur = "/dev/null"
-noao.obsutil.starfocus.graphcur = "/dev/null"
-noao.obsutil.starfocus.mode = "al"
+if GotIRAF:
+  noao.obsutil.starfocus.nexposures = 9
+  noao.obsutil.starfocus.step = 25
+  noao.obsutil.starfocus.direction = "+line"
+  noao.obsutil.starfocus.gap = "none"
+  noao.obsutil.starfocus.logfile = ""
+  noao.obsutil.starfocus.coords = "center"
+  noao.obsutil.starfocus.wcs = "physical"
+  noao.obsutil.starfocus.display = "No"
+  noao.obsutil.starfocus.level = 0.5
+  noao.obsutil.starfocus.size = "MFWHM"   #Radius, FWHM, GFWHM, MFWHM
+  noao.obsutil.starfocus.beta = "INDEF"
+  noao.obsutil.starfocus.scale = 1.0
+  noao.obsutil.starfocus.radius = 15
+  noao.obsutil.starfocus.sbuffer = 15
+  noao.obsutil.starfocus.swidth = 15
+  noao.obsutil.starfocus.saturation = 65500
+  noao.obsutil.starfocus.ignore_sat = "No"
+  noao.obsutil.starfocus.iterations = 3
+  noao.obsutil.starfocus.logfile = ""
+  noao.obsutil.starfocus.imagecur = "/dev/null"
+  noao.obsutil.starfocus.graphcur = "/dev/null"
+  noao.obsutil.starfocus.mode = "al"
 
 
 def avglists(totlist):
@@ -104,7 +102,8 @@ def parse_starfocus(s):
     return 0,0
   else:
     return float(line[3]), float(line[7])
-  
+
+
 def nparse_starfocus(s):
   """Parses the output of the IRAF 'starfocus' task, and returns a list 
      containing (focusvalue,FWHM) tuples, and the best focus value tuple.
@@ -135,8 +134,7 @@ def nparse_starfocus(s):
     return retlist, (float(line[3]), float(line[7]))
   
 
-
-def center():
+def centerstar():
   """Take a single image and move the telescope to center the brightest star-like
      object in the field.
   """
@@ -146,113 +144,101 @@ def center():
   teljoy.offset(x+1,y+1)
 
 
-
-def best(center = 0, step = coarsestep, average = 1):
-  """Take images at 9 focus positions, from center-4*step to center+4*step
-     At each position, open the shutter and shift the readout 25 lines, then
-     read out the whole image at the end. Pass the image to PyRAF for analysis,
-     parse the output, and return the best focus position.
-  """
-  totres = []
-  saveobject = Ariel.status.object
-#  saveexp = Ariel.status.exptime  #debugging
-  ArCommands.object('FOCTEST: '+`center`+' '+`step`)
-#  ArCommands.exptime(saveexp*2)   #debugging
-  for i in range(average):
-    for p in [4,3,2,1,0,-1,-2,-3]:
-      pos = center + p * step      
-      focuser.Goto(pos)
-      time.sleep(1)
-      ArCommands.foclines(25)
-#     ArCommands.exptime(saveexp)  #debugging
-    focuser.Goto(center-4*step)
-    imgname = ArCommands.foclines(-1)
-    retlist,ftuple = analyse(imgname=imgname, center=center, step=step)
-    totres.append(retlist)
-  ArCommands.object(saveobject)
-  return totpos / average
-
-def custombest(center = 1000, step = coarsestep, average = 1):
+def FindBest(center = 1000, step = coarsestep, average = 1):
   """Take images at 9 focus positions, from center-4*step to center+4*step
      At each position, open the shutter and shift the readout 25 lines, then
      read out the whole image at the end.
   """
-  totres = zeros([average,10,4],Float)
+  oname = '/tmp/focuspos.lst'
+  onamefit = '/tmp/focuspos.fit'
   saveobject = Ariel.status.object
-# saveexp = Ariel.status.exptime  #debugging
+  sftp = 0.0
+  errftp = 0.0
   ArCommands.object('FOCTEST: '+`center`+' '+`step`)
-# ArCommands.exptime(saveexp*2)   #debugging
-  for i in range(average):
-    for p in [4,3,2,1,0,-1,-2,-3]:
-          pos = center + p * step
-          focuser.Goto(pos)
-          time.sleep(1)
-          ArCommands.foclines(25)
-    focuser.Goto(center-4*step)
-    imgname = ArCommands.foclines(-1)
-#    imgname='/data/rd081216/plat017.fits' # debug
-#    print "Analysing image -- ",imgname # debug
-    try:
-         retlist=[]
-         retlist,ftuple = customanalyse(imgname=imgname, center=center, step=step)
-    except:
-         return
+  try:
+    f = open(oname,'a') #append, so we're fitting all values taken so far this focus run
+  except:
+    print "Error opening the file ",oname
+    return
 
-#   Copy results in to hold array
-    nmp=0
-#   print 'image number = ', i # debug
-    for j in range(10):
-       nmp=nmp+1
-       for k in range(4):
-	  try:
-            totres[i][j][k] = retlist[j][k]
-          except:
-            nmp=nmp-1
-            break
-    print '		Number of focus stars found = ', nmp
-    print '		LSQ cetre estimate is ',ftuple[0],' +/- ',ftuple[1]
+  for i in range(average):
+    tryagain = 0
+    while (tryagain <= 2):
+      for p in [4,3,2,1,0,-1,-2,-3]:
+        pos = center + p * step
+        focuser.Goto(pos)
+        time.sleep(1)
+        ArCommands.foclines(25)
+      focuser.Goto(center-4*step)
+      imgname = ArCommands.foclines(-1)
+      try:
+        retlist,ftuple = Analyse_Ralph(imgname=imgname, center=center, step=step)
+      except:
+        print "Problem analysing the sample."
+        tryagain = tryagain + 1
+        continue
+      if (len(retlist) != 9.0): 
+        print "Not enough stars in this image."
+        tryagain = tryagain + 1
+        continue
+      print "Saved to file retlist [0] & [1], i, j", retlist[0][0]
+      nmp = 0
+      for j in range(9):   # read stars pos only
+        nmp = nmp + 1
+        try:
+          print '%.4f %.4f %.4f %.4f' % (retlist[j][0], retlist[j][1], retlist[j][2], retlist[j][3])
+       	  s = '%.4f %.4f %.4f %.4f \n' % (retlist[j][0], retlist[j][1], retlist[j][2], retlist[j][3])
+      	  f.write(s)
+        except:
+          nmp = nmp - 1
+          print 'Problem writing to file focupos.lst.'
+          break
+      print "Number of focus stars found = ", nmp
+      break
+    else:
+      print "Tried %d times, Can't calculate focus fit." % (tryagain,)
+      return
+#   print "LSQ centre estimate is ",ftuple[0]," +/- ",ftuple[1]
+    sftp = sftp + ftuple[0]
+
+  f.close() # close the file oname
   ArCommands.object(saveobject)
 
-  oname = tempfile.mktemp(suffix='.lst')
   try:
-     f=open(oname,'a')
-  except:
-     print "Error opening the file ",oname
-     return
-  for i in range(average):
-     for j in range(nmp):    # nmp stars in an image (0..(nmp-1))
-    	 try:
-      	    s = "%.4f %.4f %.4f %.4f \n" % (totres[i][j][0], totres[i][j][1], totres[i][j][2], totres[i][j][3])
-      	    f.write(s)
-    	 except:
-      	    print "error constructing or writing s:",s
-            break
-  f.close()
-  print oname
-  try:
-      commands.getstatusoutput('/home/observer/PyDevel/AP72/focussel '+oname)
-  except:
-      print "There is an error in focussel -- called by custombest"
+    echeck, stuff = commands.getstatusoutput(FOCUSSELCMD + ' ' + oname)
+    if (echeck != 0):
+      print "Problem analysing the sample on N images."
       return
-  print oname
-  retlis=[]
-  f=open(oname,'r')
+  except:
+    print "There is an error in focussel -- called by FindBest in focus.py"
+    return
+
+  retlis = []
+  try:
+    f = open(onamefit,'r')
+  except:
+    print "There is an error opening file /tmp/focuspos.fit"
+    return
   for ll in f.readlines():
-      s=ll.strip().split()
-      ftuple=[float(x) for x in s]
+    s = ll.strip().split()
+    ftuple = [float(x) for x in s]     #This only returns the last line in the file - *check* AW
   f.close()
 
   fc = int(ftuple[0])
-  print '		focus for this image is  =',fc  
+  print 'Focus for this image = ',fc
   return fc
 
-def analyse(imgname='', center = 0, step = coarsestep):
+
+def Analyse_IRAF(imgname='', center = 0, step = coarsestep):
   """Analyse an existing image on disk, assumed to have 9 star images at different 
      focus positions. If the image was taken with the 'best' funtion (above), extract
      the focus positions from the header, otherwise use the arguments passed to the 
      function. Pass the image to PyRAF for analysis, parse the output, and return
      the best focus position.
   """
+  if not GotIRAF:
+    print "IRAF disabled in focus.py, function Analyse_IRAF not available"
+    return
   f = improc.FITS(imgname,'r')
   obname = f.headers['OBJECT'][1:-1].strip().split()
   if len(obname) == 3:
@@ -268,7 +254,8 @@ def analyse(imgname='', center = 0, step = coarsestep):
   print "Focus estimate:",guesspos
   return retlist,ftuple
 
-def customanalyse(imgname='', center = 0, step = coarsestep):
+
+def Analyse_Ralph(imgname='', center = 0, step = coarsestep):
   """Analyse an existing image on disk, assumed to have 9 star images at different 
      focus positions. If the image was taken with the 'best' funtion (above), extract
      the focus positions from the header, otherwise use the arguments passed to the 
@@ -277,7 +264,6 @@ def customanalyse(imgname='', center = 0, step = coarsestep):
   """
   totres=[]
   retlist=[]
-  print ' imagename ',imgname
   f = improc.FITS(imgname,'r')
   obname = f.headers['OBJECT'][1:-1].strip().split()
   if len(obname) == 3:
@@ -287,153 +273,147 @@ def customanalyse(imgname='', center = 0, step = coarsestep):
       step = int(stp)
   f.bias()
   oname = tempfile.mktemp(suffix='.raw')
-  print ' name of raw image ',oname
-  saveraw(fobj=f,fname=oname)
-  commands.getstatusoutput('/home/observer/PyDevel/AP72/focusat '+oname)
-  oname = oname.replace('.raw','.dat')
+  f.saveraw(fname=oname)
   try:
-    f=open(oname,'r')
+    echeck,stuff = commands.getstatusoutput(FOCUSATCMD + ' ' + oname)
+    if echeck != 0:
+      return
+  except:
+    print "Can't open fits file from focus.Analyse_Ralph ",oname
+    return
+  oname = oname.replace('.raw','.dat')
+
+  try:
+    f = open(oname,'r')      # open .dat file
   except:
     print "Can't open results file ",oname
     return
-  nmb=0
+  nmb = 0
   for ll in f.readlines():
-       s=ll.strip().split()
-       print s
-       retlist=[float(x) for x in s]
-       if retlist[0] != retlist[3]:	# vertex written in both columns
-	  nmb=nmb+1
-	  totres.append(retlist)
-  f.close()
-  ftuple= float(retlist[0]), float(retlist[1])
-  pos = center+((ftuple[0]-totres[4][0])/25.0)*step    # check the sign on this
+    s = ll.strip().split()
+    print s
+    retlist = [float(x) for x in s]
+    if retlist[0] != retlist[3]:	# vertex written in both columns
+      nmb = nmb + 1
+      totres.append(retlist)
+  f.close() #close .dat file
+
+  ftuple = float(retlist[0]), float(retlist[1])
+  pos = center + ((ftuple[0]-totres[4][0])/25.0)*step    # check the sign on this
   epos = step*ftuple[1]/25.0
-  ftuple=pos,epos	# position and error position
-  fpos=totres[4][0]
+  ftuple = pos,epos	# position and error position
+  fpos = totres[4][0]
   for i in range(nmb):
-  	totres[i][0] = center+((totres[i][0]-fpos)/25.0)*step
-  print "Focus estimate is: ",ftuple[0]," +/- ", ftuple[1]
+    totres[i][0] = center+step*round((totres[i][0]-fpos)/25.0)
+# print "Focus estimate is: ",ftuple[0]," +/- ", ftuple[1]
   return totres,ftuple
 
-def saveraw(fobj=None, fname=''):
-  """Given a FITS file object and a filename, save the data section of the image
-     (no headers) as a raw array of 32-bit floats.
-  """
-  if fobj and fname:
-    f = open(fname,'w')
-    f.write(fobj.data.astype(fits.Float32).tostring())
-    f.close()
 
-
-class FocObject(dObject):
+class FocObject(pipeline.dObject):
   def take(self):
     "Carry out a full refocus using this object."
-    self.errors=""
+    self.errors = ""
     self.jump()
+
     if not self.errors:
-  
+      self.fileprefix()   # Set the filename prefix (everything except the auto-incrementing image number)
       self.set()
       self.updatetime()
-      startpos = focuser.status.pos
-      print "Focussing. Original focus position: ", startpos
-      tries = 0
-      done = 0
-      p = startpos
-      while (tries<5) and (not done):
-	if (p-4*coarsestep) < 10:
-	    p = 10 + 4*coarsestep
-        elif (p+4*coarsestep) > 2000:
-            p = 2000 - 4*coarsestep
-#       q = best(center=p, step=coarsestep, average=2)   #Try -4*coarstep to +4*coarsestep, and return best pos
-        q = custombest(center=p, step=coarsestep, average=2)   #Try -4*coarstep to +4*coarsestep, and return best pos
-        print " Lastest coarse position is - ", q
-        if abs(q-p) < (1*coarsestep):
-            fnl=(q+p)/2
-            done = 1
-	if q < p-2*coarsestep:
-            q = p-2*coarsestep
-	elif q > p+2*coarsestep:
-            q = p+2*coarsestep
-        p = q
-        tries = tries + 1
+      oname = '/tmp/focuspos.lst'
+      f = open(oname,'w')    # Delete the contents of the focus list file, make a clean start to the fitting.
+      f.close()
 
+#     centerstar()   # center the star
+      startpos = focuser.status.pos
+      tries = 0
+      done = False
+      p = startpos
+      foclist = []
+      while (tries<5) and (not done):
+        if (p-4*coarsestep) < 10:
+          p = 10+4*coarsestep
+        elif (p+4*coarsestep) > 2000:
+          p = 2000-4*coarsestep
+        try:
+          q = FindBest(center=p, step=coarsestep, average=1)   #Try -4*step to +4*step
+        except:
+          print "Coarse Focus was NOT determined -- object may not be centred or it is cloudy."
+          focuser.Goto(startpos)
+          return
+          
+        print "Latest coarse position is %d for try number %d" % (q,tries)
+        foclist.append(q)
+        # See if any of the previous estimates are with one coarsestep of the current value
+        for focvalue in foclist[:-1]:   # Loop through previous focus value estimates
+          if abs(q-focvalue) < (1.0*coarsestep): # found coarse focus?
+            fnl = (q+focvalue)/2.0
+            done = True
+        # Make sure the new focus centre value is inside the range tested in this run
+        if q < p-4*coarsestep:
+          q = p-4*coarsestep
+        elif q > p+4*coarsestep:
+          q = p+4*coarsestep
+        tries = tries + 1
+        p = q
+       
       if not done:
-        print " ****** Focus not converging at coarse level, shift focuser to the start position."
+        print "****** Focus didn't converge at coarse level, shift focuser to the start position."
         focuser.Goto(startpos)
         return
-      p=fnl
-      print " ****** Focus has converged at the coarse level, best coarse focus is ",p
-
+      p = fnl #best estimate of coarse focus
+      print "****** Focus has converged at the coarse level using %d sets of images, coarse focus is %d" % (tries, p)
+       
+      foclist = []
       tries = 0
-      done = 0
-      bestcoarse = p   #Save the best coarse position as startpoint for fine steps
-      while (tries<5) and (not done):
-        print "Fine-step focus run, centered on ", p
-#       q = best(center=p, step=finestep, average=2)   #Try -4*coarstep to +4*coarsestep, and return best pos
-        q = custombest(center=p, step=finestep, average=3)   #Try -4*coarstep to +4*coarsestep, and return best pos
-        print "Latest fine position is - ", q
-        if abs(q-p) < (1.5*finestep):
-          done = 1
-	  fnl=(q+p)/2
-	if q < p-2*finestep:
-            q = p-2*finestep
-	elif q > p+2*finestep:
-            q = p+2*finestep
+      done = False
+      bestcoarse = p  #Save the best coarse position as startpoint for fine steps
+      while (tries<4) and (not done):
+#       print "Fine-step focus run, centered on ", p
+        if (p-4*finestep) < 10:
+          p = 10+4*finestep
+        elif (p+4*finestep) > 2000:
+          p = 2000-4*finestep
+        try:
+          q = FindBest(center=p, step=finestep, average=1)  #Try -4*finestep to +4*finestep
+#          q = best(center=p, step=finestep, average=2)
+        except:
+          print "Fine Focus was not determined -- object may not be centred or it is cloudy."
+          focuser.Goto(bestcoarse)
+          return
+           
+        foclist.append(q)
+        print "Latest fine position is %d for try number %s" % (q,tries)
+        for focvalue in foclist[:-1]:   # Loop through previous focus value estimates
+          if abs(q-focvalue) < (1.0*finestep): # found fine focus?
+            fnl = (q+focvalue)/2.0
+            done = True
+        # Make sure new fine focus centre value is inside the central half of the range tested in this run
+        if q < p-2*finestep:
+          q = p-2*finestep
+        elif q > p+2*finestep:
+          q = p+2*finestep
         p = q
         tries = tries + 1
-
+            
       if not done:
-        print " ****** Focus has not converged at the fine level, reverting to best coarse position."
+        print " ****** Focus has NOT converged at the fine level, reverting to best coarse position."
         focuser.Goto(bestcoarse)
+        service.LastFocusTime = time.time()
         return 
-
-      p=fnl
-      print " ****** Focus has converged, the best focus position is - ",p
-      focuser.Goto(p)
-
+        
+      p = fnl
+      print " ****** Focus has converged using 2 sets of images, best focus is ",p
+      focuser.Goto(p+20)
+      service.LastFocusTime = time.time()
     else:
-      print "Errors: "+self.errors
+      print "Errors: " + self.errors
       return self.errors
 
-tempfile.tmpdir='/tmp'       #Set up temp file name structure
-tempfile.template='foctemp'
+tempfile.tmpdir = '/tmp'       #Set up temp file name structure
+tempfile.template = 'foctemp'
 
 pipeline.Pipelines['FOCUS'] = FocObject
 
 
 
 
-#  totpos=zeros([nmp,4],Float)
-#  for j in range(nmp):   # nmp stars in an image (0..(nmp-1))
-#    if float(totres[0][j][1]) > 0.0:
-#        for k in range(4):
-#	    try:
-#	      totpos[j][k]=totres[0][j][k]
-#            except:
-#              break
-
-#  for i in range(average):
-#     for j in range(nmp):
-#        if float(totres[i][j][1]) > 0.0:
-#           if float(totres[i][j][1]) < float(totpos[j][1]):
-#               for k in range(4):
-#		  try:
-#                    totpos[j][k] = totres[i][j][k]
-#                  except:
-#                    break
-
-
-#  for i in range(average):
-#     for j in range(nmp):
-#         for k in range(4):
-#	    try:
-#               totpos[j][k] = totpos[j][k]+totres[i][j][k]
-#            except:
-#               break
-
-#  for j in range(nmp):   # nmp stars in an image (0..(nmp-1))
-#      for k in range(4):
-#	 try:
-#	   totpos[j][k]=totpos[j][k]/average
-#         except:
-#           break
