@@ -352,6 +352,7 @@ def go(n=1):
       command('go',1)   
       update()  #grab new status information after the image
       result.append(status.path+status.lastfile)
+      status.lastact = time.time()   #Record the time that the last image was taken
   except KeyboardInterrupt:
     swrite("Exposure aborted, keeping image.")
     _stop()
