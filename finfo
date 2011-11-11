@@ -171,7 +171,10 @@ for f in args:
 #      img.fwhmsky()    #If there's no FWHM card, calculate FWHM and sky now
     if gotfwhm and img.headers.has_key('FWHM'):
       fwhm=float(img.headers['FWHM'])
-      sky=float(img.headers['SKY'])
+      try:
+        sky=float(img.headers['SKY'])
+      except:
+        sky = 0
     else:
       fwhm = 0
       sky = 0
