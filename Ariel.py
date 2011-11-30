@@ -21,7 +21,7 @@ class GuideZero:
 
 gzero=GuideZero(0,0)
 
-class ArielStatus:
+class CameraStatus:
   "Define a status object, plus methods to initialise and display it"
   def empty(self):
     "Called by __init__ or manually to clear status"
@@ -75,16 +75,12 @@ class ArielStatus:
   def __init__(self):
     "Called automatically when instance is created"
     self.empty()
-  def __call__(self):
-    "Called when status object is called like a function"
-    self.updated()
-    self.display()
   def updated(self):
     "Called when status object changes, override to do something with the data"
     #In an overriding function, this could output to SQL or web page
     if not connected:
       return 0
-    f=open('/tmp/arstatus','w')
+    f = open('/tmp/arstatus','w')
     cPickle.dump(self,f)
     f.close()
 
@@ -309,7 +305,7 @@ def init():     #Call this after creating a global status object
       pass
     outf=os.open('/dev/null',os.O_RDONLY | os.O_NONBLOCK)
     inf=os.open('/dev/null',os.O_WRONLY | os.O_APPEND | os.O_SYNC)
-    raise ArielError("Ariel in use or not reachable")
+    raise CameraError("Ariel in use or not reachable")
     connected=0
   else:
     inf=os.open('/tmp/ariel.in',os.O_WRONLY | os.O_APPEND | os.O_SYNC)
@@ -319,7 +315,7 @@ def init():     #Call this after creating a global status object
   status.display()
 
 
-class ArielError:
+class CameraError:
   def __init__(self,value):
     self.value=value
   def __str__(self):
