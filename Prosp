@@ -10,8 +10,13 @@ else:
   import rlcompleter
   readline.parse_and_bind("tab: complete")
 
-import Ariel
-import ArCommands
+from globals import *
+if CAMERA == 'Andor':
+  import Andor as Camera
+  import AnCommands as CameraCommands
+elif CAMERA == 'Apogee':
+  import Ariel as Camera
+  import ArCommands as CameraCommands
 
 import sys
 import time       #for the 'sleep' function
@@ -31,21 +36,25 @@ import pipeline
 import service
 import snsearch
 import scheduler
-import chiller
+
+if CHILLER:
+  import chiller
+
 import focuser
+from focuser import Goto,getPos,Home
+
 import focus
 from focus import *
 
 backgrounds.append(teljoy._background)
 backgrounds.append(weather._background)
-backgrounds.append(chiller._background)
+if CHILLER:
+  backgrounds.append(chiller._background)
 
-from globals import *
 import utils
 from utils import *
 import ephemint
 from ephemint import *
-from focuser import Goto,getPos,Home
 
 
 def help(func):
@@ -113,7 +122,7 @@ class Prompt:
   """
   def __str__(self):
     global BGThread
-    if GotAriel:
+    if GotCamera:
       if not BGThread.isAlive():
         BGThread=threading.Thread(group=None,
                                   target=_background)
@@ -200,7 +209,7 @@ def monitor(arg=None, close=None, open=None, delay=None):
 
 sys.ps1=Prompt() 
 
-status=Ariel.ArielStatus()  #Define a status variable using the new class
+status=Camera.CameraStatus()  #Define a status variable using the new class
 status.TJ=teljoy.status
 status.TJ.updated=status.updated  #Flag main status updated when TJ changes
 status.weather = weather.status
@@ -209,36 +218,41 @@ status.isdark=1
 status.lastact=time.time()
 
 
-Ariel.status=status        #Make it the interface libraries status global
-ArCommands.status=status   #And the Ariel commands module
+Camera.status=status        #Make it the camera interface library's status global
+CameraCommands.status=status   #And the Ariel or Andor commands module
 autorun.status=status     #And the AutoRun libraries status global too
 utils.status=status       #And the utility commands module
 sys.path=sys.path+['.']   #Allow user-written modules in current dir to load
 
 try:
-#  raise Ariel.ArielError("Ariel interface disabled in Prosp, camera missing.")
-  Ariel.init()        #Call the init() function in the library to open
+#  raise Camera.CameraError("Camera interface disabled in Prosp, camera missing.")
+  Camera.init()        #Call the init() function in the library to open
                       #communications with the camera
-  chiller.init()
-  status.chiller = chiller.status
-  status.chiller.CCDsettemp = status.settemp    #Make CCD settemp available to chiller module
-  focuser.init()
+  if CHILLER:
+    chiller.init()
+    status.chiller = chiller.status
+    status.chiller.CCDsettemp = status.settemp    #Make CCD settemp available to chiller module
+  if FOCUSER:
+    focuser.init()
   status.focuser = focuser.status
-except Ariel.ArielError:
-  GotAriel=0
-  ewrite("Ariel init failed.")
-  ewrite("Another program is using the Ariel++ interface to control the AP7.")
-  print "Continuing without access to the AP7 hardware - to connect to the "
+except Camera.CameraError:
+  GotCamera = 0
+  ewrite("Camera init failed.")
+  ewrite("Another program is using the hardware interface to control the camera.")
+  print "Continuing without access to the camera hardware - to connect to the "
   print "camera, quit this program, quit from or kill the other instance of"
   print "Prosp, and restart. Use 'ps -a' to find other instances of the"
   print "program."
 else:
-  GotAriel=1
-  swrite("Ariel init succeeded, contact with AP7 established.")
-  from ArCommands import *
+  GotCamera = 1
+  swrite("Camera init succeeded, contact with AP7 established.")
+  if CAMERA == 'Andor':
+    from AnCommands import *
+  elif CAMERA == 'Ariel':
+    from ArCommands import *
 
 
-if GotAriel:
+if GotCamera:
   BGThread=threading.Thread(group=None,
                      target=_background)
   BGThread.setDaemon(1)
