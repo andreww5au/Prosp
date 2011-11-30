@@ -72,9 +72,10 @@ def Goto(N=0):
 
 
 def init():
-  global status
-  status = _FocusStatus()
   status.update
   Home()
   Goto(1000)
+
+
+status = _FocusStatus()
 
