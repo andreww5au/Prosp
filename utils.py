@@ -15,8 +15,14 @@ domeflatDec = -20.9    #-20.9, -24.0,
 flatlist = [ ('B',5,None), ('V',7,None), ('R',7,None), ('I',7,None) ]
 
 
+from globals import *
+if CAMERA == 'Apogee':
+  from ArCommands import *
+elif CAMERA == 'Andor':
+  from AnCommands import *
+else:
+  print "Invalid value for 'CAMERA' global: %s" % CAMERA
 
-from ArCommands import *   #Make camera functions usable without module name qualifier
 import improc
 from improc import reduce,dobias,dodark,doflat
 import planet

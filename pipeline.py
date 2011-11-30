@@ -5,8 +5,15 @@ import sys
 
 import objects
 import teljoy
+
 from globals import *
-import ArCommands
+if CAMERA == 'Apogee':
+  import ArCommands as CameraCommands
+elif CAMERA == 'Andor':
+  import AnCommands as CameraCommands
+else:
+  print "Invalid value for 'CAMERA' global: %s" % CAMERA
+
 import xpa
 import improc
 from guidestar.starposc import getstars, best 
@@ -70,9 +77,9 @@ class dObject(objects.Object):
   def fileprefix(self,prefix=""):
     "Set the filename prefix (minus the exposure number and the .fits extension)"
     if prefix:
-      ArCommands.filename(prefix)
+      CameraCommands.filename(prefix)
     else:
-      ArCommands.filename(self.ObjID+filtid(self.filtname))
+      CameraCommands.filename(self.ObjID+filtid(self.filtname))
 
   def preset(self):
     "Carry out any parameter changes desired before the image (override with actual code)"
@@ -80,7 +87,7 @@ class dObject(objects.Object):
 
   def set(self):
     "Set the observing params for Ariel to this object's params."
-    ArCommands.object(self.ObjID)
+    CameraCommands.object(self.ObjID)
 #    print 'X=',self.XYpos[0], ' Y=',self.XYpos[1]
     if (self.XYpos[0] == 0) and (self.XYpos[1] == 0):
       try:
@@ -95,17 +102,17 @@ class dObject(objects.Object):
       if bstar is not None:
         s = slist[bstar]
         print "Chosen guide star %d of %d: Mag=%5.2f, x=%d, y=%d" % (bstar,len(slist),s.mag,s.x,s.y)
-        ArCommands.guider(s.x, s.y)
+        CameraCommands.guider(s.x, s.y)
       else:
         print "No guide star in database, no guide star found in GSC"
     else:
-      ArCommands.guider(self.XYpos[0],self.XYpos[1])
-    ArCommands.filter(self.filtname)
-    ArCommands.exptime(self.exptime)
+      CameraCommands.guider(self.XYpos[0],self.XYpos[1])
+    CameraCommands.filter(self.filtname)
+    CameraCommands.exptime(self.exptime)
 
   def get(self):
     "Take the actual image of this object, and do preprocessing."
-    self.rawfilename=ArCommands.go()
+    self.rawfilename = CameraCommands.go()
     self.filename=improc.reduce(self.rawfilename)
     xpa.display(self.filename)
 

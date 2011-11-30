@@ -16,7 +16,15 @@ ftppass='sn1993k'
 ftpimagedir='/t/533-Observatory/Astronomical/Images/New'
 ftpmaildir='/t/533-Observatory/Astronomical/Plat/Mail'
 
-from ArCommands import *
+
+from globals import CAMERA
+if CAMERA == 'Apogee':
+  from ArCommands import *
+elif CAMERA == 'Andor':
+  from AnCommands import *
+else:
+  print "Invalid value for 'CAMERA' global: %s" % CAMERA
+
 from ftplib import FTP     #Import the FTP object class
 import time                #Time handler functions
 
