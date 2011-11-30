@@ -7,6 +7,12 @@ import operator
 import time
 import math
 
+CAMERA = 'Andor'
+#CAMERA =  'Apogee'
+
+CHILLER = False    #True if chiller unit connected.
+FOCUSER = False    #True if focuser unit connected.
+
 statusfile='/data/Logs/ProspLog'
 errorfile='/data/Logs/ProspErrors'
 
@@ -38,9 +44,9 @@ filters=['Clear','Red','NCN','Blue','Visual','Infrared','Empty','Hole']
 
 def filtid(s):
   """Given a filter name, make sure it's in the current filter set, and return
-     an ID for it. If the filter name is a string, this is the first letter. 
-     If it's a narrow-band filter where the name is all digits, return the entire
-     filter name.
+     a filter ID for it. If the filter name is a string, this is the first letter. 
+     If it's a narrow-band filter where the name is starts with digits, the ID is
+     the entire filter name.
   """
   s = s.strip().lower().capitalize()
   if not s:
@@ -48,7 +54,7 @@ def filtid(s):
   sn = ''
   for fn in filters:
     fns = fn.strip().lower().capitalize()
-    if (s == fns) or (s[0].isalpha() and (s[0] == fns[0])):
+    if (s == fns) or (len(s)==1 and s[0].isalpha() and (s[0] == fns[0])):
       sn = fns
   if not sn:
     return ''
@@ -60,12 +66,25 @@ def filtid(s):
 
 
 def filtname(filt=2):
-  """Return filter name given number.
+  """Return full filter name given slot number.
      eg: filtname(6)
   """
   if (filt<1) or (filt>8):
     return 'Error'
   return filters[filt-1]
+
+
+def filtnum(fname):
+  "Return filter slot number given a filter ID"
+  if fname[0].isdigit():
+    id = fname
+  else:
+    id = fname[0].upper()
+  num = 2   #Default if not found
+  for nm in filters:
+    if (id==nm) or (id==nm[0]):
+      num = filters.index(nm)+1
+  return num
 
 
 def distribute(fpat='',function=None,args=None):
