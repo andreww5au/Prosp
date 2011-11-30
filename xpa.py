@@ -8,7 +8,10 @@
 import commands
 import string
 import os
+from subprocess import Popen,PIPE,STDOUT
+
 import globals
+import fits
 
 viewer='ds9'      #Default to ds9 unless otherwise overriden
 
@@ -144,10 +147,20 @@ def _displayfile(fname, iraf=0):
     os.system('echo file '+fullfilename+' | xpaset '+viewer)
     os.system('echo orient y | xpaset '+viewer)
     if viewer=='ds9':
-      os.system('echo scale zscale | xpaset '+viewer)
+      os.system('echo scale mode zscale | xpaset '+viewer)
     else:
       os.system('echo scale histeq | xpaset '+viewer)
     os.system('echo saveas jpeg /tmp/ds9.jpeg | xpaset '+viewer)
+
+
+def displayimage(im, iraf=0):
+  """Send a FITS image array directly to DS9, without saving to disk.
+  """
+  xdim = int(im.headers['NAXIS1'])
+  ydim = int(im.headers['NAXIS2'])
+  p = Popen(['/usr/local/bin/xpaset', 'ds9', 'array', '[xdim=%d,ydim=%d,bitpix=-32,arch=littleendian]' % (xdim,ydim)], stdin=PIPE)
+  p.communicate(input=im.data.astype(fits.Float32).tostring())
+  os.system('echo scale mode zscale | xpaset ds9')
 
 
 def display(fpat, iraf=0):
@@ -160,6 +173,7 @@ def display(fpat, iraf=0):
           display( reduce('/data/comet*.fits') )
           display()
   """
+  
   globals.distribute(fpat,_displayfile,iraf)
 
 
