@@ -10,8 +10,6 @@ else:
   import rlcompleter
   readline.parse_and_bind("tab: complete")
 
-
-import ArCommands
 import sys
 import time       #for the 'sleep' function
 import types
@@ -34,7 +32,6 @@ import chiller
 import focuser
 import focus
 
-from globals import *
 import utils
 import poplib,getpass
 import threading
