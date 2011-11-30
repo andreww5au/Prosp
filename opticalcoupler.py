@@ -8,18 +8,21 @@ LATENCY = 0.5    #seconds between optical coupler commands
 
 START_FILTER = 6       # I
 XGUIDER_CENTER = 1650
-YGUIDER_CENTRE = 1115
+YGUIDER_CENTER = 1115
 MIRROR_IN = 2450
 
-def init():   #Initialise at runtime, including connection to chiller and downloading initial BOM data
-  global status, ser, logfile  
+def init():   #Initialise at runtime
+  global ser, logfile  
   ser = serial.Serial('/dev/ttyS0', 9600, timeout=1)
-  InitializeBoards()
-  HomeFilter()
-  SelectFilter(START_FILTER)
-  HomeXYStage()
-  HomeMirror()
-  MoveMirror(MIRROR_IN)
+  error = InitializeBoards()
+  if not error:
+    HomeFilter()
+    SelectFilter(START_FILTER)
+    HomeXYStage()
+    HomeMirror()
+    MoveMirror(MIRROR_IN)
+  else:
+    print "Optical coupler serial interface not responding!"
 
 
 
@@ -265,11 +268,14 @@ def SelectFilter(filter_number=1):
   return error
 
 
-def HomeXYStage(xcen,ycen):
+def HomeXYStage(xcen=None,ycen=None):
   """Bring the xy stage to its limits, then home to a known point and mark as center
      the move command on this board is not separated --> move(x,y) not move(axis, position)
      returns -1 on error, 0 otherwise
   """
+  if (xcen is None) or (ycen is None):
+    xcen = XGUIDER_CENTER
+    ycen = YGUIDER_CENTER
 
   # Talk to the board that controls the XY Stage
   error = Tell("@1")
@@ -378,7 +384,7 @@ def MoveMirror(mpos):
   """
 
   # Talk to the board that controls the mirror position 
-  error = Tell(serial_fd, "@0");
+  error = Tell("@0");
 
   # move to position 
   if not error:
