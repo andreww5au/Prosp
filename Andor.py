@@ -375,8 +375,10 @@ def init():     #Call this after creating a global status object
     raise CameraError("Andor in use or not reachable")
     connected=0
   else:
-    connected=1
-#  update()
+    if status.initialized:
+      connected=1
+    else:
+      raise CameraError('Andor initialization failed.')
   status.display()
 
 
