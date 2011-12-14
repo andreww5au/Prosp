@@ -245,7 +245,7 @@ except Camera.CameraError:
   print "program."
 else:
   GotCamera = 1
-  swrite("Camera init succeeded, contact with AP7 established.")
+  swrite("Camera init succeeded, contact established.")
   if CAMERA == 'Andor':
     from AnCommands import *
   elif CAMERA == 'Ariel':
