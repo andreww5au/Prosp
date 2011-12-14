@@ -3,6 +3,7 @@
 
 import os
 import sys
+import cPickle
 
 import Andor
 import opticalcoupler
