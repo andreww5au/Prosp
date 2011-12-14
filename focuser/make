@@ -1,0 +1,3 @@
+#!/bin/bash
+
+gcc -Wall -O2 -lm -lfli -o focus afocus.c
