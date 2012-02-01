@@ -6,6 +6,7 @@ from globals import *
 
 import pipeline
 import ephemint
+from ArCommands import guider
 
 import MySQLdb
 import safecursor
@@ -21,6 +22,7 @@ def check():
   global LastFocusTime
   hn = ephemint.herenow()         #get ephem time
   if (time.time()-LastFocusTime) > FocusInterval:     #It's been too long since the last focus image
+    guider(0,0)                                  #Recalibrate the offset guider XY stage
     bestake = GetBestFocusStar(float(hn.date))   #Get current best focus star
     errors = bestake.take() 
     if errors:
