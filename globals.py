@@ -194,7 +194,7 @@ def julday(data=None):
   A = math.floor(year/100.0);
   B = 2 - A + math.floor(A/4.0);
   jd = math.floor(365.25 * year) + math.floor(30.6001 * (month + 1))
-  jd = jd + day + (hour + (minute/60.0) + (second/360.0)) / 24.0
+  jd = jd + day + (hour + (minute/60.0) + (second/3600.0)) / 24.0
   jd = jd + 1720994 + B + 0.5;
   return jd
   
