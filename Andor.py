@@ -85,6 +85,9 @@ SATLEVEL = 74995    #saturation threshold, in electrons
 def satadu(hsspeed=0, preamp=0, highcap=0):
   return SATLEVEL/GAIN[hsspeed][preamp][highcap]
 
+def CurrentSaturation():
+  return satadu(hsspeed=status.hsspeed, preamp=status.preamp, highcap=status.highcap)
+
 def CurrentGain():
   return GAIN[status.hsspeed][status.preamp][status.highcap]
 
@@ -584,31 +587,31 @@ def ShutDown():
   procret(pyandor.ShutDown(),'ShutDown')
 
 
-def SetParams(mode='binned-slow'):
+def SetParams(mode='bin2slow'):
   """Set a bunch of camera parameters for a predefined mode
   """
-  if mode == 'binned-slow':
+  if mode == 'bin2slow':
     SetSubimage(1,XSIZE,1,YSIZE)
     SetBinning(2,2)      #1k x 1k, 27um pixels
     SetHSSpeed(3)        #50kHz, ~20 sec readout at 2x2 binning
     SetVSSpeed(1)        #77ms
     SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
     SetHighCapacity(False)
-  if mode == 'binned-fast':
+  if mode == 'bin2fast':
     SetSubimage(1,XSIZE,1,YSIZE)
     SetBinning(2,2)      #1k x 1k, 27um pixels
     SetHSSpeed(2)        #1MHz, ~1 sec readout at 2x2 binning
     SetVSSpeed(1)        #77ms
     SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
     SetHighCapacity(False)
-  elif mode == 'unbinned-slow':
+  elif mode == 'unbinslow':
     SetSubimage(1,XSIZE,1,YSIZE)
     SetBinning(1,1)      #2k x 2k, 13.5um pixels
     SetHSSpeed(3)        #50kHz, ~84 sec readout at 1x1 binning
     SetVSSpeed(1)        #77ms
     SetPreAmpGain(2)     #Gain of 4.0. Note, use PreAmpGain=0 (1.0) for 2x2 binning.
     SetHighCapacity(False)
-  elif mode == 'unbinned-fast':
+  elif mode == 'unbinfast':
     SetSubimage(1,XSIZE,1,YSIZE)
     SetBinning(1,1)      #2k x 2k, 13.5um pixels
     SetHSSpeed(2)        #1MHz, ~4 sec readout at 1x1 binning
@@ -634,7 +637,7 @@ def Setup():
   procret(pyandor.SetAcquisitionMode(1), 'SetAcquisitionMode')   #Single image
   status.imgtype = 'OBJECT'
   SetShutter(0)
-  SetParams('binned-slow')
+  SetParams('bin2slow')
 # CoolerOn()
 # SetTemperature(-50)
   GetTemperature()
@@ -696,6 +699,7 @@ def GetFits():
   f.headers['COOLER'] = "'%s'" % {False:'OFF', True:'ON'}[status.cool]
   f.headers['TEMPSTAT'] = "'%s'" % status.tempstatus
   f.headers['CCDTEMP'] = "%6.2f" % ccdtemp
+  f.headers['MODE'] = "'%s'" % status.mode
   f.headers['CCDXBIN'] = `status.xbin`
   f.headers['CCDYBIN'] = `status.ybin`
   if status.xbin == status.ybin:
@@ -703,6 +707,7 @@ def GetFits():
   f.headers['SHUTTER'] = {0:"'OPEN'", 1:"'STAY OPEN'", 2:"'CLOSED'"}[status.shuttermode]
   f.headers['GAIN'] = "%6.3f" % CurrentGain()
   f.headers['RONOISE'] = "%6.3f" % CurrentNoise()
+  f.headers['SATADU'] = "%d" % CurrentSaturation()
   f.headers['HSSPEED'] = "'%s'" % HSSpeeds[status.hsspeed]
   f.headers['VSSPEED'] = "'%s'" % VSSpeeds[status.vsspeed]
   f.headers['PREGAIN'] = "'%s'" % PreAmpGains[status.preamp]

@@ -23,7 +23,7 @@ lastbias = None
 lastflats = []      #A cache of the last few flatfield images used.
 
 
-class FITSold(fits.FITS):
+class FITS(fits.FITS):
   """FITS image class. Creation accepts two parameters, filename and read mode.
      If the read mode is 'h', the file headers are read, and two dictionaries,
      object.headers and object.comments are created. If the read mode is 'r', 
@@ -33,7 +33,7 @@ class FITSold(fits.FITS):
      zeroes (unless the mode is 'h' for headers only).
 
      This class builds on the file IO in fits.py by adding reduction methods,
-     seperate from fits.py because local customisation would be needed.
+     separate from fits.py because local customisation would be needed.
      The reduction methods on the image include: bias, dark, and flat.
   """
 
@@ -57,61 +57,52 @@ class FITSold(fits.FITS):
     t = mlab.min(_parseregion(self,region))
     return mlab.min(t)
 
-
-
-  def bias(self, biasfile=None, datasec=None, biassec=None):
-    """Bias subtracts the image, using the images bias region.
-
-       If the data and bias regions are not given, the relevant areas are 
-       determined from the DATASEC and BIASSEC cards. If they are given, they
-       must be strings in the form: [xs,xe:ys,ye]. Note that the xs
-       (starting X) for the bias region is _not_ inclusive, whereas xs for the
-       data region _is_ inclusive. For example, our data and bias regions are
-       generally [1,512:1,512] and [512,544:1,512] respectively, for a 512x512
-       data area and a 32x512 (not 33x512) bias area.
-
-       This behaviour is to work around the format of OSU software generated
-       FITS headers, unlikely to be changed.
-
-       The bias value is found by discarding the highest and lowest 200 pixels
-       in the bias region, and calculating the mean of the remainder. The bias
-       section is then removed, leaving only the data section.
+  def bias(self, biasfile=None):
+    """Trims and Bias subtracts the image, using 'bias.fits' in the current dir.
+       If 'biasfile' is specified, that file is used instead. The last bias image used
+       is cached in the 'lastbias' global, to save re-loading a bias image every time.
     """
+    global lastbias
     if not hasattr(self,'data'):
       print "FITS object has no data section to operate on."
       return 0
     if string.find(self.comments["HISTORY"],"BIAS: ")>-1:
       print "Can't bias subtract, image already bias subtracted."
       return 0
-    if not (datasec and biassec):     #If both regions are not supplied
-      if ( not self.headers.has_key('DATASEC') or
-           not self.headers.has_key('BIASSEC')    ):   #or in the header
-        print "DATASEC and BIASSEC region keywords not found in FITS header"
+
+    biasimage = None
+    if type(biasfile) == str and biasfile <> '':
+      biasimage = FITS(biasfile)      #If a filename is supplied, load the image
+    elif isinstance(biasfile,fits.FITS):
+      biasimage = biasfile           #If it's a FITS image, use it as-is
+    else:                     #Use the default bias frame
+      if lastbias:            #The cached image if the file directory matches
+        if (os.path.abspath(os.path.dirname(self.filename)) ==
+            os.path.abspath(os.path.dirname(lastbias.filename))):
+          if ('MODE' not in self.headers.keys()) or ('MODE' not in lastbias.headers.keys()):
+            biasimage = lastbias   #Always use cached image if there's no mode field in either image
+          elif self.headers['MODE'] == lastbias.headers['MODE']:
+            biasimage = lastbias   #If there is a mode field, only use the cached image if the mode matches
+    if not biasimage:
+      if 'MODE' not in self.headers.keys():
+        bfile = 'bias.fits'
+      else:
+        bfile = 'bias-%s.fits' % self.headers['MODE'][1:-1]
+      biasfile = os.path.abspath(os.path.dirname(self.filename)) + '/' + bfile
+      if os.path.exists(biasfile):
+        biasimage = FITS(biasfile,'r')  #All has failed, load 'bias.fits'
+      else:
+        print "Default bias image not found: %s" % biasfile
         return 0
-      else:                               #Extract regions from header
-        datasec=self.headers['DATASEC']
-        biassec=self.headers['BIASSEC']
+    lastbias = biasimage                #Save it for next time
 
-    #Now turn the region string specifiers into Numeric array subregions
-    dregion=_parseregion(self, datasec)
-    bregion=_parseregion(self, biassec)[:,1:]
-                #Omit first column to correct for BIASSEC inconsistency. 
-                #In data section, startx and endx are inclusive, but
-                #in bias region, startx is _not_ inclusive. That's
-                #true for all images from Ariel++, and seems
-                #unlikely to be fixed.
-
-    #bias=sum(sum(bregion)) / product(bregion.shape)  #Mean
-    #bias=sort(ravel(bregion))[product(bregion.shape)/2]   #Median
-    bias = num.sum(num.sort(num.ravel(bregion))[100:-100]) / (num.product(bregion.shape) - 200)
-         #Mean with highest and lowest 200 points discarded
-
-    self.data=dregion - bias                      #Subtract and trim image
-    self.headers['NAXIS1']=`self.data.shape[1]`   #Update cards after trimming
-    self.headers['NAXIS2']=`self.data.shape[0]`
-    self.histlog("BIAS: of %9.4f and trimmed" % (round(bias,4)))
+    biastemp = float(biasimage.headers['CCDTEMP'])
+    deltatemp = biastemp - float(self.headers['CCDTEMP'])
+    if abs(deltatemp) > 1.0:
+      print "Warning - bias frame and image temp differ by " + `deltatemp`
+    self.data -= biasimage.data
+    self.histlog("BIAS: Image %s (%6.2fC) subtracted" % (os.path.abspath(biasimage.filename), biastemp))
     return 1
-
 
   def dark(self,darkfile=None):
     """Dark subtracts the image, using the dark frame given or the default.
@@ -140,45 +131,50 @@ class FITSold(fits.FITS):
       print "FITS object has no data section to operate on."
       return 0
     if string.find(self.comments["HISTORY"],"BIAS: ")==-1:
-      print "Can't dark subtract, image not bias corrected and trimmed."
+      print "Can't dark subtract, image not bias corrected."
       return 0
     if string.find(self.comments["HISTORY"],"DARK: ")>-1:
       print "Can't dark subtract, image already dark subtracted."
       return 0
 
-    darkimage=None
+    darkimage = None
     if type(darkfile) == str and darkfile <> '':
-      darkimage=FITS(darkfile)      #If a filename is supplied, load the image
+      darkimage = FITS(darkfile)      #If a filename is supplied, load the image
     elif isinstance(darkfile,FITS):
-      darkimage=darkfile           #If it's a FITS image, use it as-is
+      darkimage = darkfile           #If it's a FITS image, use it as-is
     else:                     #Use the default dark frame
       if lastdark:            #The cached image if the file directory matches
-        if (os.path.abspath(os.path.dirname(self.filename))==
+        if (os.path.abspath(os.path.dirname(self.filename)) ==
             os.path.abspath(os.path.dirname(lastdark.filename))):
-          darkimage=lastdark
+          if ('MODE' not in self.headers.keys()) or ('MODE' not in lastdark.headers.keys()):
+            darkimage = lastdark   #Always use cached image if there's no mode field in either image
+          elif self.headers['MODE'] == lastdark.headers['MODE']:
+            darkimage = lastdark   #If there is a mode field, only use the cached image if the mode matches
     if not darkimage:
-      darkfile=os.path.abspath(os.path.dirname(self.filename))+'/dark.fits'
-      if os.path.exists(darkfile):
-        darkimage=FITS(darkfile,'r')  #All has failed, load 'dark.fits'
+      if 'MODE' not in self.headers.keys():
+        dfile = 'dark.fits'
       else:
-        print "Dark image not found."
+        dfile = 'dark-%s.fits' % self.headers['MODE'][1:-1]
+      darkfile = os.path.abspath(os.path.dirname(self.filename)) + '/' + dfile
+      if os.path.exists(darkfile):
+        darkimage = FITS(darkfile,'r')  #All has failed, load 'dark.fits'
+      else:
+        print "Default dark image not found: %s" % darkfile
         return 0
-    lastdark=darkimage                #Save it for next time
+    lastdark = darkimage                #Save it for next time
 
-    darktemp=float(darkimage.headers['CCDTEMP'])
-    deltatemp=float(self.headers['CCDTEMP']) - darktemp
+    darktemp = float(darkimage.headers['CCDTEMP'])
+    deltatemp = float(self.headers['CCDTEMP']) - darktemp
     if abs(deltatemp) > 1.0:
-      print "Warning - dark frame and image CCD temps differ by "+`deltatemp`
+      print "Warning - dark frame and image CCD temps differ by " + `deltatemp`
 
-    eratio=float(self.headers['EXPTIME']) / float(darkimage.headers['EXPTIME'])
-    tratio=2.0**( deltatemp/6.0 )
-    self.data=self.data - (darkimage.data * eratio * tratio)
-    self.histlog("DARK: "+os.path.abspath(darkimage.filename)+
-         " ET=%ss, T=%5.2fC" % (darkimage.headers['EXPTIME'],darktemp))
+    eratio = float(self.headers['EXPTIME']) / float(darkimage.headers['EXPTIME'])
+    tratio = 2.0**( deltatemp/6.0 )
+    self.data = self.data - (darkimage.data * eratio * tratio)
+    self.histlog("DARK: %s ET=%ss, T=%5.2fC" % (os.path.abspath(darkimage.filename), darkimage.headers['EXPTIME'], darktemp))
     self.histlog("DARK: exp time ratio=%5.3f, temp ratio=%5.3f" %
             (eratio,tratio))
     return 1
-
 
   def flat(self,flatfile=None):
     """Divides image by an appropriate flat field image, or the one specified.
@@ -194,8 +190,8 @@ class FITSold(fits.FITS):
 
        The flatfield must be the same shape and size as the image, and must
        have been bias subtracted. Typically one would create a master flatfield 
-       for each filter by calculating the median of several (bias subtracted
-       and trimmed) flatfield images. If exposure times are not very short,
+       for each filter by calculating the median of several (bias subtracted)
+       flatfield images. If exposure times are not very short,
        the flatfields should be dark subtracted as well as bias corrected.
 
     """
@@ -213,51 +209,48 @@ class FITSold(fits.FITS):
       print "Can't flatfield, image already flatfield corrected."
       return 0
 
-    flatimage=None
+    flatimage = None
     if type(flatfile) == str and flatfile <> '':
-      flatimage=FITS(flatfile)         #If given a filename, load the image
+      flatimage = FITS(flatfile)         #If given a filename, load the image
     elif isinstance(flatfile,FITS):
-      flatimage=flatfile               #If given a FITS image, use as-is
+      flatimage = flatfile               #If given a FITS image, use as-is
     else:                            #Look in our cache for a match
       for flt in lastflats:
         if (os.path.abspath(os.path.dirname(self.filename))==
             os.path.abspath(os.path.dirname(flt.filename))  and
-            self.headers['FILTERID']==flt.headers['FILTERID'] ):
-          flatimage=flt
+            self.headers['FILTERID'] == flt.headers['FILTERID'] ):
+          if ('MODE' not in self.headers.keys()) or ('MODE' not in flt.headers.keys()):
+            flatimage = flt   #Always use cached image if there's no mode field in either image
+          elif self.headers['MODE'] == flt.headers['MODE']:
+            flatimage = lastdark   #If there is a mode field, only use the cached image if the mode matches
     if not flatimage:              #Look for the default filename/s
-      filedir=os.path.abspath(os.path.dirname(self.filename))
+      filedir = os.path.abspath(os.path.dirname(self.filename))
       try:
-        filt=self.headers['FILTERID'][1:-1].split()[0].strip()
+        filt = self.headers['FILTERID'][1:-1].split()[0].strip()
       except:
         filt = 'I'   #Default filter is I on Ariel startup
-      if filt[0].isdigit():
-        pass  #Use full filter name
+      if not filt[0].isdigit():
+        filt = filt[0]  #Use first letter of filter name, unless it's a digit
+      if 'MODE' not in self.headers.keys():
+        ffile = 'flat%s.fits' % filt.upper()
       else:
-        filt = filt[0]  #Get first letter of filter name
-      if not os.path.exists(filedir+'/flat'+filt+'.fits'):
-        if os.path.exists(filedir+'/flat'+string.lower(filt)+'.fits'):
-          filt=string.lower(filt)
-        elif os.path.exists(filedir+'/flat'+string.upper(filt)+'.fits'):
-          filt=string.upper(filt)
-        else:
-          print 'Flatfield not found for filter',filt
+        ffile = 'flat%s-%s.fits' % (filt.upper(), self.headers['MODE'][1:-1])
+
+      flatfile = filedir+'/' + ffile
+      if not os.path.exists(flatfile):
+          print "Default flatfield not found: %s" % flatfile
           return None
-      flatfile=filedir+'/flat'+filt+'.fits'
-      if os.path.exists(flatfile):
-        flatimage=FITS(flatfile,'r')
       else:
-        print "Flatfield not found in "+filedir+" for filter "+filt
-        return 0
+        flatimage=FITS(flatfile,'r')
 
     self.data = self.data / flatimage.data
     self.histlog("FLAT: "+os.path.abspath(flatimage.filename))
 
     if flatimage not in lastflats:
       lastflats.append(flatimage)        #Add it to the cache
-    if len(lastflats)>5:
-      lastflats=lastflats[1:]            #Discard old images  
+    if len(lastflats) > 8:
+      lastflats = lastflats[1:]            #Discard old images
                                          #when the cache gets large.
-
   def fwhmsky(self):
     try:
       try:
@@ -266,7 +259,7 @@ class FITSold(fits.FITS):
         pass
       self.save('/tmp/fwhmtmp.fits',bitpix=16)
       os.system('/home/dts/bin/fwhmsky /tmp/fwhmtmp.fits')
-      tmpdata=string.split(open('input.dophot','r').read())
+      tmpdata = open('input.dophot','r').read().split()
       try:
         os.remove('input.dophot')
         os.remove('/tmp/fwhmtmp.fits')
@@ -276,96 +269,16 @@ class FITSold(fits.FITS):
       print "Error with file creation while calculating FWHM, Sky"
       return -1,-1
     try:
-      self.headers['FWHM']=tmpdata[0]
-      self.comments['FWHM']='Seeing FWHM, in pixels.'
-      self.headers['SKY']=tmpdata[1]
-      self.comments['SKY']='Sky background, in ADU'
+      self.headers['FWHM'] = tmpdata[0]
+      self.comments['FWHM'] = 'Seeing FWHM, in pixels.'
+      self.headers['SKY'] = tmpdata[1]
+      self.comments['SKY'] = 'Sky background, in ADU'
       return float(tmpdata[0]), float(tmpdata[1])
     except:
       print "Error calculating FWHM and Sky"
       return -1,-1
 
 
-class FITSnew(FITSold):
-  """New FITS image class. Creation accepts two parameters, filename and read mode.
-     If the read mode is 'h', the file headers are read, and two dictionaries,
-     object.headers and object.comments are created. If the read mode is 'r', 
-     the data section is read as well, producing a Numeric Python array 
-     attribute, object.data. If the filename is null, an empty (but valid FITS)
-     header is constructed, and a 512x512 pixel data section, initialised to 
-     zeroes (unless the mode is 'h' for headers only).
-
-     This subclasses FITSold - overrides the 'bias' method to do bias
-     image subtraction needed for the new Perth AP7.
-     The reduction methods on the image include: bias, dark, and flat.
-  """
-
-  def bias(self, biasfile='', datasec=None, biassec=None):
-    """Trims and Bias subtracts the image, using 'bias.fits' in the current dir.
-       If 'biasfile' is specified, that file is used. If 'biasfile' is None, 
-       then no bias image is subtracted.
-
-    """
-    global lastbias
-    if not hasattr(self,'data'):
-      print "FITS object has no data section to operate on."
-      return 0
-    if string.find(self.comments["HISTORY"],"BIAS: ")>-1:
-      print "Can't bias subtract, image already bias subtracted."
-      return 0
-    if not (datasec and biassec):     #If both regions are not supplied
-      if ( not self.headers.has_key('DATASEC') or
-           not self.headers.has_key('BIASSEC')    ):   #or in the header
-        print "DATASEC and BIASSEC region keywords not found in FITS header"
-        return 0
-      else:                               #Extract regions from header
-        datasec=self.headers['DATASEC']
-        biassec=self.headers['BIASSEC']
-
-    #Now turn the region string specifiers into Numeric array subregions
-    dregion=_parseregion(self, datasec)
-    bregion=_parseregion(self, biassec)[:,1:]
-                #Omit first column to correct for BIASSEC inconsistency. 
-                #In data section, startx and endx are inclusive, but
-                #in bias region, startx is _not_ inclusive. That's
-                #true for all images from Ariel++, and seems
-                #unlikely to be fixed.
-    bias=num.sum(num.sort(num.ravel(bregion))[100:-100]) / (num.product(bregion.shape) - 200)
-
-    biasimage=None
-    if biasfile<>None:
-      if type(biasfile) == str and biasfile <> '':
-        biasimage=FITS(biasfile)      #If a filename is supplied, load the image
-      elif isinstance(biasfile,fits.FITS):
-        biasimage=biasfile           #If it's a FITS image, use it as-is
-      else:                     #Use the default bias frame
-        if lastbias:            #The cached image if the file directory matches
-          if (os.path.abspath(os.path.dirname(self.filename))==
-              os.path.abspath(os.path.dirname(lastbias.filename))):
-            biasimage=lastbias
-      if not biasimage:
-        biasfile=os.path.abspath(os.path.dirname(self.filename))+'/bias.fits'
-        if os.path.exists(biasfile):
-          biasimage=FITS(biasfile,'r')  #All has failed, load 'bias.fits'
-        else:
-          print "Bias image not found, using constant estimate"
-      lastbias=biasimage                #Save it for next time
-
-    if biasimage:
-      biastemp=float(biasimage.headers['CCDTEMP'])
-      deltatemp=biastemp - float(self.headers['CCDTEMP'])
-      if abs(deltatemp) > 1.0:
-        print "Warning - bias frame and image temp differ by "+`deltatemp`
-      bdregion=_parseregion(biasimage,datasec)
-      self.data=dregion - bias - bdregion
-      self.histlog("BIAS: of %9.4f and bias.fits at %6.2fC" % (bias, biastemp))
-    else:
-      self.data=dregion - bias                      #Subtract and trim image
-      self.histlog("BIAS: of %9.4f" % (bias))
-
-    self.headers['NAXIS1']=`self.data.shape[1]`   #Update cards after trimming
-    self.headers['NAXIS2']=`self.data.shape[0]`
-    return 1
 
 
 #
@@ -666,37 +579,37 @@ def _reducefile(fname=''):
      The return value will be the name and path of the reduced image if
      successful, or '' if the reduction failed.
   """
-  fullfile=os.path.abspath(os.path.expanduser(fname))
-  filedir=os.path.dirname(fullfile)
-  filename=os.path.basename(fullfile)
-  outfile=filedir+'/reduced/'+filename
+  fullfile = os.path.abspath(os.path.expanduser(fname))
+  filedir = os.path.dirname(fullfile)
+  filename = os.path.basename(fullfile)
+  outfile = filedir+'/reduced/' + filename
 
-  if not os.path.isdir(filedir+'/reduced'):
-    os.mkdir(filedir+'/reduced')
+  if not os.path.isdir(filedir + '/reduced'):
+    os.mkdir(filedir + '/reduced')
 
   if not os.path.exists(fullfile):
-    ewrite('reducefile - Input image file not found: '+fullfile)
+    ewrite('reducefile - Input image file not found: ' + fullfile)
     return None
 
-  img=FITS(fullfile,'r')    #Load the file
+  img = FITS(fullfile,'r')    #Load the file
   img.bias()                      #Subtract bias and trim overscan
   img.dark()                      #Subtract scaled dark image
   img.flat()                      #Divide by appropriate flatfield
 
-  img.data[511]=ones(512)*-2000   #Hack to force dud row to an ignored value
+  img.data[511] = ones(512)*-2000   #Hack to force dud row to an ignored value
 
-  exptime=float(img.headers['EXPTIME'])
-  filterid=string.strip(img.headers['FILTERID'][1])
-  secz=float(img.headers['SECZ'])
-  hjd=float(img.headers['HJD'])
-  pjd=hjd-2450000.0
-  ccdtemp=float(img.headers['CCDTEMP'])
+  exptime = float(img.headers['EXPTIME'])
+  filterid = img.headers['FILTERID'][1].strip()
+  secz = float(img.headers['SECZ'])
+  hjd = float(img.headers['HJD'])
+  pjd = hjd-2450000.0
+  ccdtemp = float(img.headers['CCDTEMP'])
 
-  fwhm,sky=img.fwhmsky()
-  img.save(outfile,bitpix=16)   #Save in Int16 format
-  os.system('/usr/local/bin/imsex.py '+outfile)
+  fwhm,sky = img.fwhmsky()
+  img.save(outfile, bitpix=16)   #Save in Int16 format
+  os.system('/usr/local/bin/imsex.py ' + outfile)
   _rlog(fname,filename,filterid,exptime,ccdtemp,pjd,fwhm,sky,secz)
-  swrite(filename+' reduced: FWHM=%4.2f pixels, Sky=%d ADU' % (fwhm,sky))
+  swrite(filename + ' reduced: FWHM=%4.2f pixels, Sky=%d ADU' % (fwhm,sky))
   return outfile
 
 
@@ -704,17 +617,13 @@ def _parseregion(im=None, r=''):
   """Returns an array slice from a FITS object given a region string.
      For example, a region string might be '[512,544:1,512]', and the Numeric
      array returned would be im.data[0:512, 511:544].
-
-     Note that due to a bug in Ariel++ BIASSEC headers, the region returned
-     includes one row of actual image data, which must be stripped out using 
-     slicing outside this function to keep the code here consistent.
   """
   if not r:
     return im.data
   else:
-    r1,r2=tuple(string.split(r[2:-2],':'))
-    xs,xe=tuple(string.split(r1,','))
-    ys,ye=tuple(string.split(r2,','))
+    r1,r2 = tuple(r.strip()[2:-2].split(':'))
+    xs,xe = tuple(r1.strip().split(','))
+    ys,ye = tuple(r2.strip().split(','))
     return im.data[int(ys)-1:int(ye), int(xs)-1:int(xe)]
     
 
@@ -744,5 +653,4 @@ def _ndmedian(m):
 
 ###   Module init  ####
 
-FITS=FITSnew
 
