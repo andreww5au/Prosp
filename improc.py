@@ -307,11 +307,12 @@ def median(l=[]):
   out.data = _ndmedian(num.array(myl))
   if temps:
     out.headers['CCDTEMP'] = `_ndmedian(num.array(temps))`
+
   return out
 
 
 
-def med10(files='', bias=0):
+def med10(files='', bias=False):
   """Takes one or more FITS image filenames in any combination of names and
      wildcards. Loads them, ten by ten, medians each group, then medians the
      result. Returns a FITS image object. If more than 100 images names are 
@@ -338,10 +339,8 @@ def med10(files='', bias=0):
     for i in range(10):          #Load up to ten images
       if allfiles:
         tenlist.append(FITS(allfiles[0],'r'))
-        if bias==1:
+        if bias:
           tenlist[-1].bias()
-        elif bias==-1:
-          tenlist[-1].bias(biasfile=None)
         allfiles=allfiles[1:]
     tmp=median(tenlist)     #And call the normal median function
     return tmp
@@ -352,25 +351,23 @@ def med10(files='', bias=0):
       for i in range(10):        #Load up to ten files
         if allfiles:
           tenlist.append(FITS(allfiles[0],'r'))
-          if bias==1:
+          if bias:
             tenlist[-1].bias()
-          elif bias==-1:
-            tenlist[-1].bias(biasfile=None)
           allfiles=allfiles[1:]
       tmp=median(tenlist)      #Find the median of those ten files
-      tenlist=[]                         #free up all that memory
       tmpname=tempfile.mktemp()     #Save the median of ten in a temp file
       tmp.save(tmpname)
       tmplist.append(tmpname)
 
-    tmp=med10(tmplist, bias=0)  #recursivly call med10 on all of the temp files
+    tenlist=[]                         #free up all that memory
+    tmp=med10(tmplist, bias=False)  #recursivly call med10 on all of the temp files
     for n in tmplist:
       os.remove(n)            #remove all the temporary files
     return tmp
 
 
 def reduce(fpat=''):
-  """Trim, flatfield, bias a set of image, leave in subdirectory 'reduced'.
+  """bias, dark, and flatfield a set of image, leave in subdirectory 'reduced'.
      If the 'reduced' directory doesn't exist, it will be created.
 
      If no filename argument is given, it defaults to the last CCD image
@@ -394,12 +391,17 @@ def dobias(files=[]):
      the images is written to the file 'bias.fits' in the same directory as the
      first FITS file.
   """
-  nfiles=distribute(files, lambda x: x)   #Expand each name for wildcards, etc
+  nfiles = distribute(files, lambda x: x)   #Expand each name for wildcards, etc
   if not nfiles:
     swrite("dobias - No images to process.")
     return 0
-  im=med10(nfiles, bias=-1)    #Signal overscan subtraction only for each image
-  outfile=os.path.abspath(os.path.dirname(nfiles[0]))+'/bias.fits'
+  im = med10(nfiles, bias=True)    #Signal overscan subtraction only for each image
+  firstimage = FITS(nfiles[0],'h')    #Read in just the headers of the first image
+  if 'MODE' not in firstimage.headers.keys():
+    bfile = 'bias.fits'
+  else:
+    bfile = 'bias-%s.fits' % firstimage.headers['MODE'][1:-1]
+  outfile = os.path.abspath(os.path.dirname(nfiles[0])) + '/' + bfile
   if os.path.exists(outfile):
     os.remove(outfile)
   im.save(outfile, bitpix=-32)
@@ -412,12 +414,17 @@ def dodark(files=[]):
      the images is written to the file 'dark.fits' in the same directory as the
      first FITS file.
   """
-  nfiles=distribute(files, lambda x: x)   #Expand each name for wildcards, etc
+  nfiles = distribute(files, lambda x: x)   #Expand each name for wildcards, etc
   if not nfiles:
     swrite("dodark - No images to process.")
     return 0
-  im=med10(nfiles, bias=1)   #Signal overscan and bias image subtraction
-  outfile=os.path.abspath(os.path.dirname(nfiles[0]))+'/dark.fits'
+  im = med10(nfiles, bias=True)   #Signal overscan and bias image subtraction
+  firstimage = FITS(nfiles[0],'h')    #Read in just the headers of the first image
+  if 'MODE' not in firstimage.headers.keys():
+    dfile = 'dark.fits'
+  else:
+    dfile = 'dark-%s.fits' % firstimage.headers['MODE'][1:-1]
+  outfile = os.path.abspath(os.path.dirname(nfiles[0])) + '/' + dfile
   if os.path.exists(outfile):
     os.remove(outfile)
   im.save(outfile, bitpix=-32)
@@ -434,33 +441,40 @@ def doflat(files=[], filt=None):
      unless that card is not present, in which case the supplied 'filt' 
      argument is used to generate the filename.
   """
-  nfiles=distribute(files, lambda x: x)   #Expand each name for wildcards, etc
+  nfiles = distribute(files, lambda x: x)   #Expand each name for wildcards, etc
   if type(nfiles) == type(''):
     nfiles = [nfiles]
   if len(nfiles)>15:
     swrite("doflat - Too many files to median, truncating to first 15 images.")
-    nfiles=nfiles[:15]
+    nfiles = nfiles[:15]
   if not nfiles:
     swrite("doflat - No images to process.")
     return 0
   di=[]
   for d in nfiles:
-    im=FITS(d,'r')
+    im = FITS(d,'r')
     im.bias()
     im.dark()
     num.divide(im.data, num.sum(num.sum(im.data))/num.product(im.data.shape), im.data)
     di.append(im)
-  im=median(di)
+  im = median(di)
   if im.headers.has_key('FILTERID'):
     try:
-      filt=im.headers['FILTERID'][1:-1].split()[0].strip()
+      filt = im.headers['FILTERID'][1:-1].split()[0].strip()
     except:
       filt = 'I'
     if filt[0].isdigit():
       pass  #Use full filter name
     else:
       filt = filt[0]  #Get first letter of filter name
-  outfile=os.path.abspath(os.path.dirname(di[0].filename))+'/flat'+filt+'.fits'
+  else:
+    filt = 'X'
+  if 'MODE' not in im.headers.keys():
+    ffile = 'flat%s.fits' % filt.upper()
+  else:
+    ffile = 'flat%s-%s.fits' % (filt.upper(), self.headers['MODE'][1:-1])
+
+  outfile = os.path.abspath(os.path.dirname(im.filename)) + ffile
   if os.path.exists(outfile):
     os.remove(outfile)
   im.save(outfile, bitpix=-32)
@@ -595,8 +609,6 @@ def _reducefile(fname=''):
   img.bias()                      #Subtract bias and trim overscan
   img.dark()                      #Subtract scaled dark image
   img.flat()                      #Divide by appropriate flatfield
-
-  img.data[511] = ones(512)*-2000   #Hack to force dud row to an ignored value
 
   exptime = float(img.headers['EXPTIME'])
   filterid = img.headers['FILTERID'][1].strip()
