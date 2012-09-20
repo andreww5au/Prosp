@@ -326,6 +326,7 @@ class CameraStatus:
 
   def display(self):
     "Tells the status object to display itself to the screen"
+    print 'mode=', self.mode
     print 'temp=', self.temp
     print 'settemp=', self.settemp
     print 'shutter=', self.shutter
@@ -376,10 +377,10 @@ def init():     #Call this after creating a global status object
     Setup()
   except:
     raise CameraError("Andor in use or not reachable")
-    connected=0
+    connected = 0
   else:
     if status.initialized:
-      connected=1
+      connected = 1
     else:
       raise CameraError('Andor initialization failed.')
   status.display()
@@ -587,7 +588,7 @@ def ShutDown():
   procret(pyandor.ShutDown(),'ShutDown')
 
 
-def SetParams(mode='bin2slow'):
+def SetMode(mode='bin2slow'):
   """Set a bunch of camera parameters for a predefined mode
   """
   if mode == 'bin2slow':
@@ -637,7 +638,7 @@ def Setup():
   procret(pyandor.SetAcquisitionMode(1), 'SetAcquisitionMode')   #Single image
   status.imgtype = 'OBJECT'
   SetShutter(0)
-  SetParams('bin2slow')
+  SetMode('bin2slow')
 # CoolerOn()
 # SetTemperature(-50)
   GetTemperature()
