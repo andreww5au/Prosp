@@ -602,7 +602,7 @@ def SetMode(mode='bin2slow'):
     SetVSSpeed(1)        #77ms
     SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
     SetHighCapacity(False)
-  if mode == 'bin2fast':
+  elif mode == 'bin2fast':
     SetSubimage(1,XSIZE,1,YSIZE)
     SetBinning(2,2)      #1k x 1k, 27um pixels
     SetHSSpeed(2)        #1MHz, ~1 sec readout at 2x2 binning
@@ -631,7 +631,7 @@ def SetMode(mode='bin2slow'):
     SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
     SetHighCapacity(False)
   else:
-    print "Invalid SetParams mode: %s" % mode
+    print "Invalid SetMode mode: %s" % mode
     return
   status.mode = mode
 
