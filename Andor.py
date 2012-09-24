@@ -176,12 +176,14 @@ CAPS = {
                           #   or undocumented modes EMADVANCED, GATEMODE, DDGTIMES, IOC, INTELLIGATE, INSERTION_DELAY, or GATESTEP)
 
 
-  'ulGetFunctions':13,   #AC_GETFUNCTION_TEMPERATURE 0x01, AC_GETFUNCTION_TEMPERATURERANGE 0x04, AC_GETFUNCTION_DETECTORSIZE 0x08
+  'ulGetFunctions':32781,#AC_GETFUNCTION_TEMPERATURE 0x01, AC_GETFUNCTION_TEMPERATURERANGE 0x04, AC_GETFUNCTION_DETECTORSIZE 0x08
+                         #AC_GETFUNCTION_BASELINECLAMP 0x8000
                          #  (not capable of getting target temperature or many other undocumented modes)
 
-  'ulFeatures':133037,   #AC_FEATURES_POLLING 1, AC_FEATURES_SPOOLING 4, AC_FEATURES_SHUTTER 8, AC_FEATURES_EXTERNAL_I2C 32
+  'ulFeatures':6948781,  #AC_FEATURES_POLLING 1, AC_FEATURES_SPOOLING 4, AC_FEATURES_SHUTTER 8, AC_FEATURES_EXTERNAL_I2C 32
                          #AC_FEATURES_FANCONTROL 128, AC_FEATURES_MIDFANCONTROL 256, AC_FEATURES_TEMPERATUREDURINGACQUISITION 512
-                         #AC_FEATURES_KEEPCLEANCONTROL 1024, AC_FEATURES_PHOTONCOUNTING 0x20000
+                         #AC_FEATURES_KEEPCLEANCONTROL 1024, AC_FEATURES_PHOTONCOUNTING 0x20000, AC_FEATURES_DUALMODE 0x80000
+                         #AC_FEATURES_REALTIMESPURIOUSNOISEFILTER 0x200000, AC_FEATURES_POSTPROCESSSPURIOUSNOISEFILTER 0x400000
                          #  (not capable of Windows events, SetShutterEx, Saturation event, DDGLite, Frame Transfer external,
                          #   DAC control, metadata, or TTL IO control)
   }
@@ -734,5 +736,5 @@ def GetFits():
 
 
 if __name__ == '__main__':
-  status = AndorStatus()
+  status = CameraStatus()
 
