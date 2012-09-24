@@ -19,6 +19,10 @@ from globals import swrite, ewrite,filtname
 
 FITS = improc.FITS
 
+
+connected = False    #True if 'init()' has been called, and we are talking to a real CCD camera.
+status = None        #When running, this will contain an instance of CameraStatus
+
 AndorPath = '/usr/local/etc/andor'
 
 debug = True
@@ -377,10 +381,10 @@ def init():     #Call this after creating a global status object
     Setup()
   except:
     raise CameraError("Andor in use or not reachable")
-    connected = 0
+    connected = False
   else:
     if status.initialized:
-      connected = 1
+      connected = True
     else:
       raise CameraError('Andor initialization failed.')
   status.display()
@@ -728,24 +732,7 @@ def GetFits():
 
 
 
-def OldGetFits(fname='/tmp/out.fits', bitpix=16):
-  """args: fname is the filename
-           bitpix is the output format (16, 32, or -32)
-  """
-  pyandor.StartAcquisition()
-  pyandor.WaitForAcquisition()
-  pyandor.SaveAsRaw('/tmp/andor.raw',2)
-  f = FITS()
-  fraw = open('/tmp/andor.raw','r').read()
-  f.data = fits.fromstring(fraw,fits.Int32)
-  f.data.shape = (HSIZE/hbin,VSIZE/vbin)
-  f.headers['NAXIS1'] = HSIZE/hbin
-  f.headers['NAXIS2'] = VSIZE/vbin
-  f.save(fname, bitpix=bitpix)
 
-
-
-connected=0
 if __name__ == '__main__':
   status = AndorStatus()
 

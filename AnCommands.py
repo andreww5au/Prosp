@@ -6,6 +6,7 @@ import sys
 import cPickle
 
 import Andor
+from Andor import status
 import opticalcoupler
 import xpa
 from globals import *
@@ -146,9 +147,9 @@ def filectr(fc=1):
      basename). If you change the file name, a new file counter will be chosen.
 
      If you override the default counter value with the 'filectr' function,
-     it does not check for name conflicts until ariel actually creates the
+     it does not check for name conflicts until it tries to actually create the
      file. If there is a file of the same name at the time of image creation,
-     ariel chooses a random name (ap??????.fits) to avoid overwriting any
+     it chooses a random name to avoid overwriting any
      existing file.
      eg: filectr(3)
   """
