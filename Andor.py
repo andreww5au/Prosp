@@ -23,7 +23,7 @@ FITS = improc.FITS
 connected = False    #True if 'init()' has been called, and we are talking to a real CCD camera.
 status = None        #When running, this will contain an instance of CameraStatus
 
-AndorPath = '/usr/local/etc/andor'
+AndorPath = '/usr/local/etc/andor' + ('\x00'*100)
 
 debug = True
 
