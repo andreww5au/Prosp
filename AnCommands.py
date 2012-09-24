@@ -382,7 +382,7 @@ def go(n=1):
       _setcounter()
       filectr(status.filectr + 1)
       status.lastact = time.time()   #Record the time that the last image was taken
-      xpa.display(status.lastfile)
+      xpa.display(f.filename)
   except KeyboardInterrupt:
     swrite("Exposure aborted, dumping image.")
     aborted = 1
