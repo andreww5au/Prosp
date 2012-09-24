@@ -374,15 +374,15 @@ def go(n=1):
   result = []
   try:
     for i in range(n):
-      f = Andor.GetFits()   
+      f = Andor.GetFits()
+      setheaders(f)
       f.save(os.path.join(status.path,status.nextfile))
       result.append(os.path.join(status.path,status.nextfile))
       status.lastfile = status.nextfile
       _setcounter()
       filectr(status.filectr + 1)
       status.lastact = time.time()   #Record the time that the last image was taken
-      setheaders(f)
-      xpa.display(f)
+      xpa.display(status.lastfile)
   except KeyboardInterrupt:
     swrite("Exposure aborted, dumping image.")
     aborted = 1
