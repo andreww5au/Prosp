@@ -6,16 +6,17 @@
 #
 #      -Use functions like IsCoolerOn() to detect state on startup, and in an update() method to the status class
 #
-#      -Investigate GetMetaDataInfo (using funky time struct) to get timing info for an image, for more accurate 
-#       time in headers
-#      
+#
 import time
 import cPickle
+import Pyro4
+import traceback
+import threading
 
 import pyandor
 import fits
 import improc
-from globals import swrite, ewrite,filtname
+from globals import *
 
 FITS = improc.FITS
 
@@ -89,14 +90,6 @@ SATLEVEL = 74995    #saturation threshold, in electrons
 def satadu(hsspeed=0, preamp=0, highcap=0):
   return SATLEVEL/GAIN[hsspeed][preamp][highcap]
 
-def CurrentSaturation():
-  return satadu(hsspeed=status.hsspeed, preamp=status.preamp, highcap=status.highcap)
-
-def CurrentGain():
-  return GAIN[status.hsspeed][status.preamp][status.highcap]
-
-def CurrentNoise():
-  return NOISE[status.hsspeed][status.preamp][status.highcap]
 
 # Note - ideal usage for Perth 61cm telescope is probably:
 #        HSSpeed = 3 (50kHz) for 84 sec 1x1 binned readout time, 21 sec 2x2 binned readout time
@@ -296,6 +289,7 @@ class CameraStatus:
     self.temp = 999          #Latest CCD temperature 
     self.tempstatus = ''     #Latest CCD temperature regulation status - unique to Andor
     #Shutter and image type parameters
+    self.shutter = 0         #Is shutter open?
     self.shuttermode = 0     #0 for auto, 1 for open, 2 for close - unique to Andor
     self.imgtype = 'OBJECT'  #or 'BIAS', 'DARK', or 'FLAT'
     self.object = ''         #Object name
@@ -316,42 +310,30 @@ class CameraStatus:
     self.filectr = 0
     self.observer = ''
     #Optical coupler setting parameters
-    self.filter = -1
-    self.guider = (9999,9999)
-    self.mirror = 'IN'
-    #Parameters unique to Apogee camera
-    self.shutter = 0  #Is shutter open?
-    self.xover = 0    #Overscan columns in X
-    self.yover = 0    #Overscan rows in Y
-    self.tmin = 0     #Temp at minimum reachable
-    self.tmax=0       #Temp at maximum reachable
-    self.inst=''
-    self.ic=0
-    self.tc=0
-    self.ie=0
+#    self.filter = -1
+#    self.guider = (9999,9999)
+#    self.mirror = 'IN'
 
-  def display(self):
+  def __str__(self):
     "Tells the status object to display itself to the screen"
-    print 'mode=', self.mode
-    print 'temp=', self.temp
-    print 'settemp=', self.settemp
-    print 'shutter=', self.shutter
-    print 'exptime=', self.exptime
-    print 'filter=', self.filter,' = ', filtname(self.filter)
-    print 'guider=' ,self.guider
-    print 'mirror=', self.mirror
-    print 'xbin,ybin=', self.xbin, ',', self.ybin
-    print 'roi=', self.roi
-    print 'xover,yover=', self.xover, ',', self.yover
-    print 'imgtype=', '"' + self.imgtype + '"'
-    print 'object=', '"' + self.object + '"'
-    print 'path, nextfile=', '"' + self.path + '", "' + self.nextfile + '"'
-    print 'Observer=','"' + self.observer + '"'
-    print 'last file=', '"' + self.lastfile + '"'
-    print 'cool, tset, tmin, tmax=', self.cool, ',', self.tset, ',', self.tmin, ',', self.tmax
-    print 'filectr=', self.filectr
-    print 'instrument=', '"' + self.inst + '"'
-    print 'ic,tc,ie=', self.ic, ',', self.tc, ',', self.ie
+    s = 'mode = %s' % self.mode
+    s += 'temp = %4.1f', self.temp
+    s += 'settemp = %4.1f', self.settemp
+    s += 'shutter = %s' % {False:'Closed', True:'Open'}[bool(self.shutter)]
+    s += 'shuttermode = %s' % {0:'Auto', 1:'Force Open', 2:'Force Closed'}[self.shuttermode]
+    s += 'exptime = %8.3f' % self.exptime
+#    s += 'filter = %d (%s)' % (self.filter, filtname(self.filter))
+#    s += 'guider = (%d,%d)'  % self.guider
+#    s += 'mirror = %s' % self.mirror
+    s += 'xbin,ybin = (%d,%d)' % (self.xbin, self.ybin)
+    s += 'roi = (%d,%d,%d,%d)' % self.roi
+    s += 'xover,yover = %d,%d' % (self.xover, self.yover)
+    s += 'imgtype = %s' % self.imgtype
+    s += 'object = %s' % self.object
+    s += 'path, nextfile = %s, %s' % (self.path, self.nextfile)
+    s += 'Observer = %s' % self.observer
+    s += 'last file = %s' % self.lastfile
+    return s
 
   def __init__(self):
     "Called automatically when instance is created"
@@ -374,22 +356,6 @@ class CameraError:
     return `self.value`
 
 
-def init():     #Call this after creating a global status object
-  "Initialise Andor connection"
-  global connected
-  swrite("Python Andor interface initialising:")
-  try:
-    Initialize()
-    Setup()
-  except:
-    raise CameraError("Andor in use or not reachable")
-    connected = False
-  else:
-    if status.initialized:
-      connected = True
-    else:
-      raise CameraError('Andor initialization failed.')
-  status.display()
 
 
 def procret(val=20001, fname="<not set>"):
@@ -399,7 +365,9 @@ def procret(val=20001, fname="<not set>"):
   retval = val
   if val: 
     if debug or (val <> pyandor.DRV_SUCCESS):       #20002
-      print 'Function %s:-> %d = %s' % (fname, val, DRV_ERRS[val])
+      logger.error('Function %s:-> %d = %s' % (fname, val, DRV_ERRS[val]))
+    else:
+      logger.debug('Function %s:-> %d = %s' % (fname, val, DRV_ERRS[val]))
 
 
 def retok():
@@ -409,332 +377,384 @@ def retok():
   return retval == pyandor.DRV_SUCCESS     #20002
 
 
-def GetCapabilities():
-  ac = pyandor.AndorCapabilities()
-  ac.initsize()
-  procret(pyandor.GetCapabilities(ac),'GetCapabilities')
-  for group,value in CAPS.items():
-    if ac.__getattr__(group) <> value:
-      print "New Capability: group %s is now %d, not %d. Update Andor.py source." % (group,ac.__getattr__(group),value)
-  return ac
+class Camera:
+  """Represents an instance of an Andor CCD camera.
+     In the main 'Andor' executable, this handles all communication with the camera, and this
+     object is shared via Pyro. In clients, a proxy to this object allows methods to be called
+     remotely.
+  """
 
+  def __init__(self):
+    self.status = CameraStatus()
 
-def Initialize(verbose=True):
-  procret(pyandor.Initialize(AndorPath), 'Initialize')
-  if retok():
-    status.initialized = True
-    if verbose:
-      print "Driver initialized OK"
+  def GetCapabilities(self):
+    ac = pyandor.AndorCapabilities()
+    ac.initsize()
+    procret(pyandor.GetCapabilities(ac),'GetCapabilities')
+    for group,value in CAPS.items():
+      if ac.__getattr__(group) <> value:
+        print "New Capability: group %s is now %d, not %d. Update Andor.py source." % (group,ac.__getattr__(group),value)
+    return ac
 
+  def CurrentSaturation(self):
+    return satadu(hsspeed=self.status.hsspeed, preamp=self.status.preamp, highcap=self.status.highcap)
 
-def CoolerON(verbose=True):
-  procret(pyandor.CoolerON(), 'CoolerON')
-  if retok():
-    status.cool = True
-    if verbose:
-      print "Peltier cooler turned ON"
+  def CurrentGain(self):
+    return GAIN[self.status.hsspeed][self.status.preamp][self.status.highcap]
 
+  def CurrentNoise(self):
+    return NOISE[self.status.hsspeed][self.status.preamp][self.status.highcap]
 
-def CoolerOFF(verbose=True):
-  procret(pyandor.CoolerOFF(), 'CoolerOFF')
-  if retok():
-    status.cool = False
-    if verbose:
-      print "Peltier cooler turned OFF"
-
-
-def SetHSSpeed(n, verbose=True):
-  if n in HSSpeeds.keys():
-    procret(pyandor.SetHSSpeed(0,n), 'SetHSSpeed')
+  def _Initialize(self, verbose=True):
+    procret(pyandor.Initialize(AndorPath), 'Initialize')
     if retok():
-      status.hsspeed = n
-      GetAcquisitionTimings(verbose=verbose)
+      self.status.initialized = True
       if verbose:
-        print "Horizontal Shift Speed set to %d (%s)" % (n, HSSpeeds[n])
-  else:
-    print "Invalid HSSpeed index: %d" % n
-      
+        print "Driver initialized OK"
 
-def SetVSSpeed(n, verbose=True):
-  if n in VSSpeeds.keys():
-    procret(pyandor.SetVSSpeed(n),'SetVSSpeed')
+  def CoolerON(self, verbose=True):
+    procret(pyandor.CoolerON(), 'CoolerON')
     if retok():
-      status.vsspeed = n
-      GetAcquisitionTimings(verbose=verbose)
+      self.status.cool = True
       if verbose:
-        print "Vertical Shift Speed set to %d (%s)" % (n, VSSpeeds[n])
-  else:
-    print "Invalid VSSpeed index: %d" % n
+        print "Peltier cooler turned ON"
 
-
-def SetPreAmpGain(n, verbose=True):
-  if n in PreAmpGains.keys():
-    procret(pyandor.SetPreAmpGain(n),'SetPreAmpGain')
+  def CoolerOFF(self, verbose=True):
+    procret(pyandor.CoolerOFF(), 'CoolerOFF')
     if retok():
-      status.preamp = n
-      GetAcquisitionTimings(verbose=verbose)
+      self.status.cool = False
       if verbose:
-        print "PreAmp gain set to %d (%s)" % (n, PreAmpGains[n])
-  else:
-    print "Invalid PreAmp gain index: %d" % n
+        print "Peltier cooler turned OFF"
 
-
-def SetHighCapacity(mode, verbose=True):
-  if (type(mode)==str) and (len(mode)>0):
-    if ( (mode[0].upper() == 'Y') or
-         (mode.upper() == 'ON') ):
-      mode = True
+  def _SetHSSpeed(self, n, verbose=True):
+    if n in HSSpeeds.keys():
+      procret(pyandor.SetHSSpeed(0,n), 'SetHSSpeed')
+      if retok():
+        self.status.hsspeed = n
+        self.GetAcquisitionTimings(verbose=verbose)
+        if verbose:
+          print "Horizontal Shift Speed set to %d (%s)" % (n, HSSpeeds[n])
     else:
-      mode = False
-  else:
-    mode = bool(mode)
-  procret(pyandor.SetHighCapacity(mode),'SetHighCapacityMode')
-  if retok():
-    status.highcap = mode
-    GetAcquisitionTimings(verbose=verbose)
-    if verbose:
-      print "High Capacity mode turned %s." % {True:'ON', False:'OFF'}[mode]
+      print "Invalid HSSpeed index: %d" % n
+
+  def _SetVSSpeed(self, n, verbose=True):
+    if n in VSSpeeds.keys():
+      procret(pyandor.SetVSSpeed(n),'SetVSSpeed')
+      if retok():
+        self.status.vsspeed = n
+        self.GetAcquisitionTimings(verbose=verbose)
+        if verbose:
+          print "Vertical Shift Speed set to %d (%s)" % (n, VSSpeeds[n])
+    else:
+      print "Invalid VSSpeed index: %d" % n
+
+  def _SetPreAmpGain(self, n, verbose=True):
+    if n in PreAmpGains.keys():
+      procret(pyandor.SetPreAmpGain(n),'SetPreAmpGain')
+      if retok():
+        self.status.preamp = n
+        self.GetAcquisitionTimings(verbose=verbose)
+        if verbose:
+          print "PreAmp gain set to %d (%s)" % (n, PreAmpGains[n])
+    else:
+      print "Invalid PreAmp gain index: %d" % n
+
+  def _SetHighCapacity(self, mode, verbose=True):
+    if (type(mode)==str) and (len(mode)>0):
+      if ( (mode[0].upper() == 'Y') or
+           (mode.upper() == 'ON') ):
+        mode = True
+      else:
+        mode = False
+    else:
+      mode = bool(mode)
+    procret(pyandor.SetHighCapacity(mode),'SetHighCapacityMode')
+    if retok():
+      self.status.highcap = mode
+      self.GetAcquisitionTimings(verbose=verbose)
+      if verbose:
+        print "High Capacity mode turned %s." % {True:'ON', False:'OFF'}[mode]
+
+  def SetTemperature(self, t, verbose=True):
+    procret(pyandor.SetTemperature(int(t)),'SetTemperature')
+    if retok():
+      self.status.settemp = int(t)
+      if verbose:
+        print "Cooler setpoint changed to %d" % int(t)
+
+  def GetTemperature(self, verbose=True):
+    global retval
+    rv = pyandor.GetTemperatureF(f1)
+    retval = rv
+    if rv == pyandor.DRV_NOT_INITIALIZED or rv == pyandor.DRV_ERROR_ACK:
+      f1.assign(999.9)
+      self.status.tempstatus = 'Error getting temperature'
+      if verbose:
+        logger.error("Error getting temperature data")
+    else:
+      self.status.temp = f1.value()
+      if rv == pyandor.DRV_TEMP_OFF:
+        self.status.tempstatus = 'Temperature OFF'
+        self.status.cool = False
+        self.status.tset = False
+      elif rv == pyandor.DRV_TEMP_NOT_REACHED:
+        self.status.tempstatus = 'Set Temp not yet reached'
+        self.status.cool = True
+        self.status.tset = False
+      elif rv == pyandor.DRV_TEMP_NOT_STABILIZED:
+        self.status.tempstatus = 'Set Temp reached, but not yet stabilized'
+        self.status.cool = True
+        self.status.tset = False
+      elif rv == pyandor.DRV_TEMP_STABILIZED:
+        self.status.tempstatus = 'Temp Stabilized'
+        self.status.cool = True
+        self.status.tset = True
+      elif rv == pyandor.DRV_TEMP_DRIFT:
+        self.status.tempstatus = 'Temp was Stabilized, but has since drifted'
+        self.status.cool = True
+        self.status.tset = False
+
+      if verbose:
+        print "Temp=%6.2f  status='%s'" % (f1.value(),status.tempstatus)
+    return f1.value()
+
+  def _SetSubimage(self, xmin,xmax,ymin,ymax, verbose=True):
+    procret(pyandor.SetImage(status.xbin,status.ybin,xmin,xmax,ymin,ymax), 'SetImage')
+    if retok():
+      self.status.xmin, status.xmax = xmin,xmax
+      self.status.ymin, status.ymax = ymin,ymax
+      self.status.roi = (xmin,xmax,ymin,ymax)
+      self.GetAcquisitionTimings(verbose=verbose)
+      if verbose:
+        print "Subimage cropping set to %d-%d, %d-%d" % (xmin,xmax,ymin,ymax)
+
+  def _SetBinning(self, xbin,ybin, verbose=True):
+    procret(pyandor.SetImage(xbin,ybin,status.xmin,status.xmax,status.ymin,status.ymax), 'SetImage')
+    if retok():
+      self.status.xbin = xbin
+      self.status.ybin = ybin
+      self.GetAcquisitionTimings(verbose=verbose)
+      if verbose:
+        print "Binning set to %d horizontal (x), %d vertical (y)" % (xbin, ybin)
+
+  def SetShutter(self, mode=0, verbose=True):
+    """mode=0 for auto, 1 for open, 2 for close
+    """
+    procret(pyandor.SetShutter(0,mode,SHUTTERCLOSE,SHUTTEROPEN), 'SetShutter')
+    if retok:
+      self.status.shuttermode = mode
+      if verbose:
+        print "Shutter mode set to %d (%s)" % (mode, {0:'Auto', 1:'Always Open', 2:'Always Closed'} )
+
+  def _GetAcquisitionTimings(self, verbose=True):
+    procret(pyandor.GetAcquisitionTimings(f1,f2,f3),'GetAcquisitionTimings')
+    if retok():
+      self.status.exptime = round(f1.value(),3)
+      self.status.cycletime = round(f2.value(),3)
+      self.status.readouttime = round(f2.value()-f1.value(),3)
+
+  def exptime(self, et, verbose=True):
+    """Set camera exposure time, in seconds.
+    """
+    procret(pyandor.SetExposureTime(et), 'SetExposureTime')
+    if retok():
+      self.GetAcquisitionTimings(verbose=verbose)
+      if verbose:
+        print "Exposure time set to %6.3f seconds" % status.exptime
+
+  def _ShutDown(self):
+    procret(pyandor.ShutDown(),'ShutDown')
+    self.connected = False
+    self.initialized = False
 
 
-def SetTemperature(t, verbose=True):
-  procret(pyandor.SetTemperature(int(t)),'SetTemperature')
-  if retok():
-    status.settemp = int(t)
-    if verbose:
-      print "Cooler setpoint changed to %d" % int(t)
-      
+  def SetMode(self, mode='bin2slow'):
+    """Set a bunch of camera parameters for a predefined mode
+    """
+    if mode == 'bin2slow':
+      self.SetSubimage(1,XSIZE,1,YSIZE)
+      self.SetBinning(2,2)      #1k x 1k, 27um pixels
+      self.SetHSSpeed(3)        #50kHz, ~20 sec readout at 2x2 binning
+      self.SetVSSpeed(1)        #77ms
+      self.SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
+      self.SetHighCapacity(False)
+    elif mode == 'bin2fast':
+      self.SetSubimage(1,XSIZE,1,YSIZE)
+      self.SetBinning(2,2)      #1k x 1k, 27um pixels
+      self.SetHSSpeed(2)        #1MHz, ~1 sec readout at 2x2 binning
+      self.SetVSSpeed(1)        #77ms
+      self.SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
+      self.SetHighCapacity(False)
+    elif mode == 'unbinslow':
+      self.SetSubimage(1,XSIZE,1,YSIZE)
+      self.SetBinning(1,1)      #2k x 2k, 13.5um pixels
+      self.SetHSSpeed(3)        #50kHz, ~84 sec readout at 1x1 binning
+      self.SetVSSpeed(1)        #77ms
+      self.SetPreAmpGain(2)     #Gain of 4.0. Note, use PreAmpGain=0 (1.0) for 2x2 binning.
+      self.SetHighCapacity(False)
+    elif mode == 'unbinfast':
+      self.SetSubimage(1,XSIZE,1,YSIZE)
+      self.SetBinning(1,1)      #2k x 2k, 13.5um pixels
+      self.SetHSSpeed(2)        #1MHz, ~4 sec readout at 1x1 binning
+      self.SetVSSpeed(1)        #77ms
+      self.SetPreAmpGain(2)     #Gain of 4.0. Note, use PreAmpGain=0 (1.0) for 2x2 binning.
+      self.SetHighCapacity(False)
+    elif mode == 'centre':
+      self.SetSubimage(897,1152,897,1152)   #256x256 unbinned or 128x128 binned
+      self.SetBinning(2,2)      #1k x 1k, 27um pixels
+      self.SetHSSpeed(2)        #1MHz, ~1 sec readout at 2x2 binning
+      self.SetVSSpeed(1)        #77ms
+      self.SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
+      self.SetHighCapacity(False)
+    else:
+      print "Invalid SetMode mode: %s" % mode
+      return
+    status.mode = mode
 
-def GetTemperature(verbose=True):
-  global retval
-  rv = pyandor.GetTemperatureF(f1)
-  retval = rv
-  if rv == pyandor.DRV_NOT_INITIALIZED or rv == pyandor.DRV_ERROR_ACK:
-    f1.assign(999.9)
-    status.tempstatus = 'Error getting temperature'
-    if verbose:
-      print "Error getting temperature data"
-  else:
-    status.temp = f1.value()
-    if rv == pyandor.DRV_TEMP_OFF:
-      status.tempstatus = 'Temperature OFF'
-      status.cool = False
-      status.tset = False
-    elif rv == pyandor.DRV_TEMP_NOT_REACHED:
-      status.tempstatus = 'Set Temp not yet reached'
-      status.cool = True
-      status.tset = False
-    elif rv == pyandor.DRV_TEMP_NOT_STABILIZED:
-      status.tempstatus = 'Set Temp reached, but not yet stabilized'
-      status.cool = True
-      status.tset = False
-    elif rv == pyandor.DRV_TEMP_STABILIZED:
-      status.tempstatus = 'Temp Stabilized'
-      status.cool = True
-      status.tset = True
-    elif rv == pyandor.DRV_TEMP_DRIFT:
-      status.tempstatus = 'Temp was Stabilized, but has since drifted'
-      status.cool = True
-      status.tset = False
+  def _Setup(self):
+    procret(pyandor.SetReadMode(4), 'SetReadMode')    #Full image
+    procret(pyandor.SetAcquisitionMode(1), 'SetAcquisitionMode')   #Single image
+    status.imgtype = 'OBJECT'
+    self.SetShutter(0)
+    self.SetMode('bin2slow')
+    self.GetTemperature()
 
-    if verbose:
-      print "Temp=%6.2f  status='%s'" % (f1.value(),status.tempstatus)
-  return f1.value()
-
-
-def SetSubimage(xmin,xmax,ymin,ymax, verbose=True):
-  procret(pyandor.SetImage(status.xbin,status.ybin,xmin,xmax,ymin,ymax), 'SetImage')
-  if retok():
-    status.xmin, status.xmax = xmin,xmax
-    status.ymin, status.ymax = ymin,ymax
-    status.roi = (xmin,xmax,ymin,ymax)
-    GetAcquisitionTimings(verbose=verbose)
-    if verbose:
-      print "Subimage cropping set to %d-%d, %d-%d" % (xmin,xmax,ymin,ymax)
-
-
-def SetBinning(xbin,ybin, verbose=True):
-  procret(pyandor.SetImage(xbin,ybin,status.xmin,status.xmax,status.ymin,status.ymax), 'SetImage')
-  if retok():
-    status.xbin = xbin
-    status.ybin = ybin
-    GetAcquisitionTimings(verbose=verbose)
-    if verbose:
-      print "Binning set to %d horizontal (x), %d vertical (y)" % (xbin, ybin)
-
-
-def SetShutter(mode=0, verbose=True):
-  """mode=0 for auto, 1 for open, 2 for close
-  """
-  procret(pyandor.SetShutter(0,mode,SHUTTERCLOSE,SHUTTEROPEN), 'SetShutter')
-  if retok: 
-    status.shuttermode = mode
-    if verbose:
-      print "Shutter mode set to %d (%s)" % (mode, {0:'Auto', 1:'Always Open', 2:'Always Closed'} )
-
-
-def GetAcquisitionTimings(verbose=True):
-  procret(pyandor.GetAcquisitionTimings(f1,f2,f3),'GetAcquisitionTimings')
-  if retok():
-    status.exptime = round(f1.value(),3)
-    status.cycletime = round(f2.value(),3)
-    status.readouttime = round(f2.value()-f1.value(),3)
-
-
-def exptime(et, verbose=True):
-  """Set camera exposure time, in seconds.
-  """
-  procret(pyandor.SetExposureTime(et), 'SetExposureTime')
-  if retok():
-    GetAcquisitionTimings(verbose=verbose)
-    if verbose:
-      print "Exposure time set to %6.3f seconds" % status.exptime
-
-
-def ShutDown():
-  procret(pyandor.ShutDown(),'ShutDown')
-
-
-def SetMode(mode='bin2slow'):
-  """Set a bunch of camera parameters for a predefined mode
-  """
-  if mode == 'bin2slow':
-    SetSubimage(1,XSIZE,1,YSIZE)
-    SetBinning(2,2)      #1k x 1k, 27um pixels
-    SetHSSpeed(3)        #50kHz, ~20 sec readout at 2x2 binning
-    SetVSSpeed(1)        #77ms
-    SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
-    SetHighCapacity(False)
-  elif mode == 'bin2fast':
-    SetSubimage(1,XSIZE,1,YSIZE)
-    SetBinning(2,2)      #1k x 1k, 27um pixels
-    SetHSSpeed(2)        #1MHz, ~1 sec readout at 2x2 binning
-    SetVSSpeed(1)        #77ms
-    SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
-    SetHighCapacity(False)
-  elif mode == 'unbinslow':
-    SetSubimage(1,XSIZE,1,YSIZE)
-    SetBinning(1,1)      #2k x 2k, 13.5um pixels
-    SetHSSpeed(3)        #50kHz, ~84 sec readout at 1x1 binning
-    SetVSSpeed(1)        #77ms
-    SetPreAmpGain(2)     #Gain of 4.0. Note, use PreAmpGain=0 (1.0) for 2x2 binning.
-    SetHighCapacity(False)
-  elif mode == 'unbinfast':
-    SetSubimage(1,XSIZE,1,YSIZE)
-    SetBinning(1,1)      #2k x 2k, 13.5um pixels
-    SetHSSpeed(2)        #1MHz, ~4 sec readout at 1x1 binning
-    SetVSSpeed(1)        #77ms
-    SetPreAmpGain(2)     #Gain of 4.0. Note, use PreAmpGain=0 (1.0) for 2x2 binning.
-    SetHighCapacity(False)
-  elif mode == 'centre':
-    SetSubimage(897,1152,897,1152)   #256x256 unbinned or 128x128 binned
-    SetBinning(2,2)      #1k x 1k, 27um pixels
-    SetHSSpeed(2)        #1MHz, ~1 sec readout at 2x2 binning
-    SetVSSpeed(1)        #77ms
-    SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
-    SetHighCapacity(False)
-  else:
-    print "Invalid SetMode mode: %s" % mode
-    return
-  status.mode = mode
-
-
-
-def Setup():
-  procret(pyandor.SetReadMode(4), 'SetReadMode')    #Full image
-  procret(pyandor.SetAcquisitionMode(1), 'SetAcquisitionMode')   #Single image
-  status.imgtype = 'OBJECT'
-  SetShutter(0)
-  SetMode('bin2slow')
-# CoolerOn()
-# SetTemperature(-50)
-  GetTemperature()
-
-
-def GetFits():
-  global retval
-  temps = []     #Individual CCD temp values during exposure
-  stime = time.gmtime()
-  stemp = GetTemperature()
-  procret(pyandor.StartAcquisition(), 'StartAcquisition')
-  if not retok():
-    return "Failed to StartAcquisition"
-  if status.exptime < MAX_NOLOOPTIME:    #Don't loop 
-    procret(pyandor.WaitForAcquisition(), 'WaitForAcquisition')
+  def GetFits(self):
+    temps = []     #Individual CCD temp values during exposure
+    stime = time.gmtime()
+    stemp = self.GetTemperature()
+    procret(pyandor.StartAcquisition(), 'StartAcquisition')
     if not retok():
-      return "Failed to WaitAcquisition"
-  else:
-    done = False
-    while not done:
-      rv1 = pyandor.WaitForAcquisitionTimeOut(LOOPTIME*1000)
-      rv2 = pyandor.GetStatus(i1)
-      temps.append(GetTemperature(verbose=False))
-      if ( (i1.value() <> pyandor.DRV_ACQUIRING) or      #System is not acquiring an image
-           (rv2 <> pyandor.DRV_SUCCESS) ):                 #Error getting status from camera
-        done = True
-    if rv2 <> pyandor.DRV_SUCCESS:
-      procret(rv2)
-      return "Failed to GetStatus during acquisition wait loop"
-  etime = time.gmtime()
-  etemp = GetTemperature()
-  if temps:
-    temps.append(stemp)
-    ccdtemp = reduce(lambda x, y: x+y, temps)/len(temps)
-  else:
-    ccdtemp = (etemp+stemp)/2.0
+      return "Failed to StartAcquisition"
+    if self.status.exptime < MAX_NOLOOPTIME:    #Don't loop
+      procret(pyandor.WaitForAcquisition(), 'WaitForAcquisition')
+      if not retok():
+        return "Failed to WaitAcquisition"
+    else:
+      done = False
+      while not done:
+        rv1 = pyandor.WaitForAcquisitionTimeOut(LOOPTIME*1000)
+        rv2 = pyandor.GetStatus(i1)
+        temps.append(self.GetTemperature(verbose=False))
+        if ( (i1.value() <> pyandor.DRV_ACQUIRING) or      #System is not acquiring an image
+             (rv2 <> pyandor.DRV_SUCCESS) ):                 #Error getting status from camera
+          done = True
+      if rv2 <> pyandor.DRV_SUCCESS:
+        procret(rv2)
+        return "Failed to GetStatus during acquisition wait loop"
+    etemp = self.GetTemperature()
+    if temps:
+      temps.append(stemp)
+      ccdtemp = reduce(lambda x, y: x+y, temps)/len(temps)
+    else:
+      ccdtemp = (etemp+stemp)/2.0
 
-  f = FITS()
-  f.headers.update(defheaders)
-  f.comments.update(defcomments)
-  rxsize = status.xmax-status.xmin+1
-  rysize = status.ymax-status.ymin+1
-  numpixels = (rxsize*rysize)/(status.xbin*status.ybin)
-#  f.data = fits.zeros(numpixels, dtype=fits.float32)
-#  procret(pyandor.GetAcquiredFloatData(f.data), 'GetAcquiredFloatData')
-  data = fits.zeros(numpixels, dtype=fits.int32)   #Will only work with numpy
-  procret(pyandor.GetMostRecentImage(data),'GetMostRecentImage')
-  f.data = data.astype(fits.float32)
-  if not retok():
-    return
-  xsize = rxsize/status.xbin
-  ysize = rysize/status.ybin
-  f.data.shape = (xsize,ysize)
-  f.headers['NAXIS1'] = `xsize`
-  f.headers['NAXIS2'] = `ysize`
-  f.headers['OBSERVER'] = "'%s'" % status.observer
-  f.headers['DATE-OBS'] = "'%d-%02d-%02d'" % (stime.tm_year, stime.tm_mon, stime.tm_mday)
-  f.headers['TIME-OBS'] = "'%02d:%02d:%02d'" % (stime.tm_hour, stime.tm_min, stime.tm_sec)
-  f.headers['COOLER'] = "'%s'" % {False:'OFF', True:'ON'}[status.cool]
-  f.headers['TEMPSTAT'] = "'%s'" % status.tempstatus
-  f.headers['CCDTEMP'] = "%6.2f" % ccdtemp
-  f.headers['MODE'] = "'%s'" % status.mode
-  f.headers['CCDXBIN'] = `status.xbin`
-  f.headers['CCDYBIN'] = `status.ybin`
-  if status.xbin == status.ybin:
-    f.headers['SECPIX'] = "%6.4f" % (SECPIX*status.xbin)
-  f.headers['SHUTTER'] = {0:"'OPEN'", 1:"'STAY OPEN'", 2:"'CLOSED'"}[status.shuttermode]
-  f.headers['GAIN'] = "%6.3f" % CurrentGain()
-  f.headers['RONOISE'] = "%6.3f" % CurrentNoise()
-  f.headers['SATADU'] = "%d" % CurrentSaturation()
-  f.headers['HSSPEED'] = "'%s'" % HSSpeeds[status.hsspeed]
-  f.headers['VSSPEED'] = "'%s'" % VSSpeeds[status.vsspeed]
-  f.headers['PREGAIN'] = "'%s'" % PreAmpGains[status.preamp]
-  f.headers['ROMODE'] = "'%s'" % {False:'High Sensitivity Mode', True:'High Capacity Mode for high binning factors'}[status.highcap]
-  f.headers['SUBFXMIN'] = `status.xmin`
-  f.headers['SUBFXMAX'] = `status.xmax`
-  f.headers['SUBFYMIN'] = `status.ymin`
-  f.headers['SUBFYMAX'] = `status.ymax`
-  if status.imgtype == 'BIAS':
-    f.headers['BIAS'] = status.object
-  elif status.imgtype == 'DARK':
-    f.headers['DARK'] = status.object
-  else:
-    f.headers['OBJECT'] = status.object
+    f = FITS()
+    f.headers.update(defheaders)
+    f.comments.update(defcomments)
+    rxsize = status.xmax-status.xmin+1
+    rysize = status.ymax-status.ymin+1
+    numpixels = (rxsize*rysize)/(status.xbin*status.ybin)
+  #  f.data = fits.zeros(numpixels, dtype=fits.float32)
+  #  procret(pyandor.GetAcquiredFloatData(f.data), 'GetAcquiredFloatData')
+    data = fits.zeros(numpixels, dtype=fits.int32)   #Will only work with numpy
+    procret(pyandor.GetMostRecentImage(data),'GetMostRecentImage')
+    f.data = data.astype(fits.float32)
+    if not retok():
+      return
+    xsize = rxsize/self.status.xbin
+    ysize = rysize/self.status.ybin
+    f.data.shape = (xsize,ysize)
+    f.headers['NAXIS1'] = `xsize`
+    f.headers['NAXIS2'] = `ysize`
+    f.headers['OBSERVER'] = "'%s'" % self.status.observer
+    f.headers['DATE-OBS'] = "'%d-%02d-%02d'" % (stime.tm_year, stime.tm_mon, stime.tm_mday)
+    f.headers['TIME-OBS'] = "'%02d:%02d:%02d'" % (stime.tm_hour, stime.tm_min, stime.tm_sec)
+    f.headers['COOLER'] = "'%s'" % {False:'OFF', True:'ON'}[self.status.cool]
+    f.headers['TEMPSTAT'] = "'%s'" % self.status.tempstatus
+    f.headers['CCDTEMP'] = "%6.2f" % ccdtemp
+    f.headers['MODE'] = "'%s'" % self.status.mode
+    f.headers['CCDXBIN'] = `self.status.xbin`
+    f.headers['CCDYBIN'] = `self.status.ybin`
+    if self.status.xbin == self.status.ybin:
+      f.headers['SECPIX'] = "%6.4f" % (SECPIX*self.status.xbin)
+    f.headers['SHUTTER'] = {0:"'OPEN'", 1:"'STAY OPEN'", 2:"'CLOSED'"}[self.status.shuttermode]
+    f.headers['GAIN'] = "%6.3f" % self.CurrentGain()
+    f.headers['RONOISE'] = "%6.3f" % self.CurrentNoise()
+    f.headers['SATADU'] = "%d" % self.CurrentSaturation()
+    f.headers['HSSPEED'] = "'%s'" % HSSpeeds[self.status.hsspeed]
+    f.headers['VSSPEED'] = "'%s'" % VSSpeeds[self.status.vsspeed]
+    f.headers['PREGAIN'] = "'%s'" % PreAmpGains[self.status.preamp]
+    f.headers['ROMODE'] = "'%s'" % {False:'High Sensitivity Mode', True:'High Capacity Mode for high binning factors'}[self.status.highcap]
+    f.headers['SUBFXMIN'] = `self.status.xmin`
+    f.headers['SUBFXMAX'] = `self.status.xmax`
+    f.headers['SUBFYMIN'] = `self.status.ymin`
+    f.headers['SUBFYMAX'] = `self.status.ymax`
+    if self.status.imgtype == 'BIAS':
+      f.headers['BIAS'] = self.status.object
+    elif self.status.imgtype == 'DARK':
+      f.headers['DARK'] = self.status.object
+    else:
+      f.headers['OBJECT'] = self.status.object
 
-  return f
+    return f
+
+  def _servePyroRequests(self):
+    """When called, start serving Pyro requests.
+    """
+    while True:
+      logger.info("Starting AndorCamera Pyro4 server")
+      try:
+        ns = Pyro4.locateNS()
+      except:
+        logger.error("Can't locate Pyro nameserver - waiting 10 sec to retry")
+        time.sleep(10)
+        break
+
+      try:
+        existing = ns.lookup("AndorCamera")
+        logger.info("AndorCamera still exists in Pyro nameserver with id: %s" % existing.object)
+        logger.info("Previous Pyro daemon socket port: %d" % existing.port)
+        # start the daemon on the previous port
+        pyro_daemon = Pyro4.Daemon(port=existing.port)
+        # register the object in the daemon with the old objectId
+        pyro_daemon.register(self, objectId=existing.object)
+      except Pyro4.errors.NamingError:
+        # just start a new daemon on a random port
+        pyro_daemon = Pyro4.Daemon()
+        # register the object in the daemon and let it get a new objectId
+        # also need to register in name server because it's not there yet.
+        uri =  pyro_daemon.register(self)
+        ns.register("AndorCamera", uri)
+      try:
+        pyro_daemon.requestLoop()
+      except:
+        logger.error("Exception in AndorCamera Pyro4 server. Restarting in 10 sec: %s" % (traceback.format_exc(),))
+        time.sleep(10)
+
 
 
 
 
 if __name__ == '__main__':
-  status = CameraStatus()
+  camera = Camera()
 
+  logger.info("Python Andor interface initialising")
+  try:
+    Camera._Initialize()
+    Camera._Setup()
+  except:
+    Camera.status.connected = False
+    raise CameraError("Andor in use or not reachable")
+  else:
+    if Camera.status.initialized:
+      Camera.status.connected = True
+    else:
+      raise CameraError('Andor initialization failed.')
+  Camera.status.display()
+
+  #Start the Pyro4 daemon thread listening for status requests and receiver 'putState's:
+  pyro_thread = threading.Thread(target=Camera._servePyroRequests, name='PyroDaemon')
+  pyro_thread.daemon = True
+  pyro_thread.start()
+  #The daemon threads will continue to spin for eternity....

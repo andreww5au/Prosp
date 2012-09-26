@@ -1,11 +1,9 @@
 
-import sys
-import string
 import glob
-import types
 import operator
 import time
 import math
+import logging
 
 CAMERA = 'Andor'
 #CAMERA =  'Apogee'
@@ -13,17 +11,27 @@ CAMERA = 'Andor'
 CHILLER = False    #True if chiller unit connected.
 FOCUSER = False    #True if focuser unit connected.
 
-statusfile='/data/Logs/ProspLog'
-errorfile='/data/Logs/ProspErrors'
+LOGLEVEL = logging.DEBUG           #Master log level - messages below this will be ignored.
+LOGLEVEL_CONSOLE = logging.ERROR      #Minimum log level for console messages (INFO, DEBUG, ERROR, CRITICAL, etc)
+LOGLEVEL_LOGFILE = logging.INFO       #Minimum log level for logfile
+LOGFILE = "/tmp/Camera.log"
 
-try:
-  if not sys.argv[0].endswith('Prosp'):
-    raise NameError, "Not running inside Prosp"
-  sfile=open(statusfile,'a')
-  efile=open(errorfile,'a')
-except:
-  sfile=open('/dev/null','a')
-  efile=open('/dev/null','a')
+# create global logger object for Facility Controller
+logger = logging.getLogger("Camera")
+logger.setLevel(LOGLEVEL)
+# create file handler which logs even debug messages, formatted with timestamps
+fh = logging.FileHandler(LOGFILE)
+fh.setLevel(LOGLEVEL_LOGFILE)
+ff = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s  %(message)s")
+fh.setFormatter(ff)
+# create console handler with a higher log level, and without timestamps
+ch = logging.StreamHandler()
+ch.setLevel(LOGLEVEL_CONSOLE)
+cf = logging.Formatter("%(name)s-%(levelname)s  %(message)s")
+ch.setFormatter(cf)
+# add the handlers to the logger
+logger.addHandler(fh)
+logger.addHandler(ch)
 
 #filters=['Clear', 'Red', '4450', '9500', 'Visual', 'Infrared', 'Empty', '7260']
 #Old PLANET filter set, plus Peter's narrowband filters. Clear slot was empty,
@@ -96,10 +104,10 @@ def distribute(fpat='',function=None,args=None):
      eg: distribute('/data/myimg*.fits',display)
   """
   donelist=[]
-  if type(fpat)<>types.ListType:
+  if type(fpat) <> list:
     fpat=[fpat]
-  t1=reduce(operator.concat,map(string.split,fpat))
-  t2=reduce(operator.concat,map(glob.glob,t1))
+  t1 = reduce(operator.concat,[f.split() for f in fpat])
+  t2 = reduce(operator.concat,[glob.glob(f) for f in t1])
   for n in t2:
     if args:
       resn=function(n,args)
@@ -149,35 +157,19 @@ def stringsex(value=""):
   """
   try:
     value = value.strip()
-    components=string.split(value,':')
+    components = value.split(':')
     if len(components)<>3:
-      components=string.split(value,' ')
+      components=value.split(' ')
     if len(components)<>3:
       return None
 
-    h,m,s=tuple(map(string.strip, components))
+    h,m,s = tuple([s.strip() for s in components])
     sign=1
     if h[0]=="-":
       sign=-1
     return float(h) + (sign*float(m)/60.0) + (sign*float(s)/3600.0)
   except:
     return None
-
-
-def swrite(s='swrite called with null string.'):
-  "Write a status message to screen and status logfile"
-  sfile.write(time.strftime("%Y%m%d%H%M%S:",time.localtime(time.time()))+s+'\n')
-  sfile.flush()
-  print s
-
-
-def ewrite(s='ewrite called with null string.'):
-  "Write an error message to screen, status log, and error log "
-  sfile.write(time.strftime("%Y%m%d%H%M%S:",time.localtime(time.time()))+s+'\n')
-  efile.write(time.strftime("%Y%m%d%H%M%S:",time.localtime(time.time()))+s+'\n')
-  sfile.flush()
-  efile.flush()
-  print s
 
 
 def julday(data=None):

@@ -174,36 +174,6 @@ def observer(oname='unknown'):
   swrite('Observer name: '+oname)
 
 
-def xbin(n=1):
-  """Change x bin factor - default to 1 if no argument.
-     eg: xbin(2)
-  """
-  Andor.SetBinning(n, status.ybin)
-
-
-def ybin(n=1):
-  """Change y bin factor - default to 1 if no argument.
-     eg: ybin(2)
-  """
-  Andor.SetBinning(status.xbin, n)
-
-
-def roi(ri=(1,2048,1,2048)):
-  """Change Region-of-interest - default to  if no argument.
-     eg: roi((193,320,193,320))
-         (This will read out a 128x128 pixel region of the image.
-         Note the _double_ parentheses.)
-
-     This readout region is _before_ binning, so (1,2048,1,2048) will
-     always read the whole image, regardless of binning. However, the size
-     of the readout region must be an exact multiple of the binning factors.
-  """
-  if (type(ri) == tuple) and (len(ri) == 4):
-    Andor.SetSubImage(ri[0],ri[1],ri[2],ri[3])
-  else:
-    print "expected tuple(xmin,xmax,ymin,ymax)"
-
-
 def dark(s='dark'):
   """Change mode to dark frames, set object name to arg, default='dark'.
      This doesn't take any images, it just means that subsequent exposures
