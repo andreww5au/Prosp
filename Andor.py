@@ -494,7 +494,7 @@ class Camera(object):
       logger.info("Binning set to %d horizontal (x), %d vertical (y)" % (xbin, ybin))
 
   def _GetAcquisitionTimings(self):
-    procret(pyandor._GetAcquisitionTimings(f1,f2,f3),'GetAcquisitionTimings')
+    procret(pyandor.GetAcquisitionTimings(f1,f2,f3),'GetAcquisitionTimings')
     if retok():
       self.status.exptime = round(f1.value(),3)
       self.status.cycletime = round(f2.value(),3)
