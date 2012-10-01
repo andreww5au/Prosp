@@ -1,3 +1,4 @@
+#!/usr/bin/python
 #
 # TODO - investigate SetCoolerMode function that defines whether cooler is kept on after a ShutDown call, or turned off
 #
@@ -7,14 +8,22 @@
 #      -Use functions like IsCoolerOn() to detect state on startup, and in an update() method to the status class
 #
 #
+print "import time"
 import time
+print "import Pyro4"
 import Pyro4
+print "import traceback"
 import traceback
+print "import threading"
 import threading
 
+print "import pyandor"
 import pyandor
+print "import fits"
 import fits
+print "import improc"
 import improc
+print "from globals import *"
 from globals import *
 
 FITS = improc.FITS
@@ -387,8 +396,8 @@ class CameraStatus(object):
   def __str__(self):
     """Tells the status object to display itself to the screen"""
     s = 'mode = %s' % self.mode
-    s += 'temp = %4.1f', self.temp
-    s += 'settemp = %4.1f', self.settemp
+    s += 'temp = %4.1f' % self.temp
+    s += 'settemp = %4.1f' % self.settemp
     s += 'shutter = %s' % {False:'Closed', True:'Open'}[bool(self.shutter)]
     s += 'shuttermode = %s' % {0:'Auto', 1:'Force Open', 2:'Force Closed'}[self.shuttermode]
     s += 'exptime = %8.3f' % self.exptime
@@ -781,6 +790,7 @@ if __name__ == '__main__':
   try:
 #    camera._Initialize()
 #    camera._Setup()
+    pass
   except:
     camera.status.connected = False
     raise CameraError("Andor in use or not reachable")
