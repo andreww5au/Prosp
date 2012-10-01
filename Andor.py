@@ -22,7 +22,6 @@ FITS = improc.FITS
 
 
 connected = False    #True if 'init()' has been called, and we are talking to a real CCD camera.
-status = None        #When running, this will contain an instance of CameraStatus
 
 AndorPath = '/usr/local/etc/andor' + ('\x00'*100)
 
@@ -478,16 +477,16 @@ class Camera(object):
       logger.info("High Capacity mode turned %s." % {True:'ON', False:'OFF'}[mode])
 
   def _SetSubimage(self, xmin,xmax,ymin,ymax):
-    procret(pyandor.SetImage(status.xbin,status.ybin,xmin,xmax,ymin,ymax), 'SetImage')
+    procret(pyandor.SetImage(self.status.xbin,self.status.ybin,xmin,xmax,ymin,ymax), 'SetImage')
     if retok():
-      self.status.xmin, status.xmax = xmin,xmax
-      self.status.ymin, status.ymax = ymin,ymax
+      self.status.xmin, self.status.xmax = xmin,xmax
+      self.status.ymin, self.status.ymax = ymin,ymax
       self.status.roi = (xmin,xmax,ymin,ymax)
       self._GetAcquisitionTimings()
       logger.info("Subimage cropping set to %d-%d, %d-%d" % (xmin,xmax,ymin,ymax))
 
   def _SetBinning(self, xbin,ybin):
-    procret(pyandor.SetImage(xbin,ybin,status.xmin,status.xmax,status.ymin,status.ymax), 'SetImage')
+    procret(pyandor.SetImage(xbin,ybin,self.status.xmin,self.status.xmax,self.status.ymin,self.status.ymax), 'SetImage')
     if retok():
       self.status.xbin = xbin
       self.status.ybin = ybin
@@ -510,15 +509,15 @@ class Camera(object):
   def _Setup(self):
     procret(pyandor.SetReadMode(4), 'SetReadMode')    #Full image
     procret(pyandor.SetAcquisitionMode(1), 'SetAcquisitionMode')   #Single image
-    status.imgtype = 'OBJECT'
+    self.status.imgtype = 'OBJECT'
     self.SetShutter(0)
     self.SetMode('bin2slow')
     self.GetTemperature()
 
   def _ShutDown(self):
     procret(pyandor.ShutDown(),'ShutDown')
-    self.connected = False
-    self.initialized = False
+    self.status.connected = False
+    self.status.initialized = False
 
   def _servePyroRequests(self):
     """When called, start serving Pyro requests.
@@ -609,7 +608,7 @@ class Camera(object):
       else:
         print "Invalid SetMode mode: %s" % mode
         return
-    status.mode = mode
+    self.status.mode = mode
 
   def CurrentSaturation(self):
     return satadu(hsspeed=self.status.hsspeed, preamp=self.status.preamp, highcap=self.status.highcap)
@@ -672,7 +671,7 @@ class Camera(object):
           self.status.tempstatus = 'Temp was Stabilized, but has since drifted'
           self.status.cool = True
           self.status.tset = False
-        logger.info("Temp=%6.2f  status='%s'" % (f1.value(),status.tempstatus))
+        logger.info("Temp=%6.2f  status='%s'" % (f1.value(),self.status.tempstatus))
     return f1.value()
 
   def SetShutter(self, mode=0):
@@ -691,7 +690,7 @@ class Camera(object):
       procret(pyandor.SetExposureTime(et), 'SetExposureTime')
       if retok():
         self._GetAcquisitionTimings()
-        logger.info("Exposure time set to %6.3f seconds" % status.exptime)
+        logger.info("Exposure time set to %6.3f seconds" % self.status.exptime)
 
   def GetFits(self):
     with self.lock:
@@ -730,9 +729,9 @@ class Camera(object):
       f = FITS()
       f.headers.update(defheaders)
       f.comments.update(defcomments)
-      rxsize = status.xmax-status.xmin+1
-      rysize = status.ymax-status.ymin+1
-      numpixels = (rxsize*rysize)/(status.xbin*status.ybin)
+      rxsize = self.status.xmax - self.status.xmin+1
+      rysize = self.status.ymax - self.status.ymin+1
+      numpixels = (rxsize*rysize) / (self.status.xbin*self.status.ybin)
     #  f.data = fits.zeros(numpixels, dtype=fits.float32)
     #  procret(pyandor.GetAcquiredFloatData(f.data), 'GetAcquiredFloatData')
       data = fits.zeros(numpixels, dtype=fits.int32)   #Will only work with numpy
