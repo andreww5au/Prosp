@@ -771,6 +771,12 @@ class Camera(object):
 
 
 
+def InitClient():
+  """Connect to the server process and create a proxy object to the
+     real camera object.
+  """
+  global camera
+  camera = Pyro4.Proxy('PYRONAME:AndorCamera')
 
 
 
