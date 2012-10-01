@@ -788,7 +788,8 @@ if __name__ == '__main__':
     if camera.status.initialized:
       camera.status.connected = True
     else:
-      raise CameraError('Andor initialization failed.')
+#      raise CameraError('Andor initialization failed.')
+      pass
   logger.info(camera.status)
 
   #Start the Pyro4 daemon thread listening for status requests and receiver 'putState's:
