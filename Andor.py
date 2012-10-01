@@ -344,6 +344,7 @@ class CameraStatus(object):
   def empty(self):
     """Called by __init__ or manually to clear status"""
     self.initialized = False
+    self.connected = False
     #Amplifier and readout parameters - unique to Andor camera
     self.highcap = None      #Is HighCapacity mode on?
     self.preamp = None       #PreAmp gain index
@@ -359,10 +360,8 @@ class CameraStatus(object):
     self.temp = 999          #Latest CCD temperature 
     self.tempstatus = ''     #Latest CCD temperature regulation status - unique to Andor
     #Shutter and image type parameters
-    self.shutter = 0         #Is shutter open?
     self.shuttermode = 0     #0 for auto, 1 for open, 2 for close - unique to Andor
-    self.imgtype = 'OBJECT'  #or 'BIAS', 'DARK', or 'FLAT'
-    self.object = ''         #Object name
+    self.exptime = 0.0
     #Cropping boundaries - note boundaries are INDEPENDENT of binning, so 2048x2048 is always
     #  the full image, no matter what the binning factors are. However, these values must be
     #  exactly divisible by the binning factor for the given axis.
@@ -371,43 +370,25 @@ class CameraStatus(object):
     self.roi = (self.xmin,self.xmax,self.ymin,self.ymax)
     self.xbin = 1             #Horizontal (X) binning factor, 1-2048
     self.ybin = 1             #Vertical (Y) binning factor, 1-2048
-    #Exposure time and file name/path parameters
-    self.exptime = 0.0
-    self.path = '/data'
-    self.filename = 'andor'
-    self.nextfile = ''
-    self.lastfile = ''
-    self.filectr = 0
-    self.observer = ''
-    #Optical coupler setting parameters
-#    self.filter = -1
-#    self.guider = (9999,9999)
-#    self.mirror = 'IN'
 
-  def update(self, d):
+  def update(self):
     """Given a dict, update the attributes of this object with the
        values in the dict specified.
     """
-    self.__dict__.update(d)
+    if type(camera) == Pyro4.core.Proxy:    #We are instantiated in a client proxy object
+      self.__dict__.update(camera.getStatus())
+    else:
+      pass
 
   def __str__(self):
     """Tells the status object to display itself to the screen"""
-    s = 'mode = %s' % self.mode
-    s += 'temp = %4.1f' % self.temp
-    s += 'settemp = %4.1f' % self.settemp
-    s += 'shutter = %s' % {False:'Closed', True:'Open'}[bool(self.shutter)]
-    s += 'shuttermode = %s' % {0:'Auto', 1:'Force Open', 2:'Force Closed'}[self.shuttermode]
-    s += 'exptime = %8.3f' % self.exptime
-#    s += 'filter = %d (%s)' % (self.filter, filtname(self.filter))
-#    s += 'guider = (%d,%d)'  % self.guider
-#    s += 'mirror = %s' % self.mirror
-    s += 'xbin,ybin = (%d,%d)' % (self.xbin, self.ybin)
-    s += 'roi = (%d,%d,%d,%d)' % self.roi
-    s += 'imgtype = %s' % self.imgtype
-    s += 'object = %s' % self.object
-    s += 'path, nextfile = %s, %s' % (self.path, self.nextfile)
-    s += 'Observer = %s' % self.observer
-    s += 'last file = %s' % self.lastfile
+    s = 'mode = %s\n' % self.mode
+    s += 'temp = %4.1f\n' % self.temp
+    s += 'settemp = %4.1f\n' % self.settemp
+    s += 'shuttermode = %s\n' % {0:'Auto', 1:'Force Open', 2:'Force Closed'}[self.shuttermode]
+    s += 'exptime = %8.3f\n' % self.exptime
+    s += 'xbin,ybin = (%d,%d)\n' % (self.xbin, self.ybin)
+    s += 'roi = (%d,%d,%d,%d)\n' % self.roi
     return s
 
   def __repr__(self):
@@ -509,7 +490,6 @@ class Camera(object):
   def _Setup(self):
     procret(pyandor.SetReadMode(4), 'SetReadMode')    #Full image
     procret(pyandor.SetAcquisitionMode(1), 'SetAcquisitionMode')   #Single image
-    self.status.imgtype = 'OBJECT'
     self.SetShutter(0)
     self.SetMode('bin2slow')
     self.GetTemperature()
@@ -606,7 +586,7 @@ class Camera(object):
         self._SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
         self._SetHighCapacity(False)
       else:
-        print "Invalid SetMode mode: %s" % mode
+        logger.error("Invalid SetMode mode: %s" % mode)
         return
     self.status.mode = mode
 
@@ -746,7 +726,6 @@ class Camera(object):
     f.data.shape = (xsize,ysize)
     f.headers['NAXIS1'] = `xsize`
     f.headers['NAXIS2'] = `ysize`
-    f.headers['OBSERVER'] = "'%s'" % self.status.observer
     f.headers['DATE-OBS'] = "'%d-%02d-%02d'" % (stime.tm_year, stime.tm_mon, stime.tm_mday)
     f.headers['TIME-OBS'] = "'%02d:%02d:%02d'" % (stime.tm_hour, stime.tm_min, stime.tm_sec)
     f.headers['COOLER'] = "'%s'" % {False:'OFF', True:'ON'}[self.status.cool]
@@ -769,12 +748,6 @@ class Camera(object):
     f.headers['SUBFXMAX'] = `self.status.xmax`
     f.headers['SUBFYMIN'] = `self.status.ymin`
     f.headers['SUBFYMAX'] = `self.status.ymax`
-    if self.status.imgtype == 'BIAS':
-      f.headers['BIAS'] = self.status.object
-    elif self.status.imgtype == 'DARK':
-      f.headers['DARK'] = self.status.object
-    else:
-      f.headers['OBJECT'] = self.status.object
 
     return f
 
@@ -786,7 +759,7 @@ def InitClient():
   global camera
   camera = Pyro4.Proxy('PYRONAME:AndorCamera')
   camera.status = CameraStatus()
-  camera.status.update(camera.getStatus())
+  camera.status.update()
 
 
 def InitServer():

@@ -6,7 +6,6 @@ import sys
 import cPickle
 
 import Andor
-from Andor import status
 import opticalcoupler
 import xpa
 from globals import *
@@ -18,18 +17,43 @@ class GuideZero:
     self.gyoff = y
 
 
+class ExtendedCameraStatus(Andor.CameraStatus):
+  """Add attributes needed for AnCommands code - filter, filename, etc.
+  """
+  def empty(self):
+    Andor.CameraStatus.empty(self)
+    #Exposure time and file name/path parameters
+    self.imgtype = 'OBJECT'  #or 'BIAS', 'DARK', or 'FLAT'
+    self.object = ''         #Object name
+    self.path = '/data'
+    self.filename = 'andor'
+    self.nextfile = ''
+    self.lastfile = ''
+    self.filectr = 0
+    self.observer = ''
+    #Optical coupler setting parameters
+    self.filter = 'X'
+    self.filterid = -1
+    self.guider = (9999,9999)
+    self.mirror = 'IN'
+
+  def __str__(self):
+    """Tells the status object to display itself to the screen"""
+    s = Andor.CameraStatus.__str__(self)
+    s += 'Observer = %s\n' % self.observer
+    s += 'imgtype = %s\n' % self.imgtype
+    s += 'object = %s\n' % self.object
+    s += 'filter = %d (%s)\n' % (self.filter, filtname(self.filter))
+    s += 'guider = (%d,%d)\n'  % self.guider
+    s += 'mirror = %s\n' % self.mirror
+    s += 'last file = %s\n' % self.lastfile
+    s += 'path, nextfile = %s, %s\n' % (self.path, self.nextfile)
+    return s
+
 
 def update():
   "Attach to Andor camera and grab current status information"
-
-#  tmpstr=status.lastfile   #save last filename becuase you can't read it back
-#  status.empty()
-#  command('status',0)
-#  command('istatus',0)
-#  command('tcstatus',0)
-#  command('config',0)
-#  status.lastfile=tmpstr  #restore last filename
-  status.updated()
+  camera.status.update()
 
 
 def filter(n='I'):
@@ -41,19 +65,19 @@ def filter(n='I'):
   """
   if n=='':
     n = 'I'
-  if type(n) == types.StringType:
+  if type(n) == str:
     fid = filtid(n)
     fnum = filtnum(fid)
     opticalcoupler.SelectFilter(`fnum`)
-    status.filterid = fid
-    status.filter = fnum
-    swrite('Moved to filter '+`n`)
+    camera.status.filterid = fid
+    camera.status.filter = fnum
+    logger.info('Moved to filter '+`n`)
   else:
     if (n>=1) and (n<=8):
       opticalcoupler.SelectFilter(n)
-      swrite('Moved to filter '+`n`)
+      logger.info('Moved to filter '+`n`)
     else:
-      ewrite("Error in filter value: "+repr(n))
+      logger.error("Error in filter value: "+repr(n))
 
 
 def guider(x=0,y=0):
@@ -63,15 +87,15 @@ def guider(x=0,y=0):
   if x==0 and y==0 and (gzero.gxoff<>0 or gzero.gyoff<>0):
     opticalcoupler.HomeXYStage()
   opticalcoupler.MoveXYStage( x=(x+gzero.gxoff), y=(y+gzero.gyoff) )
-  status.guider = (x,y)
+  camera.status.guider = (x,y)
 
 
 def zguider():
   """Make the current position 0,0 for all future guider movement
      eg: zguider()
   """
-  gzero.gxoff = status.xguider + gzero.gxoff
-  gzero.gyoff = status.yguider + gzero.gyoff
+  gzero.gxoff = camera.status.xguider + gzero.gxoff
+  gzero.gyoff = camera.status.yguider + gzero.gyoff
   guider(0,0)
   f = open('/data/guidezero','w')
   cPickle.dump(gzero,f)
@@ -88,14 +112,14 @@ def mirror(to='IN'):
   to = to.strip().upper()
   if (to=="OUT"):
     opticalcoupler.MoveMirror(0)
-    swrite('Mirror: '+to)
-    status.mirror = 'OUT'
+    logger.info('Mirror: '+to)
+    camera.status.mirror = 'OUT'
   elif (to=="IN"):
     opticalcoupler.MoveMirror(opticalcoupler.MIRROR_IN)
-    swrite('Mirror: '+to)
-    status.mirror = 'IN'
+    logger.info('Mirror: '+to)
+    camera.status.mirror = 'IN'
   else:
-    ewrite("Usage: 'mirror IN' or 'mirror OUT'")
+    logger.error("Usage: 'mirror IN' or 'mirror OUT'")
 
 
 def exptime(et=0.02):
@@ -104,8 +128,8 @@ def exptime(et=0.02):
   """
   if et < 0.02:
     et = 0.02
-    ewrite('Exposure time less than 0.02 seconds specified, using 0.02.')
-  Andor.exptime(et)
+    logger.error('Exposure time less than 0.02 seconds specified, using 0.02.')
+  camera.exptime(et)
 
 
 def _ctrn(s=''):  #Used in 'filename' to find filectr's for matching files
@@ -130,12 +154,12 @@ def filename(fname='andor'):
      
   """
   fname = fname.strip()
-  pc = max(map(_ctrn,glob.glob(os.path.join(status.path,fname+"*.fits")))+[0])
+  pc = max(map(_ctrn,glob.glob(os.path.join(camera.status.path,fname+"*.fits")))+[0])
   cc = max(map(_ctrn,glob.glob("/data/counters/"+fname+"*.cntr"))+[0])
   fc = max([pc,cc])+1
    #Set the filectr to one higher than the highest existing file with 
    #the same basename in the current path or in /data/counters
-  status.filename = fname
+  camera.status.filename = fname
   filectr(fc)
 
 
@@ -153,25 +177,25 @@ def filectr(fc=1):
      existing file.
      eg: filectr(3)
   """
-  status.filectr = fc
-  status.nextfile = status.filename + `status.filectr` + '.fits'
-  swrite('Next file name: '+os.path.join(status.path,status.nextfile))
+  camera.status.filectr = fc
+  camera.status.nextfile = camera.status.filename + `camera.status.filectr` + '.fits'
+  logger.info('Next file name: '+os.path.join(camera.status.path,camera.status.nextfile))
 
 
 def path(pathstring='/data'):
   """Change image save path - default to /data if no argument
      eg: path('/data/rd000922')
   """
-  status.path = pathstring.strip()
-  swrite('Next file name: '+os.path.join(status.path,status.nextfile))
+  camera.status.path = pathstring.strip()
+  logger.info('Next file name: '+os.path.join(camera.status.path,camera.status.nextfile))
 
 
 def observer(oname='unknown'):
   """Change the name of the observer, stored in the FITS header.
      eg: observer("Andrew Williams")
   """
-  status.observer = oname.strip()
-  swrite('Observer name: '+oname)
+  camera.status.observer = oname.strip()
+  logger.info('Observer name: '+oname)
 
 
 def dark(s='dark'):
@@ -184,9 +208,9 @@ def dark(s='dark'):
      eg: dark('dark-12C')
   """
   s = s.strip()[:80]    #truncate to 80 char to fit in FITS header
-  Andor.SetShutter(2)
-  status.imgtype = 'DARK'
-  status.object = s
+  camera.SetShutter(2)
+  camera.status.imgtype = 'DARK'
+  camera.status.object = s
 
 
 def bias(s='bias'):
@@ -198,9 +222,9 @@ def bias(s='bias'):
   """
   s = s.strip()[:80]    #truncate to 80 char to fit in FITS header
   exptime(0.0)
-  Andor.SetShutter(2)
-  status.imgtype = 'BIAS'
-  status.object = s
+  camera.SetShutter(2)
+  camera.status.imgtype = 'BIAS'
+  camera.status.object = s
 
 
 def flat(s='flat'):
@@ -212,9 +236,9 @@ def flat(s='flat'):
      eg: flat('dark-12C')
   """
   s = s.strip()[:80]    #truncate to 80 char to fit in FITS header
-  Andor.SetShutter(0)
-  status.imgtype = 'FLAT'
-  status.object = s
+  camera.SetShutter(0)
+  camera.status.imgtype = 'FLAT'
+  camera.status.object = s
 
 
 def object(s='object'):
@@ -225,36 +249,36 @@ def object(s='object'):
      eg: object('SN1993k')
   """
   s = s.strip()[:80]    #truncate to 80 char to fit in FITS header
-  Andor.SetShutter(0)
-  status.imgtype = 'OBJECT'
-  status.object = s
+  camera.SetShutter(0)
+  camera.status.imgtype = 'OBJECT'
+  camera.status.object = s
 
 
 def settemp(t=-10):
   """Change regulation set point temperature, default to -10C.
      eg: settemp(-12)
   """
-  Andor.SetTemperature(t)
+  camera.SetTemperature(t)
 
 
 def cooldown():
   """Initiate CCD cooldown by turning on CCD cooler power. Cancels any previous
      "warmup" command.
   """
-  Andor.CoolerON()
+  camera.CoolerON()
 
 
 def warmup():
   """Shut down CCD cooler power. Use 'cooldown' to turn the power back on again.
   """
-  Andor.CoolerOFF()
+  camera.CoolerOFF()
 
 
 def ccdtemp(n=2):
   """Update and return CCD temperature.
   """
-  Andor.GetTemperature()
-  return status.temp
+  camera.GetTemperature()
+  return camera.status.temp
 
 
 def foclines(n=-1):
@@ -278,13 +302,13 @@ def foclines(n=-1):
 #    command('focus '+`n`,1)
 #  update()   #grab new status information after the image
 #  return status.path+status.lastfile
-  print "Unsupported on Andor camera!"
+  logger.error("'foclines' unsupported on Andor camera!")
 
 
 def _setcounter():
   """Updates the counter file in /data/counters for the next image taken.
   """
-  fname = os.path.basename(status.lastfile)
+  fname = os.path.basename(camera.status.lastfile)
   tname = fname.split('.')[0]
   i = len(tname)-1
   if i > -1:
@@ -305,19 +329,26 @@ def setheaders(f):
      position and optical coupler related FITS header cards in the image
      based on current data.
   """
-  f.headers['FILTERID'] = "'%s'" % filtname(status.filter)
-  f.headers['FILTER'] = "%1d" % status.filter
-  f.headers['XYSTAGE'] = "'%d,%d'" % status.guider
-  f.headers['MIRROR'] = "'%s'" % status.mirror
+  f.headers['OBSERVER'] = "'%s'" % camera.status.observer
+  f.headers['FILTERID'] = "'%s'" % filtname(camera.status.filter)
+  f.headers['FILTER'] = "%1d" % camera.status.filter
+  f.headers['XYSTAGE'] = "'%d,%d'" % camera.status.guider
+  f.headers['MIRROR'] = "'%s'" % camera.status.mirror
+  if camera.status.imgtype == 'BIAS':
+    f.headers['BIAS'] = camera.status.object
+  elif camera.status.imgtype == 'DARK':
+    f.headers['DARK'] = camera.status.object
+  else:
+    f.headers['OBJECT'] = camera.status.object
   try:
-    if status.TJ.ObjRA:    #Position calibrated to epoch
-      ra = status.TJ.ObjRA
-      dec = status.TJ.ObjDec
-      epoch = status.TJ.ObjEpoch
+    if camera.status.TJ.ObjRA:    #Position calibrated to epoch
+      ra = camera.status.TJ.ObjRA
+      dec = camera.status.TJ.ObjDec
+      epoch = camera.status.TJ.ObjEpoch
       GotTJ = True
-    elif status.TJ.RawRA:
-      ra = status.TJ.RawRA
-      dec = status.TJ.RawDec
+    elif camera.status.TJ.RawRA:
+      ra = camera.status.TJ.RawRA
+      dec = camera.status.TJ.RawDec
       t = time.gmtime()
       epoch = t.tm_year + (t.tm_yday/366.0)
       GotTJ = True
@@ -337,24 +368,24 @@ def go(n=1):
   """Take N images - default to 1 if no argument.
      eg: go(2)
   """
-  timetot = (status.exptime+25)*n   #Allow 25 seconds readout time per image
-  swrite('Start time '+`time.asctime(time.localtime(time.time()))`+
+  timetot = (camera.status.exptime+25)*n   #Allow 25 seconds readout time per image
+  logger.info('Start time '+`time.asctime(time.localtime(time.time()))`+
          ' -  End at '+`time.asctime(time.localtime(time.time()+timetot))`)
   aborted = 0
   result = []
   try:
     for i in range(n):
-      f = Andor.GetFits()
+      f = camera.GetFits()
       setheaders(f)
-      f.save(os.path.join(status.path,status.nextfile))
-      result.append(os.path.join(status.path,status.nextfile))
-      status.lastfile = status.nextfile
+      f.save(os.path.join(camera.status.path,camera.status.nextfile))
+      result.append(os.path.join(camera.status.path,camera.status.nextfile))
+      camera.status.lastfile = camera.status.nextfile
       _setcounter()
-      filectr(status.filectr + 1)
-      status.lastact = time.time()   #Record the time that the last image was taken
+      filectr(camera.status.filectr + 1)
+      camera.status.lastact = time.time()   #Record the time that the last image was taken
       xpa.display(f.filename)
   except KeyboardInterrupt:
-    swrite("Exposure aborted, dumping image.")
+    logger.error("Exposure aborted, dumping image.")
     aborted = 1
   print '\7'
   if len(result) == 1:
@@ -366,7 +397,7 @@ def go(n=1):
 def shutdown():
   """Shut down the Andor camera interface and exit the main program.
   """
-  Andor.ShutDown()
+  camera.ShutDown()
   sys.exit()
 
 #Module initialisation section
@@ -377,4 +408,7 @@ if os.path.exists('/data/guidezero'):
   gzero = cPickle.load(f)
   f.close()
 
-
+Andor.InitClient()
+camera = Andor.camera
+camera.status = ExtendedCameraStatus()
+camera.status.imgtype = 'OBJECT'
