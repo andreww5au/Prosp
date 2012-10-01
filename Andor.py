@@ -785,7 +785,7 @@ def InitClient():
   global camera
   camera = Pyro4.Proxy('PYRONAME:AndorCamera')
   camera.status = CameraStatus()
-  camera.status.update(Camera.getStatus())
+  camera.status.update(camera.getStatus())
 
 
 
