@@ -796,9 +796,8 @@ def InitServer():
 
   logger.info("Python Andor interface initialising")
   try:
-#    camera._Initialize()
-#    camera._Setup()
-    pass
+    camera._Initialize()
+    camera._Setup()
   except:
     camera.status.connected = False
     raise CameraError("Andor in use or not reachable")
