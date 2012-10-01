@@ -211,6 +211,7 @@ defheaders = {'CREATOR':"'Andor.py version xxxxx'",
               'SUBFXMAX':"2048",
               'SUBFYMIN':"1",
               'SUBFYMAX':"2048",
+              'SATADU':0,
               'COOLER':"'Unknown'",
               'TEMPSTAT':"'Unknown",
               'FILTERID':"'Unknown'",
@@ -247,6 +248,7 @@ defcomments = {'OBSERVAT':"'Observatory name'",
                'SUBFXMAX':"'Subframe max X in unbinned raw coords, 1-2048'",
                'SUBFYMIN':"'Subframe min Y in unbinned raw coords, 1-2048'",
                'SUBFYMAX':"'Subframe max Y in unbinned raw coords, 1-2048'",
+                 'SATADU':"'Estimated saturation level in ADU per (binned) pixel'",
                  'COOLER':"'Peltier cooler power'",
                'FILTERID':"'Filter name'",
                  'FILTER':"'Filter slot number (0-7)'",
@@ -591,7 +593,8 @@ class Camera(object):
     self.status.mode = mode
 
   def CurrentSaturation(self):
-    return satadu(hsspeed=self.status.hsspeed, preamp=self.status.preamp, highcap=self.status.highcap)
+    pixsat = satadu(hsspeed=self.status.hsspeed, preamp=self.status.preamp, highcap=self.status.highcap)
+    return pixsat * self.status.xbin * self.status.ybin   #Saturation per physical pixel, times the binning factors
 
   def CurrentGain(self):
     return GAIN[self.status.hsspeed][self.status.preamp][self.status.highcap]

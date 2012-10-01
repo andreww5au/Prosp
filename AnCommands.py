@@ -32,8 +32,8 @@ class ExtendedCameraStatus(Andor.CameraStatus):
     self.filectr = 0
     self.observer = ''
     #Optical coupler setting parameters
-    self.filter = 'X'
-    self.filterid = -1
+    self.filter = -1
+    self.filterid = 'X'
     self.guider = (9999,9999)
     self.mirror = 'IN'
 
