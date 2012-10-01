@@ -369,8 +369,8 @@ class CameraStatus(object):
     self.xmin,self.xmax = 1,XSIZE   #Cropping boundaries for X
     self.ymin,self.ymax = 1,YSIZE   #Cropping boundaries for Y
     self.roi = (self.xmin,self.xmax,self.ymin,self.ymax)
-    self.xbin = 0             #Horizontal (X) binning factor, 1-2048
-    self.ybin = 0             #Vertical (Y) binning factor, 1-2048
+    self.xbin = 1             #Horizontal (X) binning factor, 1-2048
+    self.ybin = 1             #Vertical (Y) binning factor, 1-2048
     #Exposure time and file name/path parameters
     self.exptime = 0.0
     self.path = '/data'
