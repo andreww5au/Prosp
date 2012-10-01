@@ -8,22 +8,14 @@
 #      -Use functions like IsCoolerOn() to detect state on startup, and in an update() method to the status class
 #
 #
-print "import time"
 import time
-print "import Pyro4"
 import Pyro4
-print "import traceback"
 import traceback
-print "import threading"
 import threading
 
-print "import pyandor"
 import pyandor
-print "import fits"
 import fits
-print "import improc"
 import improc
-print "from globals import *"
 from globals import *
 
 FITS = improc.FITS
@@ -393,6 +385,12 @@ class CameraStatus(object):
 #    self.guider = (9999,9999)
 #    self.mirror = 'IN'
 
+  def update(self, d):
+    """Given a dict, update the attributes of this object with the
+       values in the dict specified.
+    """
+    self.__dict__.update(d)
+
   def __str__(self):
     """Tells the status object to display itself to the screen"""
     s = 'mode = %s' % self.mode
@@ -558,7 +556,7 @@ class Camera(object):
     """Return the status object - needed for use by proxies, since attributes
        don't work.
     """
-    return self.status
+    return self.status.__dict__
 
   def Lock(self):
     self.lock.acquire()
@@ -786,6 +784,9 @@ def InitClient():
   """
   global camera
   camera = Pyro4.Proxy('PYRONAME:AndorCamera')
+  camera.status = CameraStatus()
+  camera.status.update(Camera.getStatus())
+
 
 
 
