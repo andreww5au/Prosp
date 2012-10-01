@@ -411,6 +411,9 @@ class CameraStatus(object):
     s += 'last file = %s' % self.lastfile
     return s
 
+  def __repr__(self):
+    return str(self)
+
   def __init__(self):
     """Called automatically when instance is created"""
     self.empty()
@@ -777,7 +780,6 @@ class Camera(object):
     return f
 
 
-
 def InitClient():
   """Connect to the server process and create a proxy object to the
      real camera object.
@@ -788,9 +790,9 @@ def InitClient():
   camera.status.update(camera.getStatus())
 
 
-
-
-if __name__ == '__main__':
+def InitServer():
+  global camera
+  global pyro_thread
   camera = Camera()
 
   logger.info("Python Andor interface initialising")
@@ -815,5 +817,9 @@ if __name__ == '__main__':
   pyro_thread.start()
   #The daemon threads will continue to spin for eternity....
 
+
+
+if __name__ == '__main__':
+  InitServer()
   while True:
     time.sleep(1)
