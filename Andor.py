@@ -9,9 +9,14 @@
 #
 #
 import time
+import sys
 import Pyro4
 import traceback
 import threading
+import signal
+import atexit
+import shlex
+from subprocess import Popen
 
 import pyandor
 import fits
@@ -20,6 +25,11 @@ from globals import *
 
 FITS = improc.FITS
 
+pyro_thread = None
+ns_process = None
+
+SIGNAL_HANDLERS = {}
+CLEANUP_FUNCTION = None
 
 connected = False    #True if 'init()' has been called, and we are talking to a real CCD camera.
 
@@ -760,14 +770,17 @@ def InitClient():
      real camera object.
   """
   global camera
-  camera = Pyro4.Proxy('PYRONAME:AndorCamera')
+  try:
+    camera = Pyro4.Proxy('PYRONAME:AndorCamera')
+  except Pyro4.errors.PyroError:
+    logger.error("Can't connect to camera server - run Andor.py to start the server")
   camera.status = CameraStatus()
   camera.status.update()
 
 
 def InitServer():
   global camera
-  global pyro_thread
+  global pyro_thread, ns_process
   camera = Camera()
 
   logger.info("Python Andor interface initialising")
@@ -785,15 +798,76 @@ def InitServer():
       pass
   logger.info(camera.status)
 
+  ns_process = Popen(shlex.split("python -Wignore -m Pyro4.naming --host=0.0.0.0"))
+  logger.info("Started Pyro4 nameserver daemon")
+
   #Start the Pyro4 daemon thread listening for status requests and receiver 'putState's:
   pyro_thread = threading.Thread(target=camera._servePyroRequests, name='PyroDaemon')
   pyro_thread.daemon = True
   pyro_thread.start()
+  logger.info("Started Pyro4 communication process to serve camera connections")
   #The daemon threads will continue to spin for eternity....
 
 
+def SignalHandler(signum=None,frame=None):
+  """Called when a signal is received that would result in the programme exit, if the
+     RegisterCleanup() function has been previously called to set the signal handlers and
+     define an exit function using the 'atexit' module.
+
+     Note that exit functions registered by atexit are NOT called when the programme exits due
+     to a received signal, so we must trap signals where possible. The cleanup function will NOT
+     be called when signal 9 (SIGKILL) is received, as this signal cannot be trapped.
+  """
+  logger.error("Signal %d received." % signum)
+  sys.exit(-signum)    #Called by signal handler, so exit with a return code indicating the signal received
+
+
+def RegisterCleanup(func):
+  """Traps a number of signals that would result in the program exit, to make sure that the
+     function 'func' is called before exit. The calling process must define its own cleanup
+     function - typically this would shut down anything that needs to be stopped cleanly.
+
+     We don't need to trap signal 2 (SIGINT), because this is internally handled by the python
+     interpreter, generating a KeyboardInterrupt exception - if this causes the process to exit,
+     the function registered by atexit.register() will be called automatically.
+  """
+  global SIGNAL_HANDLERS, CLEANUP_FUNCTION
+  CLEANUP_FUNCTION = func
+  for sig in [3,15]:
+    SIGNAL_HANDLERS[sig] = signal.signal(sig,SignalHandler)   #Register a signal handler
+  SIGNAL_HANDLERS[1] = signal.signal(1,signal.SIG_IGN)
+  atexit.register(CLEANUP_FUNCTION)       #Register the passed CLEANUP_FUNCTION to be called on
+                                          #  normal programme exit, with no arguments.
+
+
+def cleanup():
+  """Registers to be called just before exit by the exit handler.
+     Warms up the camera, and waits for the temperature to hit -20C before
+     exiting, then calls camera.ShutDown()
+  """
+  logger.info("Exiting Andor.py program - here's why: " + traceback.print_exc())
+  try:
+    ns_process.poll()
+    if ns_process.returncode is not None:
+      ns_process.terminate()
+      logger.info("Pyro4 name server shut down")
+    if camera.status.initialized:
+      logger.info("Acquiring lock on camera to prepare for shutdown")
+      camera.Lock()   #Make sure clients don't use the camera while we are shutting down.
+      logger.info("Turning off camera cooler")
+      camera.CoolerOff()
+      temp = camera.GetTemperature()
+      while temp < -20:
+        logger.info("Waiting for camera to warm up to -20C - currently %6.1f")
+        time.sleep(5)
+  finally:
+    if camera.status.initialized:
+      camera._ShutDown()    #Shut down the camera API cleanly
+      logger.info("Andor camera API ShutDown.")
+
 
 if __name__ == '__main__':
+  RegisterCleanup(cleanup)
   InitServer()
   while True:
     time.sleep(1)
