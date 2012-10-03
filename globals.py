@@ -12,7 +12,7 @@ CHILLER = False    #True if chiller unit connected.
 FOCUSER = False    #True if focuser unit connected.
 
 LOGLEVEL = logging.DEBUG           #Master log level - messages below this will be ignored.
-LOGLEVEL_CONSOLE = logging.ERROR      #Minimum log level for console messages (INFO, DEBUG, ERROR, CRITICAL, etc)
+LOGLEVEL_CONSOLE = logging.INFO      #Minimum log level for console messages (INFO, DEBUG, ERROR, CRITICAL, etc)
 LOGLEVEL_LOGFILE = logging.DEBUG       #Minimum log level for logfile
 LOGFILE = "/tmp/Camera.log"
 
