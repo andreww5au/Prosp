@@ -31,8 +31,6 @@ ns_process = None
 SIGNAL_HANDLERS = {}
 CLEANUP_FUNCTION = None
 
-connected = False    #True if 'init()' has been called, and we are talking to a real CCD camera.
-
 AndorPath = '/usr/local/etc/andor' + ('\x00'*100)
 
 
@@ -356,7 +354,6 @@ class CameraStatus(object):
   def empty(self):
     """Called by __init__ or manually to clear status"""
     self.initialized = False
-    self.connected = False
     #Amplifier and readout parameters - unique to Andor camera
     self.highcap = None      #Is HighCapacity mode on?
     self.preamp = None       #PreAmp gain index
@@ -508,7 +505,6 @@ class Camera(object):
 
   def _ShutDown(self):
     procret(pyandor.ShutDown(),'ShutDown')
-    self.status.connected = False
     self.status.initialized = False
 
   def _servePyroRequests(self):
@@ -770,12 +766,19 @@ def InitClient():
      real camera object.
   """
   global camera
+  connected = False
   try:
     camera = Pyro4.Proxy('PYRONAME:AndorCamera')
+    connected = True
   except Pyro4.errors.PyroError:
     logger.error("Can't connect to camera server - run Andor.py to start the server")
   camera.status = CameraStatus()
-  camera.status.update()
+  try:
+    camera.status.update()
+  except Pyro4.errors.PyroError:
+    pass
+  return connected and camera.status.initialized   #True if we have a valid proxy, and the camera on the other end
+                                                   #  has been initialized.
 
 
 def InitServer():
@@ -788,14 +791,10 @@ def InitServer():
     camera._Initialize()
     camera._Setup()
   except:
-    camera.status.connected = False
-    raise CameraError("Andor in use or not reachable")
-  else:
-    if camera.status.initialized:
-      camera.status.connected = True
-    else:
-#      raise CameraError('Andor initialization failed.')
-      pass
+    camera.initialized = False
+    logger.error("Andor in use or not reachable")
+    return False
+
   logger.info(camera.status)
 
   ns_process = Popen(shlex.split("python -Wignore -m Pyro4.naming --host=0.0.0.0"))
@@ -807,6 +806,8 @@ def InitServer():
   pyro_thread.start()
   logger.info("Started Pyro4 communication process to serve camera connections")
   #The daemon threads will continue to spin for eternity....
+
+  return True
 
 
 def SignalHandler(signum=None,frame=None):
@@ -845,7 +846,7 @@ def cleanup():
      Warms up the camera, and waits for the temperature to hit -20C before
      exiting, then calls camera.ShutDown()
   """
-  logger.info("Exiting Andor.py program - here's why: " + traceback.print_exc())
+  logger.info("Exiting Andor.py program - here's why: %s" % traceback.print_exc())
   try:
     ns_process.poll()
     if ns_process.returncode is not None:

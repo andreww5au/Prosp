@@ -66,7 +66,7 @@ class FITS(fits.FITS):
     if not hasattr(self,'data'):
       print "FITS object has no data section to operate on."
       return 0
-    if string.find(self.comments["HISTORY"],"BIAS: ")>-1:
+    if self.comments["HISTORY"].find("BIAS: ") > -1:
       print "Can't bias subtract, image already bias subtracted."
       return 0
 
@@ -130,10 +130,10 @@ class FITS(fits.FITS):
     if not hasattr(self,'data'):
       print "FITS object has no data section to operate on."
       return 0
-    if string.find(self.comments["HISTORY"],"BIAS: ")==-1:
+    if self.comments["HISTORY"].find("BIAS: ") == -1:
       print "Can't dark subtract, image not bias corrected."
       return 0
-    if string.find(self.comments["HISTORY"],"DARK: ")>-1:
+    if self.comments["HISTORY"].find("DARK: ") > -1:
       print "Can't dark subtract, image already dark subtracted."
       return 0
 
@@ -199,13 +199,13 @@ class FITS(fits.FITS):
     if not hasattr(self,'data'):
       print "FITS object has no data section to operate on."
       return 0
-    if string.find(self.comments["HISTORY"],"BIAS: ")==-1:
+    if self.comments["HISTORY"].find("BIAS: ") == -1:
       print "Can't flatfield, image not bias corrected and trimmed."
       return 0
-    if string.find(self.comments["HISTORY"],"DARK: ")==-1:
+    if self.comments["HISTORY"].find("DARK: ") == -1:
       print "Can't flatfield, image not dark subtracted."
       return 0
-    if string.find(self.comments["HISTORY"],"FLAT: ")>-1:
+    if self.comments["HISTORY"].find("FLAT: ") > -1:
       print "Can't flatfield, image already flatfield corrected."
       return 0
 
@@ -370,17 +370,12 @@ def reduce(fpat=''):
   """bias, dark, and flatfield a set of image, leave in subdirectory 'reduced'.
      If the 'reduced' directory doesn't exist, it will be created.
 
-     If no filename argument is given, it defaults to the last CCD image
-     taken (status.path+status.lastfile).
-
      The return value will be a list of names and paths of the reduced images
      if successful. This return value can be passed to other commands, eg
      display(allocate(reduce('/data/M*.fits')))
      
      eg: reduce('/data/myVimg*.fits /data/myIimg*')
   """
-  if fpat=='':
-    fpat=status.path+status.lastfile
   return distribute(fpat,_reducefile)
 
 
@@ -393,7 +388,7 @@ def dobias(files=[]):
   """
   nfiles = distribute(files, lambda x: x)   #Expand each name for wildcards, etc
   if not nfiles:
-    swrite("dobias - No images to process.")
+    logger.warning("dobias - No images to process.")
     return 0
   im = med10(nfiles, bias=True)    #Signal overscan subtraction only for each image
   firstimage = FITS(nfiles[0],'h')    #Read in just the headers of the first image
@@ -416,7 +411,7 @@ def dodark(files=[]):
   """
   nfiles = distribute(files, lambda x: x)   #Expand each name for wildcards, etc
   if not nfiles:
-    swrite("dodark - No images to process.")
+    logger.warning("dodark - No images to process.")
     return 0
   im = med10(nfiles, bias=True)   #Signal overscan and bias image subtraction
   firstimage = FITS(nfiles[0],'h')    #Read in just the headers of the first image
@@ -445,10 +440,10 @@ def doflat(files=[], filt=None):
   if type(nfiles) == type(''):
     nfiles = [nfiles]
   if len(nfiles)>15:
-    swrite("doflat - Too many files to median, truncating to first 15 images.")
+    logger.warning("doflat - Too many files to median, truncating to first 15 images.")
     nfiles = nfiles[:15]
   if not nfiles:
-    swrite("doflat - No images to process.")
+    logger.warning("doflat - No images to process.")
     return 0
   di=[]
   for d in nfiles:
@@ -472,7 +467,7 @@ def doflat(files=[], filt=None):
   if 'MODE' not in im.headers.keys():
     ffile = 'flat%s.fits' % filt.upper()
   else:
-    ffile = 'flat%s-%s.fits' % (filt.upper(), self.headers['MODE'][1:-1])
+    ffile = 'flat%s-%s.fits' % (filt.upper(), im.headers['MODE'][1:-1])
 
   outfile = os.path.abspath(os.path.dirname(im.filename)) + ffile
   if os.path.exists(outfile):
@@ -602,7 +597,7 @@ def _reducefile(fname=''):
     os.mkdir(filedir + '/reduced')
 
   if not os.path.exists(fullfile):
-    ewrite('reducefile - Input image file not found: ' + fullfile)
+    logger.error('reducefile - Input image file not found: ' + fullfile)
     return None
 
   img = FITS(fullfile,'r')    #Load the file
@@ -621,7 +616,7 @@ def _reducefile(fname=''):
   img.save(outfile, bitpix=16)   #Save in Int16 format
   os.system('/usr/local/bin/imsex.py ' + outfile)
   _rlog(fname,filename,filterid,exptime,ccdtemp,pjd,fwhm,sky,secz)
-  swrite(filename + ' reduced: FWHM=%4.2f pixels, Sky=%d ADU' % (fwhm,sky))
+  logger.info(filename + ' reduced: FWHM=%4.2f pixels, Sky=%d ADU' % (fwhm,sky))
   return outfile
 
 

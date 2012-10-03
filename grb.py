@@ -16,8 +16,6 @@ import types
 import threading
 import improc
 from improc import reduce
-import autorun
-from autorun import auto
 import planet
 from planet import *
 import teljoy

@@ -130,6 +130,7 @@ def exptime(et=0.02):
     et = 0.02
     logger.error('Exposure time less than 0.02 seconds specified, using 0.02.')
   camera.exptime(et)
+  camera.status.update()
 
 
 def _ctrn(s=''):  #Used in 'filename' to find filectr's for matching files
@@ -211,6 +212,7 @@ def dark(s='dark'):
   camera.SetShutter(2)
   camera.status.imgtype = 'DARK'
   camera.status.object = s
+  camera.status.update()
 
 
 def bias(s='bias'):
@@ -225,6 +227,7 @@ def bias(s='bias'):
   camera.SetShutter(2)
   camera.status.imgtype = 'BIAS'
   camera.status.object = s
+  camera.status.update()
 
 
 def flat(s='flat'):
@@ -239,6 +242,7 @@ def flat(s='flat'):
   camera.SetShutter(0)
   camera.status.imgtype = 'FLAT'
   camera.status.object = s
+  camera.status.update()
 
 
 def object(s='object'):
@@ -252,6 +256,7 @@ def object(s='object'):
   camera.SetShutter(0)
   camera.status.imgtype = 'OBJECT'
   camera.status.object = s
+  camera.status.update()
 
 
 def settemp(t=-10):
@@ -259,6 +264,7 @@ def settemp(t=-10):
      eg: settemp(-12)
   """
   camera.SetTemperature(t)
+  camera.status.update()
 
 
 def cooldown():
@@ -266,19 +272,22 @@ def cooldown():
      "warmup" command.
   """
   camera.CoolerON()
+  camera.status.update()
 
 
 def warmup():
   """Shut down CCD cooler power. Use 'cooldown' to turn the power back on again.
   """
   camera.CoolerOFF()
+  camera.status.update()
 
 
 def ccdtemp(n=2):
   """Update and return CCD temperature.
   """
-  camera.GetTemperature()
-  return camera.status.temp
+  temp = camera.GetTemperature()
+  camera.status.update()
+  return temp
 
 
 def foclines(n=-1):
@@ -371,11 +380,11 @@ def go(n=1):
   timetot = (camera.status.exptime+25)*n   #Allow 25 seconds readout time per image
   logger.info('Start time '+`time.asctime(time.localtime(time.time()))`+
          ' -  End at '+`time.asctime(time.localtime(time.time()+timetot))`)
-  aborted = 0
   result = []
   try:
     for i in range(n):
       f = camera.GetFits()
+      camera.status.update()
       setheaders(f)
       f.save(os.path.join(camera.status.path,camera.status.nextfile))
       result.append(os.path.join(camera.status.path,camera.status.nextfile))
@@ -386,7 +395,6 @@ def go(n=1):
       xpa.display(f.filename)
   except KeyboardInterrupt:
     logger.error("Exposure aborted, dumping image.")
-    aborted = 1
   print '\7'
   if len(result) == 1:
     return result[0]
@@ -394,21 +402,21 @@ def go(n=1):
     return result
 
 
-def shutdown():
-  """Shut down the Andor camera interface and exit the main program.
-  """
-  camera.ShutDown()
-  sys.exit()
+def init():
+  global camera, connected, gzero
+  connected = Andor.InitClient()
+  camera = Andor.camera
+  camera.status = ExtendedCameraStatus()
+  camera.status.imgtype = 'OBJECT'
+  camera.status.update()
+
+  gzero = GuideZero(0,0)
+  if os.path.exists('/data/guidezero'):
+    f = open('/data/guidezero','r')
+    gzero = cPickle.load(f)
+    f.close()
 
 #Module initialisation section
 
-gzero = GuideZero(0,0)
-if os.path.exists('/data/guidezero'):
-  f = open('/data/guidezero','r')
-  gzero = cPickle.load(f)
-  f.close()
-
-Andor.InitClient()
-camera = Andor.camera
-camera.status = ExtendedCameraStatus()
-camera.status.imgtype = 'OBJECT'
+if __name__ == '__main__':
+  init()
