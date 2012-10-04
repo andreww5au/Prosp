@@ -204,7 +204,8 @@ def monitor(arg=None, close=None, open=None, delay=None):
 sys.ps1=Prompt()
 
 AnCommands.init()        #Call the init() function in the library to open
-                         #  communications with the camera
+from AnCommands import *
+
 status = AnCommands.camera.status  #Define a status variable using the new class
 status.TJ = teljoy.status
 status.TJ.updated = status.updated  #Flag main status updated when TJ changes
@@ -212,13 +213,13 @@ status.weather = weather.status
 status.MonitorActive = 0
 status.isdark = 1
 status.lastact = time.time()
-
-
 utils.status = status       #And the utility commands module
+
 sys.path = sys.path + ['.']   #Allow user-written modules in current dir to load
 
 if status.initialized:
   GotCamera = 1
+  logger.info("Contact established with Andor camera server.")
   if CHILLER:
     chiller.init()
     status.chiller = chiller.status
@@ -234,13 +235,6 @@ else:
   print "camera, quit this program, quit from or kill the other instance of"
   print "Prosp, and restart. Use 'ps -a' to find other instances of the"
   print "program."
-else:
-  GotCamera = 1
-  logger.info("Camera init succeeded, contact established.")
-  if CAMERA == 'Andor':
-    from AnCommands import *
-  elif CAMERA == 'Ariel':
-    from ArCommands import *
 
 
 if GotCamera:
