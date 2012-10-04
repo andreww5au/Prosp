@@ -4,7 +4,7 @@ import time
 
 from globals import *
 
-LATENCY = 0.5    #seconds between optical coupler commands
+LATENCY = 0.25   #seconds between optical coupler commands
 
 START_FILTER = 6       # I
 XGUIDER_CENTER = 1650
@@ -13,7 +13,7 @@ MIRROR_IN = 2450
 
 def init():   #Initialise at runtime
   global ser, logfile  
-  ser = serial.Serial('/dev/ttyS0', 9600, timeout=1)
+  ser = serial.Serial('/dev/ttyS0', 9600, timeout=1.0, rtscts=1)
   error = InitializeBoards()
   if not error:
     HomeFilter()
@@ -29,8 +29,10 @@ def init():   #Initialise at runtime
 def SendCommand(s=''):
   """Send a command to the optical coupler.
   """
-  ser.flush()
-  ser.write(s)
+  ser.flushInput()
+  ser.flushOutput()
+  ser.write(s+'\r')
+  logger.debug('[%s]' % s)
 
 
 def GetResponse():
@@ -40,28 +42,33 @@ def GetResponse():
   tcount = 0
   rchar = ''
 
-  while rchar <> '#' and tcount < 8:
+  while rchar <> '#' and tcount < 60:
     rchar = ser.read(1)
     if rchar:
       response.append(rchar)
     else:
       tcount += 1
-
-  return response
+  print response, 'TIMER=%d' % tcount
+  response = ''.join(response)
+  logger.debug('-->{%s}=>(%s)' % (response,response.strip()) )
+  return response.strip()
 
 
 def ParseResponse(s):
   """Parse the response string.
   """
   if (not s) or ('ERROR' in s):
+    logger.debug('Error or missing string: |%s|' % s)
     return True,-1
   elif s[0] == '#':
+    logger.debug('Prompt but no return val: |%s|' %s)
     return None,None
   else:
     try:
-      print "taking int('%s[:-1]')" % s[:-1]
+      logger.debug("taking int('%s'[:-1])" % s)
       val = int(s[:-1])
     except ValueError:
+      logger.debug('Exception taking int()')
       return 'ValueError',None
   return None,val
 
