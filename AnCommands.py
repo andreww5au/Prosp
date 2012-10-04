@@ -410,6 +410,9 @@ def init():
   camera.status.imgtype = 'OBJECT'
   camera.status.update()
 
+  if OPTICALCOUPLER:
+    opticalcoupler.init()
+
   gzero = GuideZero(0,0)
   if os.path.exists('/data/guidezero'):
     f = open('/data/guidezero','r')

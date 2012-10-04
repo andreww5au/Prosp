@@ -10,9 +10,10 @@ CAMERA = 'Andor'
 
 CHILLER = False    #True if chiller unit connected.
 FOCUSER = True    #True if focuser unit connected.
+OPTICALCOUPLER = True
 
 LOGLEVEL = logging.DEBUG           #Master log level - messages below this will be ignored.
-LOGLEVEL_CONSOLE = logging.DEBUG      #Minimum log level for console messages (INFO, DEBUG, ERROR, CRITICAL, etc)
+LOGLEVEL_CONSOLE = logging.INFO      #Minimum log level for console messages (INFO, DEBUG, ERROR, CRITICAL, etc)
 LOGLEVEL_LOGFILE = logging.DEBUG       #Minimum log level for logfile
 SLOGFILE = "/tmp/Andor.log"         #Log file for server process (Andor.py)
 CLOGFILE = "/tmp/Prosp.log"         #Log file for client process (th rest of Prosp)

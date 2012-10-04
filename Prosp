@@ -201,8 +201,10 @@ def monitor(arg=None, close=None, open=None, delay=None):
     
 
 
-sys.ps1=Prompt() 
+sys.ps1=Prompt()
 
+AnCommands.init()        #Call the init() function in the library to open
+                         #  communications with the camera
 status = AnCommands.camera.status  #Define a status variable using the new class
 status.TJ = teljoy.status
 status.TJ.updated = status.updated  #Flag main status updated when TJ changes
@@ -215,10 +217,8 @@ status.lastact = time.time()
 utils.status = status       #And the utility commands module
 sys.path = sys.path + ['.']   #Allow user-written modules in current dir to load
 
-try:
-#  raise Camera.CameraError("Camera interface disabled in Prosp, camera missing.")
-  AnCommands.init()        #Call the init() function in the library to open
-                      #communications with the camera
+if status.initialized:
+  GotCamera = 1
   if CHILLER:
     chiller.init()
     status.chiller = chiller.status
@@ -226,7 +226,7 @@ try:
   if FOCUSER:
     focuser.init()
   status.focuser = focuser.status
-except Camera.CameraError:
+else:
   GotCamera = 0
   logger.error("Camera init failed.")
   logger.error("Another program is using the hardware interface to control the camera.")

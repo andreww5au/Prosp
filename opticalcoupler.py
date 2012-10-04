@@ -406,6 +406,3 @@ def MoveMirror(mpos):
   return error
 
 
-#Initialize everything:
-
-init()
