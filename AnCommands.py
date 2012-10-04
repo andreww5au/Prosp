@@ -259,6 +259,16 @@ def object(s='object'):
   camera.status.update()
 
 
+def mode(s='bin2slow'):
+  """Change camera readout mode to the value specified. Valid modes are
+     defined in Andor.MODES, and the code to parse the mode field and set
+     the specific readout parameters is defined in Andor.Camera.SetMode().
+  """
+  ms = s.strip().lower()
+  camera.SetMode(ms)
+  camera.status.update()
+
+
 def settemp(t=-10):
   """Change regulation set point temperature, default to -10C.
      eg: settemp(-12)
