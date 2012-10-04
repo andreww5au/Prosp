@@ -863,7 +863,7 @@ def cleanup():
       logger.info("Acquiring lock on camera to prepare for shutdown")
       camera.Lock()   #Make sure clients don't use the camera while we are shutting down.
       logger.info("Turning off camera cooler")
-      camera.CoolerOff()
+      camera.CoolerOFF()
       temp = camera.GetTemperature()
       while temp < -20:
         logger.info("Waiting for camera to warm up to -20C - currently %6.1f")
