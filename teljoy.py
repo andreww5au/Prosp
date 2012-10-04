@@ -101,7 +101,7 @@ class TJstatus:
          'DomeTracking,Frozen,AutoRunning,NumRead,CurNum,'+
          'RA_GuideAcc,DEC_GuideAcc,LastError,'+
          'unix_timestamp(now())-unix_timestamp(LastMod) as lastmod '+
-         'from current');
+         'from current')
 
     c=u_curs.fetchallDict()[0]
 
@@ -150,7 +150,7 @@ def jumpid(id=''):
       time.sleep(5)
     curs.execute("insert into tjbox (Action,ObjID) values ('jumpID', '"+id+"') ")
   else:
-    ewrite("Invalid ID '"+id+"' for jumpid (must be 1 to 8 chars)")
+    logger.error("Invalid ID '"+id+"' for jumpid (must be 1 to 8 chars)")
 
 
 def jump(id='', ra='', dec='', epoch=0):
@@ -163,7 +163,7 @@ def jump(id='', ra='', dec='', epoch=0):
   """
   if (len(ra)<5 or len(ra)>12 or len(dec)<5 or len(dec)>12 or epoch<0 or
         epoch>2100):
-    ewrite("Invalid RA, Dec, or Epoch provided to teljoy.jump")
+    logger.error("Invalid RA, Dec, or Epoch provided to teljoy.jump")
   else:
     curs=db.cursor()
     while existsTJbox(curs):
@@ -179,7 +179,7 @@ def jumpoff(offra=0, offdec=0):
      eg: jumpoff(2.45,-12.13)
   """
   if abs(offra)>7200 or abs(offdec)>7200:
-    ewrite("jumpoff - Offsets must be less than 7200 arc seconds.")
+    logger.error("jumpoff - Offsets must be less than 7200 arc seconds.")
   else:
     while existsTJbox(curs):
       print "Waiting for teljoy to become free"
@@ -197,7 +197,7 @@ def offset(x,y):
   dy=y-256
   oh=-dx*scale
   od=dy*scale
-  swrite("Offset - Del RA =  "+`oh`+"arcsec\nDel Dec = "+`od`+"arcsec")
+  logger.info("Offset - Del RA =  "+`oh`+"arcsec\nDel Dec = "+`od`+"arcsec")
   print "Moving telescope - remember to do a reset position after this."
   jumpoff(oh,od)
 
@@ -208,7 +208,7 @@ def dome(azi=90):
      eg: dome(90)
   """
   if abs(azi)<0 or abs(azi)>359:
-    ewrite("teljoy.dome - Azimuth must be 0-359 degrees")
+    logger.error("teljoy.dome - Azimuth must be 0-359 degrees")
   else:
     while existsTJbox(curs):
       print "Waiting for teljoy to become free"
@@ -238,9 +238,9 @@ def pause():
   """
   global pausetime
   if not Active.isSet():
-    ewrite("Teljoy already paused, can't pause() again")
+    logger.error("Teljoy already paused, can't pause() again")
   else:
-    swrite("Teljoy Paused due to bad weather.")
+    logger.info("Teljoy Paused due to bad weather.")
     status.paused=1
     pausetime=time.time()     #Record when we've paused
     Active.clear()
@@ -253,9 +253,9 @@ def unpause():
   """
   global pausetime
   if Active.isSet():
-    ewrite("Teljoy not in Pause mode, can't unpause()")
+    logger.error("Teljoy not in Pause mode, can't unpause()")
   else:
-    swrite("Teljoy un-paused, weather OK now.")
+    logger.info("Teljoy un-paused, weather OK now.")
     pausetime=0          #Zap the pause time so the dome doesn't reclose
     shutter('OPEN')
     freeze(0)
@@ -270,13 +270,13 @@ def shutter(action='CLOSE'):
      controlled, this function will do nothing.
   """
   global ShutterAction
-  action=string.upper(string.strip(action))
+  action = action.strip().upper()
   if action=="OPEN":
     ShutterAction=1
   elif action=="CLOSE":
     ShutterAction=0
   else:
-    print "teljoy.shutter: Argument must be 'OPEN' or 'CLOSE'"
+    logger.error("teljoy.shutter: Argument must be 'OPEN' or 'CLOSE'")
 
 
 def _background():

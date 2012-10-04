@@ -1,4 +1,18 @@
 
+"""
+Pipeline control module and classes:
+
+Anything that inherits this module to define an observing pipeline should:
+  -subclass dObject and override whatever functions are desired to implement the pipeline. An
+   observation is initiated by external code calling the 'take' method on the object
+  -Add a new item in the pipeline.Pipelines dictionary, mapping from the (upper case)
+   observation type string to the pipeline class appropriate for that type of object
+  -If abbreviated names are to be possible, write a function that takes an abbreviated name
+   and returns the full name to be looked up in the database, and add that function to the
+   pipeline.TryNames list.
+
+"""
+
 import string
 import time
 import sys
@@ -19,19 +33,6 @@ import improc
 from guidestar.starposc import getstars, best 
 
 
-"""
-Pipeline control module and classes:
-
-Anything that inherits this module to define an observing pipeline should:
-  -subclass dObject and override whatever functions are desired to implement the pipeline. An
-   observation is initiated by external code calling the 'take' method on the object
-  -Add a new item in the pipeline.Pipelines dictionary, mapping from the (upper case)
-   observation type string to the pipeline class appropriate for that type of object
-  -If abbreviated names are to be possible, write a function that takes an abbreviated name
-   and returns the full name to be looked up in the database, and add that function to the
-   pipeline.TryNames list.
-
-"""
 
 Pipelines = { }  #Dictionary, mapping from (upper case) observation types to classes derived from dObject
 
@@ -71,7 +72,7 @@ class dObject(objects.Object):
       teljoy.status.update()
     logger.info("Teljoy has jumped to "+self.ObjID+": "+teljoy.status.name)
     if string.upper(teljoy.status.name)[:8] <> string.upper(self.ObjID)[:8]:   #Teljoy hasn't jumped to this object
-      ewrite("Teljoy hasn't jumped to "+self.ObjID+" - possibly too low")
+      logger.error("Teljoy hasn't jumped to "+self.ObjID+" - possibly too low")
       self.errors=self.errors+"Teljoy hasn't jumped to "+self.ObjID+" - possibly too low\n"
 
   def fileprefix(self,prefix=""):
@@ -94,7 +95,7 @@ class dObject(objects.Object):
         slist = getstars(ra=self.ObjRA, dec=self.ObjDec, epoch=self.ObjEpoch)
       except:
         slist = []
-        ewrite('Exception in guide star code')
+        logger.exception('Exception in guide star code')
         sys.excepthook(*sys.exc_info())
       bstar = None
       if slist:

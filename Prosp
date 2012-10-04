@@ -203,7 +203,7 @@ def monitor(arg=None, close=None, open=None, delay=None):
 
 sys.ps1=Prompt() 
 
-status = AnCommands.status  #Define a status variable using the new class
+status = AnCommands.camera.status  #Define a status variable using the new class
 status.TJ = teljoy.status
 status.TJ.updated = status.updated  #Flag main status updated when TJ changes
 status.weather = weather.status

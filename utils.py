@@ -14,6 +14,7 @@ domeflatDec = -20.9    #-20.9, -24.0,
 #flatlist=[ ('V',5,13.0), ('R',7,4.0), ('I',7,2.0) ]
 flatlist = [ ('B',5,None), ('V',7,None), ('R',7,None), ('I',7,None) ]
 
+status = None         #Overwritten with actual AnCommands.camera.status object by Prosp on startup
 
 from globals import *
 if CAMERA == 'Apogee':
@@ -242,14 +243,14 @@ def take(objs=[], force=0):
     objs = string.split(objs)
 
   if (not status.MonitorActive) and (not force) and len(objs)>6:
-    swrite("Monitoring mode is not switched on - aborting take command run.")
+    logger.info("Monitoring mode is not switched on - aborting take command run.")
     print "Use monitor('on') to switch on monitoring, or override by"
     print "calling, for example, ('plref ob2k038 ... eb2k05', force=1)"
     return 0
   for ob in objs:
     p = pipeline.getobject(ob)
     if not p:
-      ewrite("Object: "+ob+" not in database, or has unknown reduction pipeline type.")
+      logger.error("Object: "+ob+" not in database, or has unknown reduction pipeline type.")
     else:
       p.take()
 
@@ -286,7 +287,8 @@ def sched(objs=[],force=0,mode=0):
      anyway, add the argument 'force=1'
 
      eg: sched('plref ob2k038 ... eb2k05', force=1)
-  """
+
+
 # written by Ralph Martin
 #            April 2003
 #  grbflag=0
@@ -299,7 +301,7 @@ def sched(objs=[],force=0,mode=0):
     objs=string.replace(objs, ',', ' ')
     objs=string.split(objs)
   if (not status.MonitorActive) and (not force) and len(objs)>6:
-    swrite("Monitoring mode is not switched on - aborting take command run.")
+    logger.info("Monitoring mode is not switched on - aborting take command run.")
     print "Use monitor('on') to switch on monitoring, or override by"
     print "calling, for example, ('plref ob2k038 ... eb2k05', force=1)"
     return 0
@@ -346,7 +348,7 @@ def sched(objs=[],force=0,mode=0):
           grbRequest(flag='false')             #reset the override flag
           monEmail=1                           #waiting for object to rise
         time.sleep(2)                          #sleep for 10 seconds
-
+"""
 
 def tile(ob, side=1, offsetRA=340, offsetDec=340 ):
 #  side = take exposures to cover an area of side x side -- default 1x1
@@ -516,7 +518,7 @@ def runsched(n=0, force=0, planetmode=1):
   if n == 0:
     n = 9999
   if (not status.MonitorActive) and (not force) and (n>6):
-    swrite("Monitoring mode is not switched on - aborting take command run.")
+    logger.info("Monitoring mode is not switched on - aborting take command run.")
     print "Use monitor('on') to switch on monitoring, or override by"
     print "calling, for example, runsched(force=1)"
     return 0
@@ -533,10 +535,10 @@ def runsched(n=0, force=0, planetmode=1):
     if scheduler.best:
       errors = scheduler.best.take()
       if errors:
-        ewrite("Errors in moving to object, sleeping for 300 seconds")
+        logger.warning("Errors in moving to object, sleeping for 300 seconds")
         time.sleep(300)
     else:    #No object above horizon
-      ewrite("No object above horizon, sleeping for 300 seconds")
+      logger.warning("No object above horizon, sleeping for 300 seconds")
       time.sleep(300)
   print "runsched sequence of %d scheduler objects completed." % n
 

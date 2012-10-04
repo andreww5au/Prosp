@@ -46,7 +46,7 @@ def nextseq():
   try:
     open('/data/counters/snsearch.seq','w').write(`seq`+"\n")
   except:
-    ewrite('Error writing SNSearch sequence number file.')
+    logger.error('Error writing SNSearch sequence number file.')
   return seq
 
 
@@ -54,7 +54,7 @@ class SNObject(dObject):
 
   def writemailbox(self):
     "Write the mailbox file in the format that Vista expects"
-    swrite('writing autorun mailbox file - seq='+`self.seq`)
+    logger.info('writing autorun mailbox file - seq='+`self.seq`)
     f=open('/tmp/vista.box','w')
     f.write('Seq:     '+`self.seq`+"\r\n")  # back quotes convert to string type
     f.write('Name:    '+self.name+"\r\n")
@@ -105,22 +105,22 @@ class SNObject(dObject):
 
   def sendfilesftp(self):
     "Send image and mailbox files to vista via ftp, waiting if vista is busy"
-    swrite('snsearch - sending files via ftp')
+    logger.info('snsearch - sending files via ftp')
 
     #Temporary testing setup - convert to appropriate host/directories
     ftp=FTP(ftphost,ftpuser,ftppass)  #open connection and create
                                                 # ftp object
     ftp.cwd(ftpimagedir)
-    swrite("snsearch - ftp changed to "+ftpimagedir)
+    logger.info("snsearch - ftp changed to "+ftpimagedir)
 
     #Send image file (using binary with 8kb blocksize
     f=open(self.filename,'r')
     ftp.storbinary('STOR '+self.dosname,f,8192)
     f.close()
-    swrite("snsearch - ftp transferred "+ftpimagedir+'/'+self.dosname)
+    logger.info("snsearch - ftp transferred "+ftpimagedir+'/'+self.dosname)
 
     ftp.cwd(ftpmaildir)
-    swrite("snsearch - ftp changed to "+ftpmaildir)
+    logger.info("snsearch - ftp changed to "+ftpmaildir)
 
     self.writemailbox()
     #Send mailbox file, as 'VISTA.NEW', deleting any previous file of that name
@@ -129,7 +129,7 @@ class SNObject(dObject):
     f=open('/tmp/vista.box','r')
     ftp.storbinary('STOR VISTA.NEW',f,1024)
     f.close()
-    swrite("snsearch - ftp transferred "+ftpmaildir+'/vista.new')
+    logger.info("snsearch - ftp transferred "+ftpmaildir+'/vista.new')
 
     #Wait for vista.box to be deleted, then rename vista.new to vista.box
     while ('VISTA.BOX' in ftp.nlst()):
@@ -137,7 +137,7 @@ class SNObject(dObject):
       time.sleep(5)
     ftp.rename('VISTA.NEW','VISTA.BOX')
     ftp.quit()
-    swrite("snsearch - ftp renamed VISTA.NEW to VISTA.BOX")
+    logger.info("snsearch - ftp renamed VISTA.NEW to VISTA.BOX")
 
 
   def sendfilessql(self):
@@ -148,7 +148,7 @@ class SNObject(dObject):
     print "WARNING! Communication with Vista disables, uncomment"
     print "the three lines above this message in snsearch.py!"
     self.writesqlbox()
-    swrite("snsearch - SQL mailbox written to Vista")
+    logger.info("snsearch - SQL mailbox written to Vista")
 
 
   def reduce(self):
@@ -163,7 +163,7 @@ class SNObject(dObject):
       curs.execute("update sn.targets set lastobs=NOW() where ObjID='"+self.ObjID+
          "' or altID='"+self.ObjID+"' ")
     else:
-      ewrite("snsearch - Error processing "+self.ObjID+", aborting processing.")
+      logger.error("snsearch - Error processing "+self.ObjID+", aborting processing.")
       self.errors="snsearch - Error processing "+self.ObjID+", aborting processing."
 
 
@@ -172,9 +172,9 @@ class SNObject(dObject):
 
 pipeline.Pipelines['IMAGE']=SNObject
 
-swrite('SNSearch module connecting to database')
+logger.info('SNSearch module connecting to database')
 db=MySQLdb.Connection(host='mysql', user='honcho', passwd='',
                       db='teljoy', cursorclass=DictCursor)
 curs=db.cursor()
-swrite('connected')
+logger.info('connected')
 
