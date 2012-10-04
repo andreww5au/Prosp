@@ -14,24 +14,44 @@ FOCUSER = False    #True if focuser unit connected.
 LOGLEVEL = logging.DEBUG           #Master log level - messages below this will be ignored.
 LOGLEVEL_CONSOLE = logging.INFO      #Minimum log level for console messages (INFO, DEBUG, ERROR, CRITICAL, etc)
 LOGLEVEL_LOGFILE = logging.DEBUG       #Minimum log level for logfile
-LOGFILE = "/tmp/Camera.log"
+SLOGFILE = "/tmp/Andor.log"         #Log file for server process (Andor.py)
+CLOGFILE = "/tmp/Prosp.log"         #Log file for client process (th rest of Prosp)
 
-# create global logger object for Facility Controller
-logger = logging.getLogger("Camera")
-logger.setLevel(LOGLEVEL)
-# create file handler which logs even debug messages, formatted with timestamps
-fh = logging.FileHandler(LOGFILE)
-fh.setLevel(LOGLEVEL_LOGFILE)
-ff = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s  %(message)s")
-fh.setFormatter(ff)
-# create console handler with a higher log level, and without timestamps
-ch = logging.StreamHandler()
-ch.setLevel(LOGLEVEL_CONSOLE)
-cf = logging.Formatter("%(name)s-%(levelname)s  %(message)s")
-ch.setFormatter(cf)
-# add the handlers to the logger
-logger.addHandler(fh)
-logger.addHandler(ch)
+
+logger = None
+slogger = None
+def InitLogging():
+  global logger, slogger
+  #create two formatters, one with timestamps for files, the other without, for console
+  filef = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s  %(message)s")
+  conf = logging.Formatter("%(name)s-%(levelname)s  %(message)s")
+
+  # create two file handlers, for server and client
+  sfh = logging.FileHandler(SLOGFILE)
+  sfh.setLevel(LOGLEVEL_LOGFILE)
+  sfh.setFormatter(filef)
+  cfh = logging.FileHandler(CLOGFILE)
+  cfh.setLevel(LOGLEVEL_LOGFILE)
+  cfh.setFormatter(filef)
+
+  # create console handler with a higher log level, and without timestamps
+  conh = logging.StreamHandler()
+  conh.setLevel(LOGLEVEL_CONSOLE)
+  conh.setFormatter(conf)
+
+  # create global logger object
+  logger = logging.getLogger("Camera")
+  logger.setLevel(LOGLEVEL)
+  slogger = logging.getLogger("Camera.server")
+
+  # add the handlers to the logger
+  logger.addHandler(cfh)
+  logger.addHandler(conh)
+  slogger.addHandler(sfh)
+  slogger.addHandler(conh)
+
+
+InitLogging()
 
 #filters=['Clear', 'Red', '4450', '9500', 'Visual', 'Infrared', 'Empty', '7260']
 #Old PLANET filter set, plus Peter's narrowband filters. Clear slot was empty,

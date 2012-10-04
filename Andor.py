@@ -17,6 +17,7 @@ import signal
 import atexit
 import shlex
 from subprocess import Popen
+import logging
 
 import pyandor
 import fits
@@ -32,6 +33,8 @@ SIGNAL_HANDLERS = {}
 CLEANUP_FUNCTION = None
 
 AndorPath = '/usr/local/etc/andor' + ('\x00'*100)
+
+MODES = ['bin1slow', 'bin1fast', 'bin2slow', 'bin2fast', 'center']
 
 
 DRV_ERRS = {20001:'DRV_ERROR_CODES',
@@ -557,36 +560,39 @@ class Camera(object):
   def SetMode(self, mode='bin2slow'):
     """Set a bunch of camera parameters for a predefined mode
     """
+    if (type(mode) != str) or (mode.lower() not in MODES):
+      logger.error('Invalid readout mode: %s')
+      return
     with self.lock:
-      if mode == 'bin2slow':
+      if mode.lower() == 'bin2slow':
         self._SetSubimage(1,XSIZE,1,YSIZE)
         self._SetBinning(2,2)      #1k x 1k, 27um pixels
         self._SetHSSpeed(3)        #50kHz, ~20 sec readout at 2x2 binning
         self._SetVSSpeed(1)        #77ms
         self._SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
         self._SetHighCapacity(False)
-      elif mode == 'bin2fast':
+      elif mode.lower() == 'bin2fast':
         self._SetSubimage(1,XSIZE,1,YSIZE)
         self._SetBinning(2,2)      #1k x 1k, 27um pixels
         self._SetHSSpeed(2)        #1MHz, ~1 sec readout at 2x2 binning
         self._SetVSSpeed(1)        #77ms
         self._SetPreAmpGain(0)     #Gain of 1.0. Note, use PreAmpGain=2 (4.0) for 1x1 binning.
         self._SetHighCapacity(False)
-      elif mode == 'unbinslow':
+      elif mode.lower() == 'bin1slow':
         self._SetSubimage(1,XSIZE,1,YSIZE)
         self._SetBinning(1,1)      #2k x 2k, 13.5um pixels
         self._SetHSSpeed(3)        #50kHz, ~84 sec readout at 1x1 binning
         self._SetVSSpeed(1)        #77ms
         self._SetPreAmpGain(2)     #Gain of 4.0. Note, use PreAmpGain=0 (1.0) for 2x2 binning.
         self._SetHighCapacity(False)
-      elif mode == 'unbinfast':
+      elif mode.lower() == 'bin1fast':
         self._SetSubimage(1,XSIZE,1,YSIZE)
         self._SetBinning(1,1)      #2k x 2k, 13.5um pixels
         self._SetHSSpeed(2)        #1MHz, ~4 sec readout at 1x1 binning
         self._SetVSSpeed(1)        #77ms
         self._SetPreAmpGain(2)     #Gain of 4.0. Note, use PreAmpGain=0 (1.0) for 2x2 binning.
         self._SetHighCapacity(False)
-      elif mode == 'centre':
+      elif mode.lower() == 'centre':
         self._SetSubimage(897,1152,897,1152)   #256x256 unbinned or 128x128 binned
         self._SetBinning(2,2)      #1k x 1k, 27um pixels
         self._SetHSSpeed(2)        #1MHz, ~1 sec readout at 2x2 binning
@@ -765,7 +771,8 @@ def InitClient():
   """Connect to the server process and create a proxy object to the
      real camera object.
   """
-  global camera
+  global camera, logger
+  logger = logging.getLogger('Camera')
   connected = False
   try:
     camera = Pyro4.Proxy('PYRONAME:AndorCamera')
@@ -782,8 +789,8 @@ def InitClient():
 
 
 def InitServer():
-  global camera
-  global pyro_thread, ns_process
+  global camera, pyro_thread, ns_process, logger
+  logger = logging.getLogger('Camera.Server')
   camera = Camera()
 
   logger.info("Python Andor interface initialising")
