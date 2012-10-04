@@ -48,7 +48,7 @@ def GetResponse():
       response.append(rchar)
     else:
       tcount += 1
-  print response, 'TIMER=%d' % tcount
+#  print response, 'TIMER=%d' % tcount
   response = ''.join(response)
   logger.debug('-->{%s}=>(%s)' % (response,response.strip()) )
   return response.strip()

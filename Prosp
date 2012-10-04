@@ -208,7 +208,6 @@ from AnCommands import *
 
 status = AnCommands.camera.status  #Define a status variable using the new class
 status.TJ = teljoy.status
-status.TJ.updated = status.updated  #Flag main status updated when TJ changes
 status.weather = weather.status
 status.MonitorActive = 0
 status.isdark = 1

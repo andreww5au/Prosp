@@ -146,12 +146,6 @@ class _Weather:
       self.weathererror = "Weather database not updated for " + `self.lastmod` + " seconds."
 
     self.checkweather()
-    self.updated()   #Call the 'updated' function to indicate fresh contents
-
-
-  def updated(self):
-    "Empty stub, override if desired. Called when status contents change"
-    pass
 
 
 

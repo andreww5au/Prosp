@@ -114,17 +114,6 @@ class TJstatus:
       self.name="(no info)"
       self.lastmod=tmp
 
-    self.updated()   #Call the 'updated' function to indicate fresh contents
-
-  def updated(self):
-    "Empty stub, override if desired. Called when status contents change"
-
-  def __getstate__(self):   #Pickle module can't save external functions
-    "Return all attributes of the instance except for 'updated'"
-    d=self.__dict__.copy()
-    del d['updated']
-    return d
-
 
 def existsTJbox(curs):
   """Returns true if the tjbox table has an entry. Takes one parameter, the
