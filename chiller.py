@@ -32,7 +32,7 @@ def _background():
     if (w > -90.0) and (s > -90.0):
       status.lastchillerchecktime = time.time()
     else:
-      globals.ewrite('Unable to get watertemp, settemp from chiller unit')
+      globals.logger.error('Unable to get watertemp, settemp from chiller unit')
       status.lastchillerchecktime = time.time() - 240       #If there was an error, try again in 1 minutes
     logfile.write("%s\t%4.1f\t%4.1f\t%4.1f\t%4.1f \n" % (time.asctime(), weather.status.temp, status.watertemp,
                                                      status.setpoint, weather.status.dewpoint) )

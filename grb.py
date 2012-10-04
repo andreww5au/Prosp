@@ -1,11 +1,12 @@
 #""" Gamma ray burst - monitor for GRB email"""
 
+from globals import *
 #!/usr/bin/python -i
 backgrounds=[]
 try:
   import readline
 except ImportError:
-  ewrite("Module readline not available.")
+  logger.error("Module readline not available.")
 else:
   import rlcompleter
   readline.parse_and_bind("tab: complete")
@@ -142,7 +143,7 @@ def checkgrb(self, M):
          else:
             continue # not GRB email
 
-         if string.find (message,'SWIFT-BAT GRB POSITION') > -1 or string.find(message,'SWIFT-BAT GRB NACK-POSITION') >-1
+         if string.find (message,'SWIFT-BAT GRB POSITION') > -1 or string.find(message,'SWIFT-BAT GRB NACK-POSITION') >-1:
 #           format  NOTICE_TYPE:   Swift-BAT GRB Postion
             print 'Found Swift position notice'
          else:
@@ -182,7 +183,7 @@ def checkgrb(self, M):
             ebString = message[lowpos+10:endpos]
             ebString = string.strip (ebString)
             errorbox=string.atof(ebString)
-            print ebstring
+            print ebString
          elif (string.find (message,'WXM_MAX_SIZE:') >-1 or 
                string.find (message,'SXC_MAX_SIZE:') >-1):
             print 'Found error box (2)'

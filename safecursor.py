@@ -1,5 +1,5 @@
 
-from globals import ewrite
+from globals import logger
 
 import MySQLdb
 from MySQLdb.cursors import DictCursor
@@ -16,12 +16,12 @@ class SafeCursor(DictCursor):
     try:
       return DictCursor.execute(self, query, args)
     except MySQLdb.OperationalError:
-     ewrite("One OperationalError exception in MySQL call")
-     try:
-       return DictCursor.execute(self, query, args)
-     except MySQLdb.OperationalError:
-       ewrite("Two OperationalError exceptions in MySQL call, giving up")
-       raise
+      logger.error("One OperationalError exception in MySQL call")
+    try:
+      return DictCursor.execute(self, query, args)
+    except MySQLdb.OperationalError:
+      logger.error("Two OperationalError exceptions in MySQL call, giving up")
+      raise
 
   def __del__(self):
     DictCursor.__del__(self)

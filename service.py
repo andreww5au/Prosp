@@ -26,7 +26,7 @@ def check():
     bestake = GetBestFocusStar(float(hn.date))   #Get current best focus star
     errors = bestake.take() 
     if errors:
-      ewrite("Error executing 'take' command for focus observation")
+      logger.error("Error executing 'take' command for focus observation")
     LastFocusTime = time.time()
 
 
