@@ -11,7 +11,7 @@
 import time
 import sys
 import Pyro4
-Pyro4.config.HMAC_KEY = "Froople, Froople, Twiggle and Mice"
+#Pyro4.config.HMAC_KEY = "Froople, Froople, Twiggle and Mice"
 import traceback
 import threading
 import signal
