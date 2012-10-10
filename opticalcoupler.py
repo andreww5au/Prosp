@@ -9,7 +9,7 @@ LATENCY = 0.25   #seconds between optical coupler commands
 START_FILTER = 6       # I
 XGUIDER_CENTER = 1650
 YGUIDER_CENTER = 1115
-MIRROR_IN = 2450
+MIRROR_IN = 2300
 
 def init():   #Initialise at runtime
   global ser, logfile  
