@@ -402,7 +402,7 @@ def go(n=1):
       _setcounter()
       filectr(camera.status.filectr + 1)
       camera.status.lastact = time.time()   #Record the time that the last image was taken
-      xpa.displayimage(f)
+      xpa.display(f.filename)
   except KeyboardInterrupt:
     logger.error("Exposure aborted, dumping image.")
   print '\7'
@@ -418,6 +418,7 @@ def init():
   camera = Andor.camera
   camera.status = ExtendedCameraStatus()
   camera.status.imgtype = 'OBJECT'
+  filename('junk')
   camera.status.update()
 
   if OPTICALCOUPLER:
