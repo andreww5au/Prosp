@@ -34,7 +34,7 @@ CLEANUP_FUNCTION = None
 
 AndorPath = '/usr/local/etc/andor' + ('\x00'*100)
 
-MODES = ['bin1slow', 'bin1fast', 'bin2slow', 'bin2fast', 'center']
+MODES = ['bin1slow', 'bin1fast', 'bin2slow', 'bin2fast', 'centre']
 
 
 DRV_ERRS = {20001:'DRV_ERROR_CODES',
@@ -411,10 +411,10 @@ class Camera(object):
     self.status = CameraStatus()
     self.lock = threading.RLock()
 
-  def GetCapabilities(self):
-    """Grab the current camera capeabilities, and compare them to the values stored in
+  def _GetCapabilities(self):
+    """Grab the current camera capabilities, and compare them to the values stored in
        record above. If there's a difference, it means the Andor driver has been updated,
-       and new capeabilities are available. If so, inspect the .h file, read the new
+       and new capabilities are available. If so, inspect the .h file, read the new
        driver docs, and update the source code.
     """
     ac = pyandor.AndorCapabilities()
