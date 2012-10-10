@@ -33,6 +33,8 @@ ns_process = None
 SIGNAL_HANDLERS = {}
 CLEANUP_FUNCTION = None
 
+exitnow = False   #Set to true to force program exit.
+
 AndorPath = '/usr/local/etc/andor' + ('\x00'*100)
 
 MODES = ['bin1slow', 'bin1fast', 'bin2slow', 'bin2fast', 'centre']
@@ -426,7 +428,6 @@ class Camera(object):
         logger.warning("New Capability: group %s is now %d, not %d. Update Andor.py source." % (group,ac.__getattr__(group),value))
     return ac
 
-
   def _SetHSSpeed(self, n=2):
     if n in HSSpeeds.keys():
       procret(pyandor.SetHSSpeed(0,n), 'SetHSSpeed')
@@ -550,11 +551,12 @@ class Camera(object):
   #####  Public methods, available to the proxy client  #############
 
   def Exit(self):
-    """Flag the status as not initialized - the main loop will detect this and exit
-       cleanly, calling the exit function to Lock the camera, start the CCD warming, and
+    """Flag an immediate exit - the main loop will detect this and exit
+       cleanly, calling the cleanup function to Lock the camera, start the CCD warming, and
        wait for the temp to hit -20C before calling _ShutDown() and exiting.
     """
-    self.status.initialized = False
+    global exitnow
+    exitnow = True
 
   def getStatus(self):
     """Return the status object - needed for use by proxies, since attributes
@@ -889,5 +891,5 @@ def cleanup():
 if __name__ == '__main__':
   RegisterCleanup(cleanup)
   InitServer()
-  while camera.status.initialized:    #Exit the daemon if we lose (or are told to drop) contact with the camera
+  while not exitnow:    #Exit the daemon if we are told to
     time.sleep(1)
