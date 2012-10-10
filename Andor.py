@@ -548,6 +548,13 @@ class Camera(object):
 
   #####  Public methods, available to the proxy client  #############
 
+  def Exit(self):
+    """Flag the status as not initialized - the main loop will detect this and exit
+       cleanly, calling the exit function to Lock the camera, start the CCD warming, and
+       wait for the temp to hit -20C before calling _ShutDown() and exiting.
+    """
+    self.status.initialized = False
+
   def getStatus(self):
     """Return the status object - needed for use by proxies, since attributes
        don't work.
@@ -802,7 +809,7 @@ def InitServer():
     camera._Initialize()
     camera._Setup()
   except:
-    camera.initialized = False
+    camera.status.initialized = False
     logger.error("Andor in use or not reachable")
     return False
 
@@ -860,7 +867,7 @@ def cleanup():
   logger.info("Exiting Andor.py program - here's why: %s" % traceback.print_exc())
   try:
     ns_process.poll()
-    if ns_process.returncode is not None:
+    if ns_process.returncode is None:
       ns_process.terminate()
       logger.info("Pyro4 name server shut down")
     if camera.status.initialized:
@@ -870,7 +877,7 @@ def cleanup():
       camera.CoolerOFF()
       temp = camera.GetTemperature()
       while temp < -20:
-        logger.info("Waiting for camera to warm up to -20C - currently %6.1f")
+        logger.info("Waiting for camera to warm up to -20C - currently %6.1f" % temp)
         time.sleep(5)
   finally:
     if camera.status.initialized:
@@ -881,5 +888,5 @@ def cleanup():
 if __name__ == '__main__':
   RegisterCleanup(cleanup)
   InitServer()
-  while True:
+  while camera.status.initialized:    #Exit the daemon if we lose (or are told to drop) contact with the camera
     time.sleep(1)
