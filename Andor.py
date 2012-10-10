@@ -564,7 +564,7 @@ class Camera(object):
     """Set a bunch of camera parameters for a predefined mode
     """
     if (type(mode) != str) or (mode.lower() not in MODES):
-      logger.error('Invalid readout mode: %s')
+      logger.error('Invalid readout mode: %s not in %s' % (mode, MODES))
       return
     with self.lock:
       if mode.lower() == 'bin2slow':
