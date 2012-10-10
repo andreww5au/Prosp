@@ -390,7 +390,7 @@ def dobias(files=[]):
   if not nfiles:
     logger.warning("dobias - No images to process.")
     return 0
-  im = med10(nfiles, bias=True)    #Signal overscan subtraction only for each image
+  im = med10(nfiles, bias=False)    #Signal overscan subtraction only for each image
   firstimage = FITS(nfiles[0],'h')    #Read in just the headers of the first image
   if 'MODE' not in firstimage.headers.keys():
     bfile = 'bias.fits'
