@@ -205,6 +205,7 @@ defheaders = {'CREATOR':"'Andor.py version xxxxx'",
               'SATLEVEL':`SATLEVEL`,
               'DATE-OBS':"'%d-%d-%d'",
               'TIME-OBS':"'%d:%d:%d'",
+              'EXPTIME':"0.0",
               'OBSERVER':"''",
               'NAXIS1':"2048",
               'NAXIS2':"2048",
@@ -242,6 +243,7 @@ defcomments = {'OBSERVAT':"'Observatory name'",
                'SATLEVEL':"'Sat threshold, in e-, not inc. bias offset'",
                'DATE-OBS':"'Date of start of exposure'",
                'TIME-OBS':"'Time of start of exposure'",
+                'EXPTIME':"'Exposure time in seconds'",
                'OBSERVER':"'Name of observer'",
                  'NAXIS1':"'Fastest changing axis'",
                  'NAXIS2':"'Next fastest changing axis'",
@@ -323,21 +325,6 @@ def retok():
      indicate a succesful function call.
   """
   return retval == pyandor.DRV_SUCCESS     #20002
-
-
-def GetCapabilities(self):
-  """Grab the current camera capeabilities, and compare them to the values stored in
-     record above. If there's a difference, it means the Andor driver has been updated,
-     and new capeabilities are available. If so, inspect the .h file, read the new
-     driver docs, and update the source code.
-  """
-  ac = pyandor.AndorCapabilities()
-  ac.initsize()
-  procret(pyandor.GetCapabilities(ac),'GetCapabilities')
-  for group,value in CAPS.items():
-    if ac.__getattr__(group) <> value:
-      logger.warning("New Capability: group %s is now %d, not %d. Update Andor.py source." % (group,ac.__getattr__(group),value))
-  return ac
 
 
 
@@ -424,6 +411,21 @@ class Camera(object):
     self.status = CameraStatus()
     self.lock = threading.RLock()
 
+  def GetCapabilities(self):
+    """Grab the current camera capeabilities, and compare them to the values stored in
+       record above. If there's a difference, it means the Andor driver has been updated,
+       and new capeabilities are available. If so, inspect the .h file, read the new
+       driver docs, and update the source code.
+    """
+    ac = pyandor.AndorCapabilities()
+    ac.initsize()
+    procret(pyandor.GetCapabilities(ac),'GetCapabilities')
+    for group,value in CAPS.items():
+      if ac.__getattr__(group) <> value:
+        logger.warning("New Capability: group %s is now %d, not %d. Update Andor.py source." % (group,ac.__getattr__(group),value))
+    return ac
+
+
   def _SetHSSpeed(self, n=2):
     if n in HSSpeeds.keys():
       procret(pyandor.SetHSSpeed(0,n), 'SetHSSpeed')
@@ -504,6 +506,7 @@ class Camera(object):
     procret(pyandor.SetAcquisitionMode(1), 'SetAcquisitionMode')   #Single image
     self.SetShutter(0)
     self.SetMode('bin2slow')
+    self.exptime(0.1)
     self.GetTemperature()
 
   def _ShutDown(self):
@@ -743,6 +746,7 @@ class Camera(object):
     f.headers['NAXIS2'] = `ysize`
     f.headers['DATE-OBS'] = "'%d-%02d-%02d'" % (stime.tm_year, stime.tm_mon, stime.tm_mday)
     f.headers['TIME-OBS'] = "'%02d:%02d:%02d'" % (stime.tm_hour, stime.tm_min, stime.tm_sec)
+    f.headers['EXPTIME'] = "%8.2f" % self.status.exptime
     f.headers['COOLER'] = "'%s'" % {False:'OFF', True:'ON'}[self.status.cool]
     f.headers['TEMPSTAT'] = "'%s'" % self.status.tempstatus
     f.headers['CCDTEMP'] = "%6.2f" % ccdtemp
