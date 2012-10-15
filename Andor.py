@@ -888,7 +888,7 @@ def InitServer():
     camera._Setup()
   except:
     camera.status.initialized = False
-    logger.error("Andor in use or not reachable")
+    logger.exception("Andor in use or not reachable")
     return False
 
   logger.info(camera.status)
