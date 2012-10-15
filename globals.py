@@ -44,7 +44,7 @@ def InitLogging():
   # create global logger object
   logger = logging.getLogger("Camera")
   logger.setLevel(LOGLEVEL)
-  slogger = logging.getLogger("Camera.server")
+  slogger = logging.getLogger("Camera.Server")
 
   # add the handlers to the logger
   logger.addHandler(cfh)
