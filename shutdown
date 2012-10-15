@@ -1,11 +1,17 @@
 #!/usr/bin/python
 
+import sys
+
 import Andor
+
+if len(sys.argv) == 2:
+  reason = sys.argv[1]
+elif len(sys.argv) > 2:
+  reason = ' '.join(sys.argv[1:])
 
 connected = Andor.InitClient()
 if connected:
-  Andor.camera.Exit()
-  print "Andor server shut down."
+  print "Andor server %s" % Andor.camera.Exit(reason)
 else:
   print "Andor server not running."
 

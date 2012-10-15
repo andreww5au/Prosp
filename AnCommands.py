@@ -48,6 +48,7 @@ class ExtendedCameraStatus(Andor.CameraStatus):
     s += 'mirror = %s\n' % self.mirror
     s += 'last file = %s\n' % self.lastfile
     s += 'path, nextfile = %s, %s\n' % (self.path, self.nextfile)
+    s += 'Errors: %s' % self.errors
     return s
 
 
@@ -129,7 +130,7 @@ def exptime(et=0.02):
   if et < 0.02:
     et = 0.02
     logger.error('Exposure time less than 0.02 seconds specified, using 0.02.')
-  camera.exptime(et)
+  print camera.exptime(et)
   camera.status.update()
 
 
@@ -209,7 +210,7 @@ def dark(s='dark'):
      eg: dark('dark-12C')
   """
   s = s.strip()[:80]    #truncate to 80 char to fit in FITS header
-  camera.SetShutter(2)
+  print camera.SetShutter(2)
   camera.status.imgtype = 'DARK'
   camera.status.object = s
   camera.status.update()
@@ -224,7 +225,7 @@ def bias(s='bias'):
   """
   s = s.strip()[:80]    #truncate to 80 char to fit in FITS header
   exptime(0.0)
-  camera.SetShutter(2)
+  print camera.SetShutter(2)
   camera.status.imgtype = 'BIAS'
   camera.status.object = s
   camera.status.update()
@@ -239,7 +240,7 @@ def flat(s='flat'):
      eg: flat('dark-12C')
   """
   s = s.strip()[:80]    #truncate to 80 char to fit in FITS header
-  camera.SetShutter(0)
+  print camera.SetShutter(0)
   camera.status.imgtype = 'FLAT'
   camera.status.object = s
   camera.status.update()
@@ -253,7 +254,7 @@ def object(s='object'):
      eg: object('SN1993k')
   """
   s = s.strip()[:80]    #truncate to 80 char to fit in FITS header
-  camera.SetShutter(0)
+  print camera.SetShutter(0)
   camera.status.imgtype = 'OBJECT'
   camera.status.object = s
   camera.status.update()
@@ -265,7 +266,7 @@ def mode(s='bin2slow'):
      the specific readout parameters is defined in Andor.Camera.SetMode().
   """
   ms = s.strip().lower()
-  camera.SetMode(ms)
+  print camera.SetMode(ms)
   camera.status.update()
 
 
@@ -273,7 +274,7 @@ def settemp(t=-10):
   """Change regulation set point temperature, default to -10C.
      eg: settemp(-12)
   """
-  camera.SetTemperature(t)
+  print camera.SetTemperature(t)
   camera.status.update()
 
 
@@ -281,14 +282,14 @@ def cooldown():
   """Initiate CCD cooldown by turning on CCD cooler power. Cancels any previous
      "warmup" command.
   """
-  camera.CoolerON()
+  print camera.CoolerON()
   camera.status.update()
 
 
 def warmup():
   """Shut down CCD cooler power. Use 'cooldown' to turn the power back on again.
   """
-  camera.CoolerOFF()
+  print camera.CoolerOFF()
   camera.status.update()
 
 
