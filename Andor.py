@@ -540,7 +540,7 @@ class Camera(object):
       mesg += self.SetShutter(0)
       mesg += self.SetMode('bin2slow')
       mesg += self.exptime(0.1)
-      mesg += self.GetTemperature()
+      self.GetTemperature()
     return mesg
 
   def _ShutDown(self):
@@ -861,7 +861,7 @@ def InitClient():
      real camera object.
   """
   global camera, logger
-  logger = logging.getLogger('Camera')
+  logger = logging.getLogger('Prosp')
   connected = False
   try:
     camera = Pyro4.Proxy('PYRONAME:AndorCamera')
@@ -879,7 +879,7 @@ def InitClient():
 
 def InitServer():
   global camera, pyro_thread, ns_process, logger
-  logger = logging.getLogger('Camera.Server')
+  logger = logging.getLogger('Andor')
   camera = Camera()
 
   logger.info("Python Andor interface initialising")

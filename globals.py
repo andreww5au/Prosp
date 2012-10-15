@@ -42,9 +42,9 @@ def InitLogging():
   conh.setFormatter(conf)
 
   # create global logger object
-  logger = logging.getLogger("Camera")
+  logger = logging.getLogger("Prosp")
   logger.setLevel(LOGLEVEL)
-  slogger = logging.getLogger("Camera.Server")
+  slogger = logging.getLogger("Andor")
 
   # add the handlers to the logger
   logger.addHandler(cfh)
