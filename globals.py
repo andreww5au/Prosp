@@ -45,6 +45,7 @@ def InitLogging():
   logger = logging.getLogger("Prosp")
   logger.setLevel(LOGLEVEL)
   slogger = logging.getLogger("Andor")
+  slogger.setLevel(LOGLEVEL)
 
   # add the handlers to the logger
   logger.addHandler(cfh)

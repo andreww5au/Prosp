@@ -860,8 +860,7 @@ def InitClient():
   """Connect to the server process and create a proxy object to the
      real camera object.
   """
-  global camera, logger
-  logger = logging.getLogger('Prosp')
+  global camera
   connected = False
   try:
     camera = Pyro4.Proxy('PYRONAME:AndorCamera')
@@ -879,7 +878,7 @@ def InitClient():
 
 def InitServer():
   global camera, pyro_thread, ns_process, logger
-  logger = logging.getLogger('Andor')
+  logger = slogger
   camera = Camera()
 
   logger.info("Python Andor interface initialising")
