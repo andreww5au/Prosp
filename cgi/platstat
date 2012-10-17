@@ -1,0 +1,302 @@
+#!/usr/bin/python
+
+import cgi
+import sys
+import cPickle
+import time
+import os
+import stat
+sys.path.append('/home/observer/bin/prosp2')
+from globals import *
+import weather
+import teljoy
+
+statusfile="/tmp/arstatus"    #Location of pickled status file
+
+HTMLheader="""
+<META HTTP-EQUIV="Refresh" CONTENT="5;URL=platstat">
+<html>
+<head>
+<title>PLAT Telescope and Camera Status</title>
+</head>
+<body BGCOLOR=000000 TEXT=FFFFFF LINK=cc99ff VLINK=cc99ff>
+"""
+
+HTMLtrailer="""
+<p>
+<img src="/platstat/clouds.png" height="400" width="800">
+</body>
+</html>
+"""
+
+def AddObjURL(self):
+  "Return a URL pointing to the 'Add Object' CGI"
+  if self.TJ.ObjRA:
+    return 'Click <A href="secure/nobjedit?new=1&'+ \
+           'ObjID='+self.TJ.name+'&'+ \
+           'ObjRA='+sexstring(self.TJ.ObjRA)+'&'+ \
+           'ObjDec='+sexstring(self.TJ.ObjDec)+'&'+ \
+           'ObjEpoch='+str(self.TJ.ObjEpoch)+'&'+ \
+           'filtname='+filtname(self.filter)+'&'+ \
+           'exptime='+str(self.exptime)+'&'+ \
+           'xg='+`self.xguider`+'&'+ \
+           'yg='+`self.yguider`+'">'+ \
+           'HERE</A> to add the current object to the database. &nbsp; &nbsp;'
+  else:
+    return 'Current position can not be stored in the database. &nbsp; &nbsp;'
+
+def trow(s):
+  return "<tr> "+s+"</tr>\n"
+
+def head(s):
+  return "<th> "+s+"</th>"
+
+def data(s):
+  if s:
+    return "<td>"+s+"</td>"
+  else:
+    return "<td>&nbsp;</td>"
+
+
+def ObsParams(self):
+  "Return an HTML table with the current observing parameters"
+  tmp="<B>Camera setup</B>\n <table border=1>\n"
+  tmp=tmp+trow(data("")+head("Value"))
+  if self.shutter and self.running:
+    shutemp="OPEN"
+  else:
+    shutemp="CLOSED"
+  tmp=tmp+trow(head("Shutter")+data(shutemp))
+  tmp=tmp+trow(head("Filter")+data(filtname(self.filter)))
+  tmp=tmp+trow(head("Guider")+data(`self.xguider`+","+`self.yguider`))
+  tmp=tmp+trow(head("Exp Time")+data(str(self.exptime)))
+  tmp=tmp+trow(head("Object")+data(self.object))
+  tmp=tmp+trow(head("Path")+data(self.path))
+  tmp=tmp+trow(head("Next File")+data(self.nextfile))
+  tmp=tmp+trow(head("Last File")+data(self.lastfile))
+  tmp=tmp+trow(head("Image Type")+data(self.imgtype))
+  tmp=tmp+"</table>\n"
+  return tmp
+
+
+def since(tm):
+  """Return a string containing the time in seconds since the epoch supplied.
+  """
+  return `int(time.time()-tm)`+' sec'
+
+def InstParams(self):
+  "Return an HTML table with the current instrument parameters"
+  tmp = "<B>CCD and Chiller Parameters</B>\n <table border=1> \n"
+  tmp = tmp + trow(head("Temp")+head("Set Temp")+head("Tstatus")+
+                   head("Xbin,Ybin")+head("CCD Region")+head("Overscan (X,Y)"))
+  ttmp = ""
+  if self.running:
+    if self.tmax:
+      ttmp = ttmp + "At Max "
+    if self.tmin:
+      ttmp = ttmp + "At Min "
+    if self.tset:
+      ttmp = ttmp + "At Temp "
+    else:
+      ttmp = ttmp + "Changing"
+    tmp = tmp + trow(data(str(self.temp))+
+                     data(str(self.settemp))+
+                     data(ttmp)+
+                     data(str(self.xbin)+","+str(self.ybin))+
+                     data(`self.roi`)+
+                     data(`self.xover`+","+`self.yover`))
+    tmp = tmp + trow(head("AirTemp")+head("WaterTemp")+head("SetPoint")+
+                     head("DewPoint")+head("LastChiller"))
+    tmp = tmp + trow(data(str(round(self.weather.temp,1)))+
+                     data(str(round(self.chiller.watertemp,1)))+
+                     data(str(round(self.chiller.setpoint,1)))+
+                     data(str(round(self.weather.dewpoint,1)))+
+                     data(since(self.chiller.lastchillerchecktime)) )
+
+  else:
+    tmp = tmp + trow(data("?")+
+                     data(str(self.settemp))+
+                     data("Unknown")+
+                     data(str(self.xbin)+","+str(self.ybin))+
+                     data(`self.roi`)+
+                     data(`self.xover`+","+`self.yover`))
+    tmp = tmp + trow( head('<font color="red">Prosp not running, Chiller not regulated!</font>') )
+  tmp = tmp + "</table> \n"
+  return tmp
+
+
+def TJParams(self):
+  "Write a table with the current telescope/object parameters"
+  tmp="<B>Teljoy Status</B>\n <table border=1>\n"
+  tmp=tmp+trow(data("")+head("Value"))
+  tmp=tmp+trow(head("Object ID")+data(self.TJ.name))
+  if self.TJ.ObjRA:
+    tmp=tmp+trow(head("RA")+data(sexstring(self.TJ.ObjRA)))
+    tmp=tmp+trow(head("Dec")+data(sexstring(self.TJ.ObjDec)))
+  else:
+    tmp=tmp+trow(head("RA")+data(sexstring(self.TJ.RawRA)))
+    tmp=tmp+trow(head("Dec")+data(sexstring(self.TJ.RawDec)))
+
+  if self.TJ.ObjEpoch and self.TJ.ObjRA:  #write 'Raw' if epoch of date.
+    tmp=tmp+trow(head("Epoch")+data(str(self.TJ.ObjEpoch)))
+  else:
+    tmp=tmp+trow(head("Epoch")+data("Raw"))
+  tmp=tmp+trow(head("Alt")+data(sexstring(self.TJ.Alt)))
+  tmp=tmp+trow(head("Azi")+data(sexstring(self.TJ.Azi)))
+  tmp=tmp+trow(head("LST")+data(sexstring(self.TJ.LST)))
+  flags=''
+  if self.TJ.posviolate:
+    flags=flags+'P'
+  else:
+    flags=flags+'.'
+  if self.TJ.moving:
+    flags=flags+'M'
+  else:
+    flags=flags+'.'
+  if self.TJ.EastOfPier:
+    flags=flags+'E'
+  else:
+    flags=flags+'.'
+  if self.TJ.NonSidOn:
+    flags=flags+'N'
+  else:
+    flags=flags+'.'
+  if self.TJ.DomeInUse:
+    flags=flags+'D'
+  else:
+    flags=flags+'.'
+  if self.TJ.ShutterInUse:
+    flags=flags+'S'
+  else:
+    flags=flags+'.'
+  if self.TJ.DomeTracking:
+    flags=flags+'T'
+  else:
+    flags=flags+'.'
+  if self.TJ.Frozen:
+    flags=flags+'F'
+  else:
+    flags=flags+'.'
+  if self.TJ.AutoRunning:
+    flags=flags+'A'
+  else:
+    flags=flags+'.'
+  if not self.TJ.ShutterOpen:
+    flags=flags+'C'
+  else:
+    flags=flags+'.'
+  tmp=tmp+trow(head("Flags")+data(flags))
+  tmp=tmp+trow(head("UT")+data(sexstring(self.TJ.UTDec)))
+  tmp=tmp+"</table> \n"
+  return tmp
+
+
+def yn(arg=0):
+  if arg:
+    return '<font color="red"><blink><H2>YES!</H2></blink></font>'
+  else:
+    return 'no'
+
+def ny(arg=1):
+  if arg:
+    return 'yes'
+  else:
+    return '<font color="red"><blink><H2>NO!</H2></blink></font>'
+
+def monitoring(arg):
+  if arg:
+    return "twilight,<p>rain,cloud"
+  else:
+    return "Disabled"
+
+def unyv(arg):
+  if arg==0:
+    return "?"
+  elif arg==1:
+    return "n"
+  elif arg==2:
+    return "y"
+  elif arg==3:
+    return "Y"
+  else:
+    return "E"
+
+def WeatherParams(self):
+  "Write a table with the current weather status info."
+  weather.status.update()
+  tmp="<B>Weather Status</B>\n <table border=1>\n"
+  tmp=tmp+trow(data("")+head("Value"))
+  if weather.status.skytemp:
+    tmp=tmp+trow(head("Sky Temp")+data(`weather.status.skytemp`+' C'))
+  else:
+    tmp=tmp+trow(head("Sky Temp")+data("Error"))
+  tmp=tmp+trow(head("Raining")+data(yn(weather.status.rain)))
+  tmp=tmp+trow(head("LastMod")+data(`weather.status.lastmod`+" sec"))
+  tmp = tmp + trow(head("Humidity") + data(`weather.status.humidity`+' %'))
+  tmp = tmp + trow(head("Flags") + data( 'C='+unyv(weather.status.cloudf)+
+                                        ' W='+unyv(weather.status.windf)+
+                                        ' R='+unyv(weather.status.rainf)+
+                                        ' D='+unyv(weather.status.dayf) ))
+  
+
+  if self.running:
+    tmp=tmp+trow(head("Dark")+data(ny(self.isdark)))
+    tmp=tmp+trow(head("Monitoring")+
+                 data(monitoring(self.MonitorActive)))
+
+    tmp=tmp+trow(head("Close Temp")+data(`self.weather.SkyCloseTemp`))
+    tmp=tmp+trow(head("Open Temp")+data(`self.weather.SkyOpenTemp`))
+    tmp=tmp+trow(head("Open Delay")+
+                 data(`self.weather.WeatherOpenDelay`+" sec"))
+    tmp=tmp+trow(head("Clear")+data(ny(self.weather.clear)))
+    if (not self.weather.clear) and self.weather.OKforsec:
+      tmp=tmp+trow(head("But OK for:")+data(`self.weather.OKforsec`+" sec"))
+
+  tmp=tmp+"</table> \n"
+  return tmp
+  
+
+
+def Exits():
+  return '&nbsp; &nbsp; Go to <A href="al/aobjlist">Objects Database</A>'
+
+
+print "Content-Type: text/html\n\n"
+
+print HTMLheader
+
+print "<!-- "
+f=open(statusfile,'r')
+frog=cPickle.load(f)
+f.close()
+frog.TJ=teljoy.status
+if time.time()-os.stat(statusfile)[stat.ST_MTIME]<30:
+  frog.running=1
+else:
+  frog.running=0
+print " --> \n"
+
+#print "<h3>Observing Parameters</h3>\n"
+
+print "<table border=0> \n "   #borderless outer table
+print trow(data("\n"+ObsParams(frog))+data("<br>")+ #Camera observing params
+           data(TJParams(frog))+                    #Teljoy parameters
+           data(WeatherParams(frog)) )              #Weather status
+print "</table> \n"    #End of outer borderless table
+
+if teljoy.status.LastError:
+  print "Last Teljoy Error: " + teljoy.status.LastError + "<br>\n"
+
+print "<br>\n"
+
+#print "<h3>CCD and Chiller Parameters</h3>\n"
+print InstParams(frog)
+
+print AddObjURL(frog)
+
+print Exits()
+
+print HTMLtrailer
+
+
+
