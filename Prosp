@@ -83,16 +83,17 @@ def _background():
             Alt=90        #Don't worry about low altitudes east of the zenith
         except:
           Alt=0           #If there's an error getting Alt, don't risk it, close up
-        if ( ((not status.shutter) and (time.time()-status.lastact > 3600)) or
-             ((not status.shutter) and (time.time()-status.lastact > 300) and (Alt<20)) or
-             ((not status.shutter) and (Alt<15)) or
+        if ( ((not status.imaging) and (time.time()-status.lastact > 3600)) or
+             ((not status.imaging) and (time.time()-status.lastact > 300) and (Alt<20)) or
+             ((not status.imaging) and (Alt<15)) or
              (Alt<12) ) and teljoy.Active.isSet():
           logger.warning("System Inactive or below Alt limits, pausing forever. To "+
                  "resume and open dome, type 'teljoy.unpause()'")
           teljoy.pause()
           status.MonitorActive=0
-  
+
       status.isdark=ephemint.isdark()
+      status.update()    #Get new data from Pyro server, and save pickled status object.
   
       for f in backgrounds:    #Call all the registered background functions
         try:

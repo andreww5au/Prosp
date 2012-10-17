@@ -348,6 +348,7 @@ class CameraStatus(object):
     self.temp = 999          #Latest CCD temperature 
     self.tempstatus = ''     #Latest CCD temperature regulation status - unique to Andor
     #Shutter and image type parameters
+    self.imaging = False     #True if an image is being acquired, False otherwise.
     self.shuttermode = 0     #0 for auto, 1 for open, 2 for close - unique to Andor
     self.exptime = 0.0
     #Cropping boundaries - note boundaries are INDEPENDENT of binning, so 2048x2048 is always
@@ -373,7 +374,7 @@ class CameraStatus(object):
     s = 'mode = %s\n' % self.mode
     s += 'temp = %4.1f\n' % self.temp
     s += 'settemp = %4.1f\n' % self.settemp
-    s += 'shuttermode = %s\n' % {0:'Auto', 1:'Force Open', 2:'Force Closed'}[self.shuttermode]
+    s += 'imaging = %s\n' % {False:'No', True:'YES'}[self.imaging]
     s += 'exptime = %8.3f\n' % self.exptime
     s += 'xbin,ybin = (%d,%d)\n' % (self.xbin, self.ybin)
     s += 'roi = (%d,%d,%d,%d)\n' % self.roi
@@ -776,18 +777,22 @@ class Camera(object):
     return mesg
 
   def GetFits(self):
+    logger.info("Starting image acquisition, exposure time = %8.3f" % self.status.exptime)
     with self.lock:
       temps = []     #Individual CCD temp values during exposure
+      self.status.imaging = True    #Indicate image acquisition in progress
       stime = time.gmtime()
       stemp = self.GetTemperature()
       self._procret(pyandor.StartAcquisition(), 'StartAcquisition')
       if not retok():
         logger.error("Failed to StartAcquisition")
+        self.status.imaging = False    #Finished image acquisition
         return None
       if self.status.exptime < MAX_NOLOOPTIME:    #Don't loop
         self._procret(pyandor.WaitForAcquisition(), 'WaitForAcquisition')
         if not retok():
           logger.error("Failed to WaitAcquisition")
+          self.status.imaging = False    #Finished image acquisition
           return None
       else:
         done = False
@@ -801,7 +806,10 @@ class Camera(object):
         if rv2 <> pyandor.DRV_SUCCESS:
           self._procret(rv2)
           logger.error("Failed to GetStatus during acquisition wait loop")
+          self.status.imaging = False    #Finished image acquisition
           return None
+      self.status.imaging = False    #Finished image acquisition
+      logger.info("Finished image acquisition")
       etemp = self.GetTemperature()
       if temps:
         temps.append(stemp)

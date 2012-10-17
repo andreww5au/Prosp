@@ -36,6 +36,8 @@ class ExtendedCameraStatus(Andor.CameraStatus):
     self.filterid = 'X'
     self.guider = (9999,9999)
     self.mirror = 'IN'
+    #Housekeeping parameters
+    self.lastact = time.time()
 
   def __str__(self):
     """Tells the status object to display itself to the screen"""
@@ -51,10 +53,20 @@ class ExtendedCameraStatus(Andor.CameraStatus):
     s += 'Errors: %s' % self.errors
     return s
 
+  def update(self):
+    """Called to grab fresh status data from the real status object (on the server), and
+       save that data, plus all local attributes (filename, filter, teljoy and weather status,
+       etc) to a pickled file for access by the CGI scripts.
+    """
+    if not connected:
+      return
+    Andor.CameraStatus.update(self)
+    m = os.umask(0)   #Open file with r/w permission for all, so that multiple clients as different users will work
+    f = open('/tmp/prospstatus','w')
+    cPickle.dump(self,f)
+    f.close()
+    os.umask(m)       #restore original file creation permissions
 
-def update():
-  "Attach to Andor camera and grab current status information"
-  camera.status.update()
 
 
 def filter(n='I'):

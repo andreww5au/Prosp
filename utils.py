@@ -17,12 +17,7 @@ flatlist = [ ('B',5,None), ('V',7,None), ('R',7,None), ('I',7,None) ]
 status = None         #Overwritten with actual AnCommands.camera.status object by Prosp on startup
 
 from globals import *
-if CAMERA == 'Apogee':
-  from ArCommands import *
-elif CAMERA == 'Andor':
-  from AnCommands import *
-else:
-  print "Invalid value for 'CAMERA' global: %s" % CAMERA
+from AnCommands import *
 
 import improc
 from improc import reduce,dobias,dodark,doflat
@@ -134,25 +129,7 @@ def getflats(filt='R', n=1, et=None):
     tim = improc.FITS(go(),'r')
     tim.bias()
     testlevel = tim.median()
-    et = 35000*0.1/testlevel
-    if et < 0.0 or et > 500:
-      tim = improc.FITS(go(),'r')
-      tim.bias()
-      testlevel = tim.median()
-      et = 35000*0.1/testlevel
-    if et < 0.0 or et > 500:
-      tim = improc.FITS(go(),'r')
-      tim.bias()
-      testlevel = tim.median()
-      et = 35000*0.1/testlevel
-    if et < 0.0 or et > 500:
-      tim = improc.FITS(go(),'r')
-      tim.bias()
-      testlevel = tim.median()
-      et = 35000*0.1/testlevel
-    if et < 0.0 or et > 500:
-      print "Tried 4 times, no signal im image. Is shutter opening?"
-      return 0
+    et = 20000*0.1/testlevel
     if et < 1.0:
       print "Too bright, desired exposure time only %3.1f seconds." % (et,)
       filename(oldfn) #Restore filename to orig, stripping counter
@@ -178,12 +155,12 @@ def getflats(filt='R', n=1, et=None):
     if autoexp:
       if testlevel < 10000:
         print "Not enough signal in flatfield image - discarding."
-      elif testlevel>50000:
+      elif testlevel>30000:
         print "Signal level too high in flatfield image - discarding."
       else:
         files.append(newfile)
       if testlevel > 2000:    #If the shutter didn't open at all, don't try and adjust exptime
-        et = 35000*et/testlevel
+        et = 20000*et/testlevel
         if et < 1.0:
           print "Too bright, desired exposure time only %3.1f seconds." % (et,)
           break
@@ -492,11 +469,11 @@ def newdir():
   os.system('mkdir '+dirname)
   os.chdir(dirname)
   path(dirname)
-  darks = glob.glob('/data/dark-??Cmaster.fits')
+  biases = glob.glob('/data/bias-bin2slow-??C.fits')
   temps = []
-  for n in darks:
-    mpos = string.find(n,'-')
-    temps.append(int(n[mpos:mpos+3]))
+  for n in biases:
+    mpos = n.find('.')
+    temps.append(int(n[mpos-3:mpos-1]))
   tempnow = ccdtemp(5)
   print "Current temperature: " + `tempnow`
   besttemp = 100
@@ -504,8 +481,9 @@ def newdir():
     if abs(tempnow-t) < abs(tempnow-besttemp):
       besttemp = t
   print "Using bias+dark images for " + `besttemp` + "C."
-  os.system("cp /data/bias"+`besttemp`+"Cmaster.fits "+dirname+"/bias.fits")
-  os.system("cp /data/dark"+`besttemp`+"Cmaster.fits "+dirname+"/dark.fits")
+  for mode in Andor.MODES:
+    os.system("cp /data/bias-%s-"+`besttemp`+"C.fits "+dirname+"/bias-%s.fits" % (mode,mode))
+    os.system("cp /data/dark-%s-"+`besttemp`+"C.fits "+dirname+"/dark-%s.fits" % (mode,mode))
 
 
 def runsched(n=0, force=0, planetmode=1):
@@ -525,9 +503,9 @@ def runsched(n=0, force=0, planetmode=1):
 
   for i in range(n):
     try:
-	service.check()  # service.check if its time to focus the telescope
+      service.check()  # service.check if its time to focus the telescope
     except:
-	print 'Exception while trying to focus telescope.'
+      print 'Exception while trying to focus telescope.'
     errors = ""
     if planetmode:
       planet.UpdatePriorities()
@@ -550,16 +528,12 @@ def domeflats():
   teljoy.jump(id='flats', ra=sexstring(teljoy.status.LST+domeflatHA), dec=sexstring(domeflatDec) )
   exptime(0.1)
   filename('junk')
-#  print "Dummy exposure to loosen up sticky shutter"
-#  go()   #Dummy exposure to loosen up sticky shutter
   while (teljoy.status.moving or teljoy.status.DomeInUse):
     print "Waiting for telescope slew..."
     time.sleep(5)
   teljoy.freeze(1)
   try:
     teljoy.dome(90)
-#    print "Dummy exposure to loosen up sticky shutter"
-#    go()  #Another dummy exposure while dome is moving
     while (teljoy.status.DomeInUse):
       print "Waiting for Dome slew..."
       time.sleep(5)
@@ -602,4 +576,17 @@ def gpos(ra=None, dec=None):
   return (int(p.x*guidestar.xyglobs.X_Steps), int(p.y*guidestar.xyglobs.Y_Steps), tst1 and tst2)
 
 
+def offset(x,y):
+  """Moves telescope to center whatever is now at pixel coordinates X,Y
+     eg: offset(259,312)
+  """
+  xscale = Andor.SECPIX * status.xbin    #arcseconds per pixel
+  yscale = Andor.SECPIX * status.ybin    #arcseconds per pixel
+  dx = x - (Andor.XSIZE/status.xbin)/2
+  dy = y - (Andor.YSIZE/status.ybin)/2
+  oh = -dx * xscale
+  od = dy * yscale
+  logger.info("Offset - Del RA =  "+`oh`+"arcsec\nDel Dec = "+`od`+"arcsec")
+  print "Moving telescope - remember to do a reset position after this."
+  teljoy.jumpoff(oh,od)
 

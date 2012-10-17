@@ -177,20 +177,6 @@ def jumpoff(offra=0, offdec=0):
          "values ('offset', "+`offra`+", "+`offdec`+") ")
 
 
-def offset(x,y):
-  """Moves telescope to center whatever is now at pixel coordinates X,Y
-     eg: offset(259,312)
-  """
-  scale=0.60    #0.58 for 23micron pixels, AP7 is 24micron
-  dx=x-256
-  dy=y-256
-  oh=-dx*scale
-  od=dy*scale
-  logger.info("Offset - Del RA =  "+`oh`+"arcsec\nDel Dec = "+`od`+"arcsec")
-  print "Moving telescope - remember to do a reset position after this."
-  jumpoff(oh,od)
-
-
 def dome(azi=90):
   """Moves the dome to the given dome (NOT telescope) azimuth.
      Silently fails if Teljoy isn't ready to be remote-controlled.
