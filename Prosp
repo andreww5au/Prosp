@@ -224,6 +224,8 @@ if status.initialized:
     chiller.init()
     status.chiller = chiller.status
     status.chiller.CCDsettemp = status.settemp    #Make CCD settemp available to chiller module
+  else:
+    status.chiller = None
   if FOCUSER:
     focuser.init()
   status.focuser = focuser.status

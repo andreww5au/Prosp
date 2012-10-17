@@ -100,11 +100,18 @@ def InstParams(status):
                 data(status.mode) )
     tmp += trow(head("AirTemp") + head("WaterTemp") + head("SetPoint") +
                 head("DewPoint") + head("LastChiller"))
-    tmp += trow(data(str(round(status.weather.temp, 1))) +
-                data(str(round(status.chiller.watertemp, 1))) +
-                data(str(round(status.chiller.setpoint, 1))) +
-                data(str(round(status.weather.dewpoint, 1))) +
-                data(since(status.chiller.lastchillerchecktime)))
+    if status.chiller is None:    #Water chiller not connected
+      tmp += trow(data(str(round(status.weather.temp, 1))) +
+                  data("?") +
+                  data("?") +
+                  data(str(round(status.weather.dewpoint, 1))) +
+                  data("-") )
+    else:
+      tmp += trow(data(str(round(status.weather.temp, 1))) +
+                  data(str(round(status.chiller.watertemp, 1))) +
+                  data(str(round(status.chiller.setpoint, 1))) +
+                  data(str(round(status.weather.dewpoint, 1))) +
+                  data(since(status.chiller.lastchillerchecktime)))
   else:
     tmp += trow(data("?") +
                 data("?") +
