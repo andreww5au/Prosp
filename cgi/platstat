@@ -6,12 +6,12 @@ import cPickle
 import time
 import os
 import stat
-sys.path.append('/home/observer/bin/prosp2')
+sys.path.append('/home/observer/PyDevel/Prosp')
 from globals import *
 import weather
 import teljoy
 
-statusfile="/tmp/arstatus"    #Location of pickled status file
+statusfile="/tmp/prospstatus"    #Location of pickled status file
 
 HTMLheader="""
 <META HTTP-EQUIV="Refresh" CONTENT="5;URL=platstat">
@@ -29,18 +29,18 @@ HTMLtrailer="""
 </html>
 """
 
-def AddObjURL(self):
+def AddObjURL(status):
   "Return a URL pointing to the 'Add Object' CGI"
-  if self.TJ.ObjRA:
+  if status.TJ.ObjRA:
     return 'Click <A href="secure/nobjedit?new=1&'+ \
-           'ObjID='+self.TJ.name+'&'+ \
-           'ObjRA='+sexstring(self.TJ.ObjRA)+'&'+ \
-           'ObjDec='+sexstring(self.TJ.ObjDec)+'&'+ \
-           'ObjEpoch='+str(self.TJ.ObjEpoch)+'&'+ \
-           'filtname='+filtname(self.filter)+'&'+ \
-           'exptime='+str(self.exptime)+'&'+ \
-           'xg='+`self.xguider`+'&'+ \
-           'yg='+`self.yguider`+'">'+ \
+           'ObjID='+status.TJ.name+'&'+ \
+           'ObjRA='+sexstring(status.TJ.ObjRA)+'&'+ \
+           'ObjDec='+sexstring(status.TJ.ObjDec)+'&'+ \
+           'ObjEpoch='+str(status.TJ.ObjEpoch)+'&'+ \
+           'filtname='+filtname(status.filter)+'&'+ \
+           'exptime='+str(status.exptime)+'&'+ \
+           'xg='+`status.xguider`+'&'+ \
+           'yg='+`status.yguider`+'">'+ \
            'HERE</A> to add the current object to the database. &nbsp; &nbsp;'
   else:
     return 'Current position can not be stored in the database. &nbsp; &nbsp;'
@@ -58,24 +58,24 @@ def data(s):
     return "<td>&nbsp;</td>"
 
 
-def ObsParams(self):
+def ObsParams(status):
   "Return an HTML table with the current observing parameters"
-  tmp="<B>Camera setup</B>\n <table border=1>\n"
-  tmp=tmp+trow(data("")+head("Value"))
-  if self.shutter and self.running:
+  tmp = "<B>Camera setup</B>\n <table border=1>\n"
+  tmp += trow(data("") + head("Value"))
+  if status.shutter and status.running:
     shutemp="OPEN"
   else:
     shutemp="CLOSED"
-  tmp=tmp+trow(head("Shutter")+data(shutemp))
-  tmp=tmp+trow(head("Filter")+data(filtname(self.filter)))
-  tmp=tmp+trow(head("Guider")+data(`self.xguider`+","+`self.yguider`))
-  tmp=tmp+trow(head("Exp Time")+data(str(self.exptime)))
-  tmp=tmp+trow(head("Object")+data(self.object))
-  tmp=tmp+trow(head("Path")+data(self.path))
-  tmp=tmp+trow(head("Next File")+data(self.nextfile))
-  tmp=tmp+trow(head("Last File")+data(self.lastfile))
-  tmp=tmp+trow(head("Image Type")+data(self.imgtype))
-  tmp=tmp+"</table>\n"
+  tmp += trow(head("Shutter") + data(shutemp))
+  tmp += trow(head("Filter") + data(filtname(status.filter)))
+  tmp += trow(head("Guider") + data(`status.xguider` + "," + `status.yguider`))
+  tmp += trow(head("Exp Time") + data(str(status.exptime)))
+  tmp += trow(head("Object") + data(status.object))
+  tmp += trow(head("Path") + data(status.path))
+  tmp += trow(head("Next File") + data(status.nextfile))
+  tmp += trow(head("Last File") + data(status.lastfile))
+  tmp += trow(head("Image Type") + data(status.imgtype))
+  tmp += "</table>\n"
   return tmp
 
 
@@ -84,110 +84,110 @@ def since(tm):
   """
   return `int(time.time()-tm)`+' sec'
 
-def InstParams(self):
+def InstParams(status):
   "Return an HTML table with the current instrument parameters"
   tmp = "<B>CCD and Chiller Parameters</B>\n <table border=1> \n"
-  tmp = tmp + trow(head("Temp")+head("Set Temp")+head("Tstatus")+
-                   head("Xbin,Ybin")+head("CCD Region")+head("Overscan (X,Y)"))
+  tmp += trow(head("Temp") + head("Set Temp") + head("Tstatus") +
+              head("Xbin,Ybin") + head("CCD Region") + head("Overscan (X,Y)"))
   ttmp = ""
-  if self.running:
-    if self.tmax:
-      ttmp = ttmp + "At Max "
-    if self.tmin:
-      ttmp = ttmp + "At Min "
-    if self.tset:
-      ttmp = ttmp + "At Temp "
+  if status.running:
+    if status.tmax:
+      ttmp += "At Max "
+    if status.tmin:
+      ttmp += "At Min "
+    if status.tset:
+      ttmp += "At Temp "
     else:
-      ttmp = ttmp + "Changing"
-    tmp = tmp + trow(data(str(self.temp))+
-                     data(str(self.settemp))+
-                     data(ttmp)+
-                     data(str(self.xbin)+","+str(self.ybin))+
-                     data(`self.roi`)+
-                     data(`self.xover`+","+`self.yover`))
-    tmp = tmp + trow(head("AirTemp")+head("WaterTemp")+head("SetPoint")+
-                     head("DewPoint")+head("LastChiller"))
-    tmp = tmp + trow(data(str(round(self.weather.temp,1)))+
-                     data(str(round(self.chiller.watertemp,1)))+
-                     data(str(round(self.chiller.setpoint,1)))+
-                     data(str(round(self.weather.dewpoint,1)))+
-                     data(since(self.chiller.lastchillerchecktime)) )
+      ttmp += "Changing"
+    tmp += trow(data(str(status.temp)) +
+                data(str(status.settemp)) +
+                data(ttmp) +
+                data(str(status.xbin) + "," + str(status.ybin)) +
+                data(`status.roi`) +
+                data(`status.xover` + "," + `status.yover`))
+    tmp += trow(head("AirTemp") + head("WaterTemp") + head("SetPoint") +
+                head("DewPoint") + head("LastChiller"))
+    tmp += trow(data(str(round(status.weather.temp, 1))) +
+                data(str(round(status.chiller.watertemp, 1))) +
+                data(str(round(status.chiller.setpoint, 1))) +
+                data(str(round(status.weather.dewpoint, 1))) +
+                data(since(status.chiller.lastchillerchecktime)))
 
   else:
-    tmp = tmp + trow(data("?")+
-                     data(str(self.settemp))+
-                     data("Unknown")+
-                     data(str(self.xbin)+","+str(self.ybin))+
-                     data(`self.roi`)+
-                     data(`self.xover`+","+`self.yover`))
-    tmp = tmp + trow( head('<font color="red">Prosp not running, Chiller not regulated!</font>') )
-  tmp = tmp + "</table> \n"
+    tmp += trow(data("?") +
+                data(str(status.settemp)) +
+                data("Unknown") +
+                data(str(status.xbin) + "," + str(status.ybin)) +
+                data(`status.roi`) +
+                data(`status.xover` + "," + `status.yover`))
+    tmp += trow(head('<font color="red">Prosp not running, Chiller not regulated!</font>'))
+  tmp += "</table> \n"
   return tmp
 
 
-def TJParams(self):
+def TJParams(status):
   "Write a table with the current telescope/object parameters"
   tmp="<B>Teljoy Status</B>\n <table border=1>\n"
-  tmp=tmp+trow(data("")+head("Value"))
-  tmp=tmp+trow(head("Object ID")+data(self.TJ.name))
-  if self.TJ.ObjRA:
-    tmp=tmp+trow(head("RA")+data(sexstring(self.TJ.ObjRA)))
-    tmp=tmp+trow(head("Dec")+data(sexstring(self.TJ.ObjDec)))
+  tmp += trow(data("") + head("Value"))
+  tmp += trow(head("Object ID") + data(status.TJ.name))
+  if status.TJ.ObjRA:
+    tmp += trow(head("RA") + data(sexstring(status.TJ.ObjRA)))
+    tmp += trow(head("Dec") + data(sexstring(status.TJ.ObjDec)))
   else:
-    tmp=tmp+trow(head("RA")+data(sexstring(self.TJ.RawRA)))
-    tmp=tmp+trow(head("Dec")+data(sexstring(self.TJ.RawDec)))
+    tmp += trow(head("RA") + data(sexstring(status.TJ.RawRA)))
+    tmp += trow(head("Dec") + data(sexstring(status.TJ.RawDec)))
 
-  if self.TJ.ObjEpoch and self.TJ.ObjRA:  #write 'Raw' if epoch of date.
-    tmp=tmp+trow(head("Epoch")+data(str(self.TJ.ObjEpoch)))
+  if status.TJ.ObjEpoch and status.TJ.ObjRA:  #write 'Raw' if epoch of date.
+    tmp += trow(head("Epoch") + data(str(status.TJ.ObjEpoch)))
   else:
-    tmp=tmp+trow(head("Epoch")+data("Raw"))
-  tmp=tmp+trow(head("Alt")+data(sexstring(self.TJ.Alt)))
-  tmp=tmp+trow(head("Azi")+data(sexstring(self.TJ.Azi)))
-  tmp=tmp+trow(head("LST")+data(sexstring(self.TJ.LST)))
+    tmp += trow(head("Epoch") + data("Raw"))
+  tmp += trow(head("Alt") + data(sexstring(status.TJ.Alt)))
+  tmp += trow(head("Azi") + data(sexstring(status.TJ.Azi)))
+  tmp += trow(head("LST") + data(sexstring(status.TJ.LST)))
   flags=''
-  if self.TJ.posviolate:
-    flags=flags+'P'
+  if status.TJ.posviolate:
+    flags += 'P'
   else:
-    flags=flags+'.'
-  if self.TJ.moving:
-    flags=flags+'M'
+    flags += '.'
+  if status.TJ.moving:
+    flags += 'M'
   else:
-    flags=flags+'.'
-  if self.TJ.EastOfPier:
-    flags=flags+'E'
+    flags += '.'
+  if status.TJ.EastOfPier:
+    flags += 'E'
   else:
-    flags=flags+'.'
-  if self.TJ.NonSidOn:
-    flags=flags+'N'
+    flags += '.'
+  if status.TJ.NonSidOn:
+    flags += 'N'
   else:
-    flags=flags+'.'
-  if self.TJ.DomeInUse:
-    flags=flags+'D'
+    flags += '.'
+  if status.TJ.DomeInUse:
+    flags += 'D'
   else:
-    flags=flags+'.'
-  if self.TJ.ShutterInUse:
-    flags=flags+'S'
+    flags += '.'
+  if status.TJ.ShutterInUse:
+    flags += 'S'
   else:
-    flags=flags+'.'
-  if self.TJ.DomeTracking:
-    flags=flags+'T'
+    flags += '.'
+  if status.TJ.DomeTracking:
+    flags += 'T'
   else:
-    flags=flags+'.'
-  if self.TJ.Frozen:
-    flags=flags+'F'
+    flags += '.'
+  if status.TJ.Frozen:
+    flags += 'F'
   else:
-    flags=flags+'.'
-  if self.TJ.AutoRunning:
-    flags=flags+'A'
+    flags += '.'
+  if status.TJ.AutoRunning:
+    flags += 'A'
   else:
-    flags=flags+'.'
-  if not self.TJ.ShutterOpen:
-    flags=flags+'C'
+    flags += '.'
+  if not status.TJ.ShutterOpen:
+    flags += 'C'
   else:
-    flags=flags+'.'
-  tmp=tmp+trow(head("Flags")+data(flags))
-  tmp=tmp+trow(head("UT")+data(sexstring(self.TJ.UTDec)))
-  tmp=tmp+"</table> \n"
+    flags += '.'
+  tmp += trow(head("Flags") + data(flags))
+  tmp += trow(head("UT") + data(sexstring(status.TJ.UTDec)))
+  tmp += "</table> \n"
   return tmp
 
 
@@ -221,38 +221,39 @@ def unyv(arg):
   else:
     return "E"
 
+
 def WeatherParams(self):
   "Write a table with the current weather status info."
   weather.status.update()
   tmp="<B>Weather Status</B>\n <table border=1>\n"
-  tmp=tmp+trow(data("")+head("Value"))
+  tmp += trow(data("") + head("Value"))
   if weather.status.skytemp:
-    tmp=tmp+trow(head("Sky Temp")+data(`weather.status.skytemp`+' C'))
+    tmp += trow(head("Sky Temp") + data(`weather.status.skytemp` + ' C'))
   else:
-    tmp=tmp+trow(head("Sky Temp")+data("Error"))
-  tmp=tmp+trow(head("Raining")+data(yn(weather.status.rain)))
-  tmp=tmp+trow(head("LastMod")+data(`weather.status.lastmod`+" sec"))
-  tmp = tmp + trow(head("Humidity") + data(`weather.status.humidity`+' %'))
-  tmp = tmp + trow(head("Flags") + data( 'C='+unyv(weather.status.cloudf)+
-                                        ' W='+unyv(weather.status.windf)+
-                                        ' R='+unyv(weather.status.rainf)+
-                                        ' D='+unyv(weather.status.dayf) ))
+    tmp += trow(head("Sky Temp") + data("Error"))
+  tmp += trow(head("Raining") + data(yn(weather.status.rain)))
+  tmp += trow(head("LastMod") + data(`weather.status.lastmod` + " sec"))
+  tmp += trow(head("Humidity") + data(`weather.status.humidity` + ' %'))
+  tmp += trow(head("Flags") + data('C=' + unyv(weather.status.cloudf) +
+                                   ' W=' + unyv(weather.status.windf) +
+                                   ' R=' + unyv(weather.status.rainf) +
+                                   ' D=' + unyv(weather.status.dayf)))
   
 
   if self.running:
-    tmp=tmp+trow(head("Dark")+data(ny(self.isdark)))
-    tmp=tmp+trow(head("Monitoring")+
-                 data(monitoring(self.MonitorActive)))
+    tmp += trow(head("Dark") + data(ny(self.isdark)))
+    tmp += trow(head("Monitoring") +
+                data(monitoring(self.MonitorActive)))
 
-    tmp=tmp+trow(head("Close Temp")+data(`self.weather.SkyCloseTemp`))
-    tmp=tmp+trow(head("Open Temp")+data(`self.weather.SkyOpenTemp`))
-    tmp=tmp+trow(head("Open Delay")+
-                 data(`self.weather.WeatherOpenDelay`+" sec"))
-    tmp=tmp+trow(head("Clear")+data(ny(self.weather.clear)))
+    tmp += trow(head("Close Temp") + data(`self.weather.SkyCloseTemp`))
+    tmp += trow(head("Open Temp") + data(`self.weather.SkyOpenTemp`))
+    tmp += trow(head("Open Delay") +
+                data(`self.weather.WeatherOpenDelay` + " sec"))
+    tmp += trow(head("Clear") + data(ny(self.weather.clear)))
     if (not self.weather.clear) and self.weather.OKforsec:
-      tmp=tmp+trow(head("But OK for:")+data(`self.weather.OKforsec`+" sec"))
+      tmp += trow(head("But OK for:") + data(`self.weather.OKforsec` + " sec"))
 
-  tmp=tmp+"</table> \n"
+  tmp += "</table> \n"
   return tmp
   
 

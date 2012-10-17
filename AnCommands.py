@@ -81,7 +81,7 @@ def filter(n='I'):
   if type(n) == str:
     fid = filtid(n)
     fnum = filtnum(fid)
-    opticalcoupler.SelectFilter(`fnum`)
+    opticalcoupler.SelectFilter(fnum)
     camera.status.filterid = fid
     camera.status.filter = fnum
     logger.info('Moved to filter '+`n`)
