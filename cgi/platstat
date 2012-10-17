@@ -39,8 +39,8 @@ def AddObjURL(status):
            'ObjEpoch='+str(status.TJ.ObjEpoch)+'&'+ \
            'filtname='+filtname(status.filter)+'&'+ \
            'exptime='+str(status.exptime)+'&'+ \
-           'xg='+`status.xguider`+'&'+ \
-           'yg='+`status.yguider`+'">'+ \
+           'xg='+`status.guider[0]`+'&'+ \
+           'yg='+`status.guider[1]`+'">'+ \
            'HERE</A> to add the current object to the database. &nbsp; &nbsp;'
   else:
     return 'Current position can not be stored in the database. &nbsp; &nbsp;'
@@ -68,7 +68,7 @@ def ObsParams(status):
     shutemp="CLOSED"
   tmp += trow(head("Shutter") + data(shutemp))
   tmp += trow(head("Filter") + data(filtname(status.filter)))
-  tmp += trow(head("Guider") + data(`status.xguider` + "," + `status.yguider`))
+  tmp += trow(head("Guider") + data(`status.guider[0]` + "," + `status.guider[1]`))
   tmp += trow(head("Exp Time") + data(str(status.exptime)))
   tmp += trow(head("Object") + data(status.object))
   tmp += trow(head("Path") + data(status.path))
