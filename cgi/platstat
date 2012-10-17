@@ -62,7 +62,7 @@ def ObsParams(status):
   "Return an HTML table with the current observing parameters"
   tmp = "<B>Camera setup</B>\n <table border=1>\n"
   tmp += trow(data("") + head("Value"))
-  if status.shutter and status.running:
+  if status.imaging and status.running:
     shutemp="OPEN"
   else:
     shutemp="CLOSED"
@@ -88,23 +88,16 @@ def InstParams(status):
   "Return an HTML table with the current instrument parameters"
   tmp = "<B>CCD and Chiller Parameters</B>\n <table border=1> \n"
   tmp += trow(head("Temp") + head("Set Temp") + head("Tstatus") +
-              head("Xbin,Ybin") + head("CCD Region") + head("Overscan (X,Y)"))
-  ttmp = ""
+              head("Observing Mode") )
   if status.running:
-    if status.tmax:
-      ttmp += "At Max "
-    if status.tmin:
-      ttmp += "At Min "
-    if status.tset:
-      ttmp += "At Temp "
+    if status.cool:
+      ttmp = "ON (%3.0f)" % status.settemp
     else:
-      ttmp += "Changing"
+      ttmp = "OFF (%3.0f)" % status.settemp
     tmp += trow(data(str(status.temp)) +
-                data(str(status.settemp)) +
                 data(ttmp) +
-                data(str(status.xbin) + "," + str(status.ybin)) +
-                data(`status.roi`) +
-                data(`status.xover` + "," + `status.yover`))
+                data(status.tempstatus) +
+                data(status.mode) )
     tmp += trow(head("AirTemp") + head("WaterTemp") + head("SetPoint") +
                 head("DewPoint") + head("LastChiller"))
     tmp += trow(data(str(round(status.weather.temp, 1))) +
@@ -112,14 +105,11 @@ def InstParams(status):
                 data(str(round(status.chiller.setpoint, 1))) +
                 data(str(round(status.weather.dewpoint, 1))) +
                 data(since(status.chiller.lastchillerchecktime)))
-
   else:
     tmp += trow(data("?") +
-                data(str(status.settemp)) +
+                data("?") +
                 data("Unknown") +
-                data(str(status.xbin) + "," + str(status.ybin)) +
-                data(`status.roi`) +
-                data(`status.xover` + "," + `status.yover`))
+                data("Unknown") )
     tmp += trow(head('<font color="red">Prosp not running, Chiller not regulated!</font>'))
   tmp += "</table> \n"
   return tmp

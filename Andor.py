@@ -730,7 +730,7 @@ class Camera(object):
       self.status.temp = 999.999
     else:
       if rv == pyandor.DRV_TEMP_OFF:
-        self.status.tempstatus = 'Temperature OFF'
+        self.status.tempstatus = 'Cooler OFF'
         self.status.cool = False
         self.status.tset = False
       elif rv == pyandor.DRV_TEMP_NOT_REACHED:
