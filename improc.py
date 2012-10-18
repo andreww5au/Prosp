@@ -614,7 +614,7 @@ def _reducefile(fname=''):
 
   fwhm,sky = img.fwhmsky()
   img.save(outfile, bitpix=16)   #Save in Int16 format
-  os.system('/usr/local/bin/imsex.py ' + outfile)
+  os.system('/home/observer/PyDevel/Prosp/extras/imsex.py ' + outfile)
   _rlog(fname,filename,filterid,exptime,ccdtemp,pjd,fwhm,sky,secz)
   logger.info(filename + ' reduced: FWHM=%4.2f pixels, Sky=%d ADU' % (fwhm,sky))
   return outfile
