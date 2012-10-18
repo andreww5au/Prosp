@@ -4,6 +4,7 @@
 import os
 import sys
 import cPickle
+import math
 
 import Andor
 import opticalcoupler
@@ -381,6 +382,7 @@ def setheaders(f):
     elif camera.status.TJ.RawRA:
       ra = camera.status.TJ.RawRA
       dec = camera.status.TJ.RawDec
+      alt = camera.status.TJ.Alt
       t = time.gmtime()
       epoch = t.tm_year + (t.tm_yday/366.0)
       GotTJ = True
@@ -394,6 +396,7 @@ def setheaders(f):
     f.headers['DEC_OBJ'] = "%13.9f" % dec
     f.headers['DEC'] = "'%s'" % sexstring(dec)
     f.headers['EQUINOX'] = "%6.1f" % epoch
+    f.headers['SECZ'] = "%6.3f" % 1/math.cos((90-alt)*math.pi/180)
   
 
 def go(n=1):
