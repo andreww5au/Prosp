@@ -10,7 +10,7 @@ import sys
 print 'Content-Type: text/html'
 print
 
-sys.path.append('/home/observer/bin/prosp2')
+sys.path.append('/home/observer/PyDevel/Prosp')
 
 import objects
 import globals

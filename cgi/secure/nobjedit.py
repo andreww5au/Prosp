@@ -12,7 +12,7 @@ import os
 import traceback
 import tempfile
 import sys
-sys.path.append('/home/observer/bin/prosp2')
+sys.path.append('/home/observer/PyDevel/Prosp')
 
 
 import htmlutil
