@@ -14,7 +14,7 @@ def procfile(fname):
   basefname = os.path.splitext(fname)[0]
   catfname = basefname + '.sex'
   logfname = basefname + '.wcslog'
-  cmd = 'sex -c /usr/local/etc/default.sex ' + fname + ';'
+  cmd = 'sex -c /home/observer/PyDevel/Prosp/etc/default.sex ' + fname + ';'
   sexstd,sexerr = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE, close_fds=True).communicate()
   sostr = sexstd + sexerr
   sostru = sostr.upper()
