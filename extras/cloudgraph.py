@@ -4,7 +4,7 @@ import MySQLdb
 from MySQLdb.cursors import DictCursor
 
 
-db=MySQLdb.Connection(host='cook', user='honcho', passwd='',
+db=MySQLdb.Connection(host='chef', user='honcho', passwd='',
                       db='misc', cursorclass=DictCursor)
 
 
