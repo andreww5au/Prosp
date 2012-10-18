@@ -20,6 +20,10 @@ SLOGFILE = "/tmp/Andor.log"         #Log file for server process (Andor.py)
 CLOGFILE = "/tmp/Prosp.log"         #Log file for client process (th rest of Prosp)
 
 
+class NullHandler(logging.Handler):
+  def emit(self, record):
+    pass
+
 logger = None
 slogger = None
 def InitLogging():
@@ -29,10 +33,15 @@ def InitLogging():
   conf = logging.Formatter("%(name)s-%(levelname)s  %(message)s")
 
   # create two file handlers, for server and client
-  sfh = logging.FileHandler(SLOGFILE)
+  try:
+    sfh = logging.FileHandler(SLOGFILE)
+    cfh = logging.FileHandler(CLOGFILE)
+  except IOError:    #Can't open a logfile for writing, probably the wrong user
+    sfh = NullHandler()
+    cfh = NullHandler()
+
   sfh.setLevel(LOGLEVEL_LOGFILE)
   sfh.setFormatter(filef)
-  cfh = logging.FileHandler(CLOGFILE)
   cfh.setLevel(LOGLEVEL_LOGFILE)
   cfh.setFormatter(filef)
 
