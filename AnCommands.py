@@ -378,6 +378,7 @@ def setheaders(f):
       ra = camera.status.TJ.ObjRA
       dec = camera.status.TJ.ObjDec
       epoch = camera.status.TJ.ObjEpoch
+      alt = camera.status.TJ.Alt
       GotTJ = True
     elif camera.status.TJ.RawRA:
       ra = camera.status.TJ.RawRA
