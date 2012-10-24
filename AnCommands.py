@@ -438,17 +438,17 @@ def init():
   filename('junk')
   camera.status.update()
 
-  if OPTICALCOUPLER:
-    opticalcoupler.init()
-    filter('I')
-    guider(0,0)
-    camera.status.mirror = 'IN'
-
   gzero = GuideZero(0,0)
   if os.path.exists('/data/guidezero'):
     f = open('/data/guidezero','r')
     gzero = cPickle.load(f)
     f.close()
+
+  if OPTICALCOUPLER:
+    opticalcoupler.init()
+    filter('I')
+    guider(0,0)
+    camera.status.mirror = 'IN'
 
 #Module initialisation section
 
