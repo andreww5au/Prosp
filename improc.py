@@ -222,7 +222,7 @@ class FITS(fits.FITS):
           if ('MODE' not in self.headers.keys()) or ('MODE' not in flt.headers.keys()):
             flatimage = flt   #Always use cached image if there's no mode field in either image
           elif self.headers['MODE'] == flt.headers['MODE']:
-            flatimage = lastdark   #If there is a mode field, only use the cached image if the mode matches
+            flatimage = flt   #If there is a mode field, only use the cached image if the mode matches
     if not flatimage:              #Look for the default filename/s
       filedir = os.path.abspath(os.path.dirname(self.filename))
       try:
