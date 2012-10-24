@@ -397,7 +397,7 @@ def setheaders(f):
     f.headers['DEC_OBJ'] = "%13.9f" % dec
     f.headers['DEC'] = "'%s'" % sexstring(dec)
     f.headers['EQUINOX'] = "%6.1f" % epoch
-    f.headers['SECZ'] = "%6.3f" % 1/math.cos((90-alt)*math.pi/180)
+    f.headers['SECZ'] = "%6.3f" % (1/math.cos((90-alt)*math.pi/180))
   
 
 def go(n=1):
