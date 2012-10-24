@@ -608,8 +608,12 @@ def _reducefile(fname=''):
   exptime = float(img.headers['EXPTIME'])
   filterid = img.headers['FILTERID'][1].strip()
   secz = float(img.headers['SECZ'])
-  hjd = float(img.headers['HJD'])
-  pjd = hjd-2450000.0
+  try:
+    hjd = float(img.headers['HJD'])
+    pjd = hjd-2450000.0
+  except:
+    hjd=0.0
+    pjd=0.0
   ccdtemp = float(img.headers['CCDTEMP'])
 
   fwhm,sky = img.fwhmsky()
