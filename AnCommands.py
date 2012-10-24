@@ -434,6 +434,24 @@ def go(n=1):
     return result
 
 
+def live():
+  """Take images of the centre region, and display them in real time. Don't save any data to disk.
+  """
+  m = camera.status.mode
+  mode('centre')
+  try:
+    while True:
+      f = camera.GetFits()
+      camera.status.update()
+      setheaders(f)
+      camera.status.lastact = time.time()   #Record the time that the last image was taken
+      xpa.displayimage(f)
+  except KeyboardInterrupt:
+    logger.error("Live mode aborted, dumping image.")
+  finally:
+    mode(m)   #Restore original camera mode
+
+
 def init():
   global camera, connected, gzero
   connected = Andor.InitClient()
