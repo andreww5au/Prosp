@@ -7,8 +7,8 @@ from subprocess import Popen,PIPE
 flist = sys.argv[1:]
 
 snum = 100
-keepsex = False
-keepwcs = False
+keepsex = True
+keepwcs = True
 
 def procfile(fname):
   basefname = os.path.splitext(fname)[0]
