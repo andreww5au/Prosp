@@ -584,8 +584,8 @@ def offset(x,y):
   yscale = Andor.SECPIX * status.ybin    #arcseconds per pixel
   dx = x - (Andor.XSIZE/status.xbin)/2
   dy = y - (Andor.YSIZE/status.ybin)/2
-  oh = -dx * xscale
-  od = dy * yscale
+  od = dx * xscale
+  oh = -dy * yscale
   logger.info("Offset - Del RA =  "+`oh`+"arcsec\nDel Dec = "+`od`+"arcsec")
   print "Moving telescope - remember to do a reset position after this."
   teljoy.jumpoff(oh,od)
