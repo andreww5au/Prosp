@@ -195,7 +195,10 @@ def filectr(fc=1):
      eg: filectr(3)
   """
   camera.status.filectr = fc
-  camera.status.nextfile = camera.status.filename + `camera.status.filectr` + '.fits'
+  if camera.status.filectr < 1000:
+    camera.status.nextfile = camera.status.filename + ('%03d' % camera.status.filectr) + '.fits'
+  else:
+    camera.status.nextfile = camera.status.filename + ('%04d' % camera.status.filectr) + '.fits'
   logger.info('Next file name: '+os.path.join(camera.status.path,camera.status.nextfile))
 
 
