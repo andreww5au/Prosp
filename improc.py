@@ -269,11 +269,11 @@ class FITS(fits.FITS):
       print "Error with file creation while calculating FWHM, Sky"
       return -1,-1
     try:
-      self.headers['FWHM'] = tmpdata[0]
+      self.headers['FWHM'] = tmpdata[1]
       self.comments['FWHM'] = 'Seeing FWHM, in pixels.'
-      self.headers['SKY'] = tmpdata[1]
+      self.headers['SKY'] = tmpdata[2]
       self.comments['SKY'] = 'Sky background, in ADU'
-      return float(tmpdata[0]), float(tmpdata[1])
+      return float(tmpdata[1]), float(tmpdata[2])
     except:
       print "Error calculating FWHM and Sky"
       return -1,-1
