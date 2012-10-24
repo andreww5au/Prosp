@@ -482,8 +482,8 @@ def newdir():
       besttemp = t
   print "Using bias+dark images for " + `besttemp` + "C."
   for mode in Andor.MODES:
-    os.system("cp /data/bias-%s-"+`besttemp`+"C.fits "+dirname+"/bias-%s.fits" % (mode,mode))
-    os.system("cp /data/dark-%s-"+`besttemp`+"C.fits "+dirname+"/dark-%s.fits" % (mode,mode))
+    os.system(("cp /data/bias-%s-"+`besttemp`+"C.fits "+dirname+"/bias-%s.fits") % (mode,mode))
+    os.system(("cp /data/dark-%s-"+`besttemp`+"C.fits "+dirname+"/dark-%s.fits") % (mode,mode))
 
 
 def runsched(n=0, force=0, planetmode=1):
