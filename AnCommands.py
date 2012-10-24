@@ -89,6 +89,8 @@ def filter(n='I'):
   else:
     if (n>=1) and (n<=8):
       opticalcoupler.SelectFilter(n)
+      camera.status.filterid = filtid(filtname(n))
+      camera.status.filter = n
       logger.info('Moved to filter '+`n`)
     else:
       logger.error("Error in filter value: "+repr(n))
