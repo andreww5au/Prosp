@@ -440,6 +440,9 @@ def init():
 
   if OPTICALCOUPLER:
     opticalcoupler.init()
+    filter('I')
+    guider(0,0)
+    camera.status.mirror = 'IN'
 
   gzero = GuideZero(0,0)
   if os.path.exists('/data/guidezero'):

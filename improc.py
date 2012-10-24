@@ -437,7 +437,7 @@ def doflat(files=[], filt=None):
      argument is used to generate the filename.
   """
   nfiles = distribute(files, lambda x: x)   #Expand each name for wildcards, etc
-  if type(nfiles) == type(''):
+  if nfiles and type(nfiles) == str:
     nfiles = [nfiles]
   if len(nfiles)>15:
     logger.warning("doflat - Too many files to median, truncating to first 15 images.")
@@ -469,7 +469,7 @@ def doflat(files=[], filt=None):
   else:
     ffile = 'flat%s-%s.fits' % (filt.upper(), im.headers['MODE'][1:-1])
 
-  outfile = os.path.abspath(os.path.dirname(im.filename)) + ffile
+  outfile = os.path.abspath(os.path.dirname(nfiles[0])) + '/' + ffile
   if os.path.exists(outfile):
     os.remove(outfile)
   im.save(outfile, bitpix=-32)
