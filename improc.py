@@ -258,10 +258,10 @@ class FITS(fits.FITS):
       except OSError:
         pass
       self.save('/tmp/fwhmtmp.fits',bitpix=16)
-      os.system('/home/dts/bin/fwhmsky /tmp/fwhmtmp.fits')
-      tmpdata = open('input.dophot','r').read().split()
+      os.system('/home/dts/bin/fwhmsky /tmp/fwhmtmp.fits /tmp/input.dophot')
+      tmpdata = open('/tmp/input.dophot','r').read().split()
       try:
-        os.remove('input.dophot')
+        os.remove('/tmp/input.dophot')
         os.remove('/tmp/fwhmtmp.fits')
       except OSError:
         pass
