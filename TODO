@@ -3,3 +3,7 @@ UPS and NUT - done
 CGI pages   - done
 filter() command broken  - done
 offset() needs calibration  - done
+
+Save path and filename across Prosp restarts
+Move optical coupler to Andor.py server?
+Use fittstime code to add HJD, etc headers
