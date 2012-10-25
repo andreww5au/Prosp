@@ -397,7 +397,7 @@ def setheaders(f):
   except AttributeError:
     GotTJ = False      
   if GotTJ:
-    f.headers['RA_OBJ'] = "%12.9f" % ra
+    f.headers['RA_OBJ'] = "%12.9f" % (ra*15.0)
     f.headers['RA'] = "'%s'" % sexstring(ra)
     f.headers['DEC_OBJ'] = "%13.9f" % dec
     f.headers['DEC'] = "'%s'" % sexstring(dec)
