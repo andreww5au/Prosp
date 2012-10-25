@@ -11,6 +11,13 @@ import opticalcoupler
 import xpa
 from globals import *
 
+try:
+  from fitstime import fitstime
+  GotFT = True
+except ImportError:
+  fitstime = None
+  GotFT = False
+
 
 class GuideZero:
   def __init__(self,x=0,y=0):
@@ -403,6 +410,11 @@ def setheaders(f):
     f.headers['DEC'] = "'%s'" % sexstring(dec)
     f.headers['EQUINOX'] = "%6.1f" % epoch
     f.headers['SECZ'] = "%6.3f" % (1/math.cos((90-alt)*math.pi/180))
+    if GotFT:
+      hjd,message = fitstime.findtime(fimage=f,  verbose=0, allfields=0)
+      if type(hjd) == float:
+        f.headers['HJD'] = "%f" % hjd
+        f.comments['HJD'] = "Heliocentric Julian Day at exposure midpoint"
   
 
 def go(n=1):
