@@ -16,15 +16,8 @@ if USE_IRAF:
 else:
   GotIRAF = False
 
-from globals import CAMERA
-if CAMERA == 'Apogee':
-  import Ariel as Camera
-  import ArCommands as CameraCommands
-elif CAMERA == 'Andor':
-  import Andor as Camera
-  import AnCommands as CameraCommands
-else:
-  print "Invalid value for 'CAMERA' global: %s" % CAMERA
+import Andor
+import AnCommands
 
 import improc
 import focuser
@@ -146,7 +139,7 @@ def centerstar():
   """Take a single image and move the telescope to center the brightest star-like
      object in the field.
   """
-  imgname = CameraCommands.go()
+  imgname = AnCommands.go()
   f = improc.FITS(imgname,'r')
   y,x = improc.findstar(f)[0]
   teljoy.offset(x+1,y+1)
@@ -159,10 +152,10 @@ def FindBest(center = 1000, step = coarsestep, average = 1):
   """
   oname = '/tmp/focuspos.lst'
   onamefit = '/tmp/focuspos.fit'
-  saveobject = Camera.status.object
+  saveobject = Andor.status.object
   sftp = 0.0
   errftp = 0.0
-  CameraCommands.object('FOCTEST: '+`center`+' '+`step`)
+  AnCommands.object('FOCTEST: '+`center`+' '+`step`)
   try:
     f = open(oname,'a') #append, so we're fitting all values taken so far this focus run
   except:
@@ -176,9 +169,9 @@ def FindBest(center = 1000, step = coarsestep, average = 1):
         pos = center + p * step
         focuser.Goto(pos)
         time.sleep(1)
-        CameraCommands.foclines(25)
+        AnCommands.foclines(25)
       focuser.Goto(center-4*step)
-      imgname = CameraCommands.foclines(-1)
+      imgname = AnCommands.foclines(-1)
       try:
         retlist,ftuple = Analyse_Ralph(imgname=imgname, center=center, step=step)
       except:
@@ -210,7 +203,7 @@ def FindBest(center = 1000, step = coarsestep, average = 1):
     sftp = sftp + ftuple[0]
 
   f.close() # close the file oname
-  CameraCommands.object(saveobject)
+  AnCommands.object(saveobject)
 
   try:
     echeck, stuff = commands.getstatusoutput(FOCUSSELCMD + ' ' + oname)

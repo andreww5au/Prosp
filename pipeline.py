@@ -21,12 +21,7 @@ import objects
 import teljoy
 
 from globals import *
-if CAMERA == 'Apogee':
-  import ArCommands as CameraCommands
-elif CAMERA == 'Andor':
-  import AnCommands as CameraCommands
-else:
-  print "Invalid value for 'CAMERA' global: %s" % CAMERA
+import AnCommands
 
 import xpa
 import improc
@@ -78,9 +73,9 @@ class dObject(objects.Object):
   def fileprefix(self,prefix=""):
     "Set the filename prefix (minus the exposure number and the .fits extension)"
     if prefix:
-      CameraCommands.filename(prefix)
+      AnCommands.filename(prefix)
     else:
-      CameraCommands.filename(self.ObjID+filtid(self.filtname))
+      AnCommands.filename(self.ObjID+filtid(self.filtname))
 
   def preset(self):
     "Carry out any parameter changes desired before the image (override with actual code)"
@@ -88,7 +83,7 @@ class dObject(objects.Object):
 
   def set(self):
     "Set the observing params for Ariel to this object's params."
-    CameraCommands.object(self.ObjID)
+    AnCommands.object(self.ObjID)
 #    print 'X=',self.XYpos[0], ' Y=',self.XYpos[1]
     if (self.XYpos[0] == 0) and (self.XYpos[1] == 0):
       try:
@@ -103,17 +98,17 @@ class dObject(objects.Object):
       if bstar is not None:
         s = slist[bstar]
         print "Chosen guide star %d of %d: Mag=%5.2f, x=%d, y=%d" % (bstar,len(slist),s.mag,s.x,s.y)
-        CameraCommands.guider(s.x, s.y)
+        AnCommands.guider(s.x, s.y)
       else:
         print "No guide star in database, no guide star found in GSC"
     else:
-      CameraCommands.guider(self.XYpos[0],self.XYpos[1])
-    CameraCommands.filter(self.filtname)
-    CameraCommands.exptime(self.exptime)
+      AnCommands.guider(self.XYpos[0],self.XYpos[1])
+    AnCommands.filter(self.filtname)
+    AnCommands.exptime(self.exptime)
 
   def get(self):
     "Take the actual image of this object, and do preprocessing."
-    self.rawfilename = CameraCommands.go()
+    self.rawfilename = AnCommands.go()
     self.filename=improc.reduce(self.rawfilename)
     xpa.display(self.filename)
 
