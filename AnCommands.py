@@ -417,7 +417,7 @@ def setheaders(f):
         f.comments['HJD'] = "Heliocentric Julian Day at exposure midpoint"
   
 
-def go(n=1):
+def go(n=1, iraf=False):
   """Take N images - default to 1 if no argument.
      eg: go(2)
   """

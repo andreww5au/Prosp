@@ -590,3 +590,9 @@ def offset(x,y):
   print "Moving telescope - remember to do a reset position after this."
   teljoy.jumpoff(oh,od)
 
+
+def gof(n=1):
+  """Same as 'go' command, only send the image/s to DS9 in the old 8-bit format,
+    so IRAF can do an 'imexam' for focussing.
+  """
+  go(n=n, iraf=True)

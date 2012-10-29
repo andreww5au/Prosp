@@ -135,14 +135,14 @@ def getregions():
     return mlist
 
 
-def _displayfile(fname, iraf=0):
+def _displayfile(fname, iraf=False):
   """Usage: display(fname, iraf=0)
-     Send an image to SAOtng or DS9 for display - if iraf=1 then send in 8-bit
+     Send an image to SAOtng or DS9 for display - if iraf=True then send in 8-bit
      IRAF format.
   """
   fullfilename=os.path.abspath(os.path.expanduser(fname))
   if iraf:
-    os.system('/usr/local/dts/bin/display '+fullfilename)
+    os.system('/home/dts/bin/display '+fullfilename)
   else:
     os.system('echo file '+fullfilename+' | xpaset '+viewer)
     if viewer=='ds9':
@@ -152,7 +152,7 @@ def _displayfile(fname, iraf=0):
     os.system('echo saveimage jpeg /tmp/ds9.jpeg | xpaset '+viewer)
 
 
-def displayimage(im, iraf=0):
+def displayimage(im, iraf=False):
   """Send a FITS image array directly to DS9, without saving to disk.
   """
   xdim = int(im.headers['NAXIS1'])
@@ -162,7 +162,7 @@ def displayimage(im, iraf=0):
   os.system('echo scale mode zscale | xpaset ds9')
 
 
-def display(fpat, iraf=0):
+def display(fpat, iraf=False):
   """Display the specified file/s on the viewer program (eg SAOtng).
       If no filename is given, display the last image taken.
       if iraf=1 then the image is displayed in 8-bit IRAF format (so 'imexam'
