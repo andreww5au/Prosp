@@ -450,6 +450,8 @@ def live():
   """Take images of the centre region, and display them in real time. Don't save any data to disk.
   """
   m = camera.status.mode
+  print "Hit ^C to exit."
+  print "NOTE! After using this command, type:   mode('%s') " % m
   mode('centre')
   try:
     while True:
@@ -461,7 +463,7 @@ def live():
   except KeyboardInterrupt:
     logger.error("Live mode aborted, dumping image.")
   finally:
-    mode(m)   #Restore original camera mode
+    mode(m)   #Restore original camera mode (hopefully)
 
 
 def init():
