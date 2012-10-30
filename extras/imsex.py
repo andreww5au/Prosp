@@ -28,8 +28,8 @@ def procfile(fname):
     return
   cmd += 'sort -n -k 3 test.cat | head -%d > %s' % (snum,catfname)
   sorstd,sorerr = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE, close_fds=True).communicate()
-#  print basefname + 'sort output: ' + sorstd + '\n---------\n' + sorerr
-  cmd = 'imwgsc2 -w -o -p 0.6 -d %s -e %s' % (catfname,fname)
+  print basefname + 'sort output: ' + sorstd + '\n---------\n' + sorerr
+  cmd = 'imwgsc2 -w -e -p 0.675 -o -q rs -l -r 270 -d %s %s' % (catfname,fname)
   wcsstd,wcserr = Popen(cmd.split(), stdout=PIPE, stderr=PIPE, close_fds=True).communicate()
   os.remove('test.cat')
   if not keepsex:

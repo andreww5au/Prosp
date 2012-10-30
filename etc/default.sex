@@ -21,6 +21,7 @@ ANALYSIS_THRESH	1.5		# <sigmas> or <threshold>,<ZP> in mag.arcsec-2
 FILTER		Y		# apply filter for detection ("Y" or "N")?
 FILTER_NAME	/home/observer/PyDevel/Prosp/etc/default.conv	# name of the file containing the filter
 
+
 DEBLEND_NTHRESH	32		# Number of deblending sub-thresholds
 DEBLEND_MINCONT	0.005		# Minimum contrast parameter for deblending
 
@@ -39,8 +40,8 @@ SATUR_LEVEL	50000.0		# level (in ADUs) at which arises saturation
 
 MAG_ZEROPOINT	0.0		# magnitude zero-point
 MAG_GAMMA	4.0		# gamma of emulsion (for photographic scans)
-GAIN		4.3		# detector gain in e-/ADU.
-PIXEL_SCALE	0.6		# size of pixel in arcsec (0=use FITS WCS info).
+GAIN		3.7		# detector gain in e-/ADU.
+PIXEL_SCALE	0		# size of pixel in arcsec (0=use FITS WCS info).
 
 #------------------------- Star/Galaxy Separation ----------------------------
 
