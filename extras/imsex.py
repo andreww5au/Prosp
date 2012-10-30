@@ -2,13 +2,27 @@
 
 import sys
 import os
+import string
+import traceback
 from subprocess import Popen,PIPE
-
-flist = sys.argv[1:]
+from numpy import *
 
 snum = 100
 keepsex = True
 keepwcs = True
+FWHMCUT = 1.5
+
+
+def fwhmsky(catfile):
+  try:
+    ar = array(map(lambda x: map(float,x), map(string.split,open(catfile,'r').readlines()[5:])))
+    fwhm = median(ar[:,3][ar[:,3] > FWHMCUT])
+    sky = median(ar[:,4][ar[:,3] > FWHMCUT])
+  except:
+    print "imsex.py - error reading test.cat: %s" % traceback.format_exc()
+    fwhm,sky = 0.0, 0.0
+  return fwhm,sky
+
 
 def procfile(fname):
   basefname = os.path.splitext(fname)[0]
@@ -28,20 +42,24 @@ def procfile(fname):
     return
   cmd += 'sort -n -k 3 test.cat | head -%d > %s' % (snum,catfname)
   sorstd,sorerr = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE, close_fds=True).communicate()
-  print basefname + 'sort output: ' + sorstd + '\n---------\n' + sorerr
+#  print basefname + 'sort output: ' + sorstd + '\n---------\n' + sorerr
   cmd = 'imwgsc2 -w -e -p 0.675 -o -q rs -l -r 270 -d %s %s' % (catfname,fname)
   wcsstd,wcserr = Popen(cmd.split(), stdout=PIPE, stderr=PIPE, close_fds=True).communicate()
-  os.remove('test.cat')
+  fwhm,sky = fwhmsky('test.cat')
   if not keepsex:
+    os.remove('test.cat')
     os.remove(catfname)
   if keepwcs:
     logf = open(logfname,'w')
     logf.write(wcsstd+'\n---------------------\n')
     logf.write(wcserr+'\n')
     logf.close()
+  return fwhm,sky
 
 
 
-for f in flist:
-  procfile(f)
+if __name__ == '__main__':
+  flist = sys.argv[1:]
+  for f in flist:
+    procfile(f)
 

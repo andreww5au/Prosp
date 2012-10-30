@@ -3,6 +3,7 @@ import os
 import tempfile
 import fits
 from globals import *
+from extras import imsex
 
 if fits.Gotnumpy:
   import numpy as num
@@ -616,9 +617,15 @@ def _reducefile(fname=''):
     pjd=0.0
   ccdtemp = float(img.headers['CCDTEMP'])
 
-  fwhm,sky = img.fwhmsky()
   img.save(outfile, bitpix=16)   #Save in Int16 format
-  os.system('/home/observer/PyDevel/Prosp/extras/imsex.py ' + outfile)
+  fwhm,sky = imsex.procfile(outfile)
+  if fwhm or sky:
+    img.headers['FWHM'] = '%5.2f' % fwhm
+    img.comments['FWHM'] = 'Seeing FWHM, in pixels.'
+    img.headers['SKY'] = '%6.1f' % sky
+    img.comments['SKY'] = 'Sky background, in ADU'
+    img.save(outfile, bitpix=16)   #Re-save in Int16 format with FWHM and SKY header cards
+
   _rlog(fname,filename,filterid,exptime,ccdtemp,pjd,fwhm,sky,secz)
   logger.info(filename + ' reduced: FWHM=%4.2f pixels, Sky=%d ADU' % (fwhm,sky))
   return outfile

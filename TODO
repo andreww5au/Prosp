@@ -3,8 +3,9 @@ CGI pages   - done
 filter() command broken  - done
 offset() needs calibration  - done
 Use fittstime code to add HJD header - done
+IRAF - done
 
-IRAF
+Fix WCS stuff
 Save path and filename across Prosp restarts (in Andor.py?)
 Move optical coupler to Andor.py server
 Move fitstime.coords.py into Prosp (or use it externally) to add JD header in Andor.py
