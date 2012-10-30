@@ -569,12 +569,12 @@ class Camera(object):
         logger.info("AndorCamera still exists in Pyro nameserver with id: %s" % existing.object)
         logger.info("Previous Pyro daemon socket port: %d" % existing.port)
         # start the daemon on the previous port
-        pyro_daemon = Pyro4.Daemon(port=existing.port)
+        pyro_daemon = Pyro4.Daemon(host='animal', port=existing.port)
         # register the object in the daemon with the old objectId
         pyro_daemon.register(self, objectId=existing.object)
       except Pyro4.errors.NamingError:
         # just start a new daemon on a random port
-        pyro_daemon = Pyro4.Daemon()
+        pyro_daemon = Pyro4.Daemon(host='animal')
         # register the object in the daemon and let it get a new objectId
         # also need to register in name server because it's not there yet.
         uri =  pyro_daemon.register(self)
