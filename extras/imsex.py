@@ -8,9 +8,9 @@ from subprocess import Popen,PIPE
 from numpy import *
 
 snum = 100
-keepsex = True
-keepwcs = True
-FWHMCUT = 1.5
+keepsex = False
+keepwcs = False
+FWHMCUT = 1.5    #Ignore any object with an FWHM (in pixels) less than this value when calculating the median FWHM
 
 
 def fwhmsky(catfile):
@@ -61,5 +61,5 @@ def procfile(fname):
 if __name__ == '__main__':
   flist = sys.argv[1:]
   for f in flist:
-    procfile(f)
+    print os.path.basename(f) + ": FWHM=%5.2f SKY=%6.1f" % procfile(f)
 
