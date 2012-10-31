@@ -471,8 +471,29 @@ def init():
   connected = Andor.InitClient()
   camera = Andor.camera
   camera.status = ExtendedCameraStatus()
-  camera.status.imgtype = 'OBJECT'
-  filename('junk')
+
+  #Get last saved Prosp status
+  try:
+    f = open('/tmp/prospstatus','r')
+    s = cPickle.load(f)
+    f.close()
+  except:
+    s = None
+    logger.info("No saved Prosp status, using defaults")
+
+  if s is not None:
+    camera.status.imgtype = s.imgtype  #or 'BIAS', 'DARK', or 'FLAT'
+    camera.status.object = s.object         #Object name
+    camera.status.path = s.path
+    camera.status.filename = s.filename
+    camera.status.nextfile = s.nextfile
+    camera.status.lastfile = s.lastfile
+    camera.status.filectr = s.filectr
+    camera.status.observer = s.observer
+  else:
+    camera.status.imgtype = 'OBJECT'
+    filename('junk')
+
   camera.status.update()
 
   gzero = GuideZero(0,0)
@@ -491,7 +512,7 @@ def init():
     else:
       error = True
     if (x is not None) and (y is not None):
-      camera.status.guider = (x,y)
+      camera.status.guider = (x-gzero.gxoff, y-gzero.gyoff)
     else:
       error = True
     if m is not None:
