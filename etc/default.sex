@@ -19,7 +19,7 @@ DETECT_THRESH	1.5		# <sigmas> or <threshold>,<ZP> in mag.arcsec-2
 ANALYSIS_THRESH	1.5		# <sigmas> or <threshold>,<ZP> in mag.arcsec-2
 
 FILTER		Y		# apply filter for detection ("Y" or "N")?
-FILTER_NAME	/home/observer/PyDevel/Prosp/etc/default.conv	# name of the file containing the filter
+FILTER_NAME	/usr/local/etc/sex/gauss_4.0_7x7.conv	# name of the file containing the filter
 
 
 DEBLEND_NTHRESH	32		# Number of deblending sub-thresholds
@@ -46,7 +46,7 @@ PIXEL_SCALE	0		# size of pixel in arcsec (0=use FITS WCS info).
 #------------------------- Star/Galaxy Separation ----------------------------
 
 SEEING_FWHM	4.0		# stellar FWHM in arcsec
-STARNNW_NAME	/home/observer/PyDevel/Prosp/etc/default.nnw	# Neural-Network_Weight table filename
+STARNNW_NAME	/usr/local/etc/sex/default.nnw	# Neural-Network_Weight table filename
 
 #------------------------------ Background -----------------------------------
 
