@@ -117,8 +117,8 @@ def zguider():
   """Make the current position 0,0 for all future guider movement
      eg: zguider()
   """
-  gzero.gxoff = camera.status.xguider + gzero.gxoff
-  gzero.gyoff = camera.status.yguider + gzero.gyoff
+  gzero.gxoff = camera.status.guider[0] + gzero.gxoff
+  gzero.gyoff = camera.status.guider[1] + gzero.gyoff
   guider(0,0)
   f = open('/data/guidezero','w')
   cPickle.dump(gzero,f)
