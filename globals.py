@@ -10,8 +10,8 @@ CAMERA = 'Andor'
 
 CHILLER = False    #True if chiller unit connected.
 FOCUSER = True    #True if focuser unit connected.
-#OPTICALCOUPLER = True
-OPTICALCOUPLER = False
+OPTICALCOUPLER = True
+#OPTICALCOUPLER = False
 
 LOGLEVEL = logging.DEBUG           #Master log level - messages below this will be ignored.
 LOGLEVEL_CONSOLE = logging.INFO      #Minimum log level for console messages (INFO, DEBUG, ERROR, CRITICAL, etc)
