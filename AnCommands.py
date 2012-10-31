@@ -482,12 +482,27 @@ def init():
     f.close()
 
   if OPTICALCOUPLER:
-    opticalcoupler.init()
-    filter('I')
-    guider(0,0)
-    camera.status.mirror = 'IN'
+    n, x, y, m = opticalcoupler.init()
+    error = False
+    if n is not None:
+      camera.status.filterid = filtid(filtname(n))
+      camera.status.filter = n
+      logger.info('Currently using filter %d=%s' % (n,camera.status.filterid))
+    else:
+      error = True
+    if (x is not None) and (y is not None):
+      camera.status.guider = (x,y)
+    else:
+      error = True
+    if m is not None:
+      camera.status.mirror = m
+    else:
+      error = True
+
+    if error:
+      logger.error("Problem initialising the optical coupler")
+
 
 #Module initialisation section
-
 if __name__ == '__main__':
   init()

@@ -4,6 +4,9 @@ import time
 
 from globals import *
 
+FILTERS = {1:195, 2:-205, 3:-605, 4:-1005, 5:-1405, 6:-1805, 7:-2205, 8:-2605}
+MIRRORS = {'IN':2300, 'OUT':0}
+
 LATENCY = 0.25   #seconds between optical coupler commands
 
 START_FILTER = 6       # I
@@ -12,18 +15,35 @@ YGUIDER_CENTER = 1115
 MIRROR_IN = 2300
 
 def init():   #Initialise at runtime
+  """Query optical coupler controller boards to see if they have already
+     been initialised - if so, read current state. If they haven't, initialise
+     the boards.
+
+     Returns a tuple of (filter, x, y, mirror), where filter is 1-8, x and y
+     are (0,0) for the centre of the field, and mirror is 'IN' or 'OUT'. If the
+     boards couldn't be initialised, some of all of these will be None.
+  """
   global ser, logfile  
   ser = serial.Serial('/dev/ttyS0', 9600, timeout=1.0, rtscts=1)
-  error = InitializeBoards()
-  if not error:
-    HomeFilter()
-    SelectFilter(START_FILTER)
-    HomeXYStage()
-    HomeMirror()
-    MoveMirror(MIRROR_IN)
-  else:
-    print "Optical coupler serial interface not responding!"
-
+  filter = GetFilter()
+  x,y = GetXYStage()
+  mirror = GetMirror()
+  if (filter is None) or (x is None) or (y is None) or (mirror is None):
+    logger.info("Initialising optical coupler")
+    error = InitializeBoards()
+    if not error:
+      HomeFilter()
+      SelectFilter(START_FILTER)
+      HomeXYStage()
+      HomeMirror()
+      MoveMirror(MIRRORS['IN'])
+      filter = START_FILTER
+      x,y = 0,0
+      mirror = 'IN'
+      logger.info("Optical coupler setup complete.")
+    else:
+      logger.error("Optical coupler serial interface not responding!")
+  return filter, x, y, mirror
 
 
 def SendCommand(s=''):
@@ -255,24 +275,43 @@ def HomeFilter():
 def SelectFilter(filter_number=1):
   """move the filter wheel to a given filter position
      returns -1 on error, 0 otherwise
+
+     NOTE - filter numbers are 1-8, not 0-7
   """
-  filter_positions = [195, -205, -605, -1005, -1405, -1805, -2205, -2605]
 
-  # make filter numbering start at 1 intead of 0 for input parameter to function
-  filter_number -= 1
-
-  # Talk to the board that controls the filter position 
+  # Talk to the board that controls the filter position
   error = Tell("@0")
 
-  # move to selected filter position  and wait until move is finished 
-  error = Tell("movewait(0,%d)" % filter_positions[filter_number])
+  # move to selected filter position  and wait until move is finished
+  error = Tell("movewait(0,%d)" % FILTERS[filter_number])
 
   if not error:
     error,reply = Ask("where(0)")
-    if error or (reply <> filter_positions[filter_number]):
+    if error or (reply <> FILTERS[filter_number]):
       error = True
 
   return error
+
+
+def GetFilter():
+  """Return the current filter number, or None if the filter wheel isn't
+     at one of the predefined filter positions.
+
+     NOTE - filter numbers are 1-8, not 0-7
+  """
+  # Talk to the board that controls the filter position
+  error = Tell("@0")
+  if not error:
+    error,reply = Ask("where(0)")
+
+  if error:
+    return None
+
+  for n,v in FILTERS.items():
+    if v == reply:
+      return n
+  return None
+
 
 
 def HomeXYStage(xcen=None,ycen=None):
@@ -347,6 +386,19 @@ def MoveXYStage(x,y):
   return error
 
 
+def GetXYStage():
+  """Return the current XY stage position as an x,y tuple.
+     If there are any errors, return None,None
+  """
+  # Talk to the board that controls the XY Stage
+  error = Tell("@1")
+  x,y = None,None
+  if not error:
+    error,x = Ask("where(0)")
+  if not error:
+    error,y = Ask("where(1)")
+  return x,y
+
 
 def HomeMirror():
   """Bring the mirror to its limits, then home to a known point and mark as center
@@ -386,9 +438,14 @@ def HomeMirror():
 
 
 def MoveMirror(mpos):
-  """Move the mirror to a position y from home
+  """Move the mirror to  the specified number of steps in from the home position (zero
+     is fully 'out'). You can also supply 'IN' or 'OUT', specified in the global MIRRORS
+     dictionary.
+
      return -1 on error, 0 otherwise
   """
+  if type(mpos) == str and mpos.strip().upper() in MIRRORS.keys():
+    mpos = MIRRORS[mpos.strip().upper()]
 
   # Talk to the board that controls the mirror position 
   error = Tell("@0");
@@ -405,4 +462,25 @@ def MoveMirror(mpos):
 
   return error
 
+
+def GetMirror():
+  """Return the current mirror position as a string, 'IN' or 'OUT' (defined in MIRRORS
+     global.
+
+     If there are any errors, or if the position is not one of the standard
+     locations, return None.
+  """
+
+  # Talk to the board that controls the XY Stage
+  error = Tell("@0")
+  pos = None
+  if not error:
+    error,pos = Ask("where(1)")
+
+  if error:
+    return None
+  for n,v in MIRRORS.items():
+    if pos == v:
+      return n
+  return None
 
