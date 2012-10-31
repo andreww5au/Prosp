@@ -28,8 +28,8 @@ import service
 FOCUSATCMD = '/home/observer/PyDevel/AP72/focusat/focusat'    #Path and filename
 FOCUSSELCMD = '/home/observer/PyDevel/AP72/focussel/focussel'
 
-coarsestep = 100
-finestep = 50 
+coarsestep = 4000
+finestep = 1000
 
 if GotIRAF:
   noao.obsutil.starfocus.nexposures = 9
@@ -178,7 +178,7 @@ def FindBest(center = 1000, step = coarsestep, average = 1):
         print "Problem analysing the sample."
         tryagain = tryagain + 1
         continue
-      if (len(retlist) != 9.0): 
+      if (len(retlist) != 9.0):
         print "Not enough stars in this image."
         tryagain = tryagain + 1
         continue
@@ -333,8 +333,8 @@ class FocObject(pipeline.dObject):
       while (tries<5) and (not done):
         if (p-4*coarsestep) < 10:
           p = 10+4*coarsestep
-        elif (p+4*coarsestep) > 2000:
-          p = 2000-4*coarsestep
+        elif (p+4*coarsestep) > 104000:
+          p = 104000-4*coarsestep
         try:
           q = FindBest(center=p, step=coarsestep, average=1)   #Try -4*step to +4*step
         except:
