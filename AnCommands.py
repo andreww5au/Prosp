@@ -58,7 +58,7 @@ class ExtendedCameraStatus(Andor.CameraStatus):
     s += 'mirror = %s\n' % self.mirror
     s += 'last file = %s\n' % self.lastfile
     s += 'path, nextfile = %s, %s\n' % (self.path, self.nextfile)
-    s += 'Errors: %s' % self.errors
+    s += 'Errors: %s\n' % self.errors
     return s
 
   def update(self):

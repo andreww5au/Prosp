@@ -378,7 +378,7 @@ class CameraStatus(object):
     s += 'exptime = %8.3f\n' % self.exptime
     s += 'xbin,ybin = (%d,%d)\n' % (self.xbin, self.ybin)
     s += 'roi = (%d,%d,%d,%d)\n' % self.roi
-    s += 'Errors: %s' % self.errors
+    s += 'Errors: %s\n' % self.errors
     return s
 
   def __repr__(self):
