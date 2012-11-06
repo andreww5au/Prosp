@@ -618,8 +618,9 @@ def _reducefile(fname=''):
   ccdtemp = float(img.headers['CCDTEMP'])
 
   img.save(outfile, bitpix=16)   #Save in Int16 format
-  fwhm,sky = imsex.procfile(outfile)
+  fwhm,sky = imsex.procfile(outfile)    #Modify the output image file on disk, to add WCS headers
   if fwhm or sky:
+    img = FITS(outfile, 'r')          #Load image again, now that it has the new WCS headers
     img.headers['FWHM'] = '%5.2f' % fwhm
     img.comments['FWHM'] = 'Seeing FWHM, in pixels.'
     img.headers['SKY'] = '%6.1f' % sky
