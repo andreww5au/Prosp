@@ -67,11 +67,11 @@ CHECKIMAGE_NAME	check.fits	# Filename for the check-image (*)
 #--------------------- Memory (change with caution!) -------------------------
 
 MEMORY_OBJSTACK	2000		# number of objects in stack
-MEMORY_PIXSTACK	100000		# number of pixels in stack
+MEMORY_PIXSTACK	500000		# number of pixels in stack
 MEMORY_BUFSIZE	1024		# number of lines in buffer
 
 #----------------------------- Miscellaneous ---------------------------------
 
-VERBOSE_TYPE	QUIET		# can be "QUIET", "NORMAL" or "FULL" (*)
+VERBOSE_TYPE	NORMAL		# can be "QUIET", "NORMAL" or "FULL" (*)
 
 #------------------------------- New Stuff -----------------------------------
