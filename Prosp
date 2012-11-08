@@ -35,7 +35,7 @@ if CHILLER:
   import chiller
 
 import focuser
-from focuser import Goto,getPos,Home
+from focuser import Goto,getPos,Home,Tzero,Tcorrect
 
 #import focus
 #from focus import *
