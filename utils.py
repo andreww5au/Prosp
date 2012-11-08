@@ -12,7 +12,8 @@ import threading
 domeflatHA =  -2.68    #-2.68, -2.79, 
 domeflatDec = -20.9    #-20.9, -24.0, 
 #flatlist=[ ('V',5,13.0), ('R',7,4.0), ('I',7,2.0) ]
-flatlist = [ ('B',5,None), ('V',7,None), ('R',7,None), ('I',7,None) ]
+#flatlist = [ ('B',5,None), ('V',7,None), ('R',7,None), ('I',7,None) ]
+flatlist = [ ('R',7,None) ]
 
 status = None         #Overwritten with actual AnCommands.camera.status object by Prosp on startup
 
@@ -601,6 +602,11 @@ def hammer(objname='', duration=0.0):
   if (not objname) or (not duration):
     logger.error("Invalid arguments to utils.hammer - need object name and duration in hours")
     return
+  if (not status.MonitorActive):
+    logger.error("Monitoring mode is not switched on - aborting take command run.")
+    print "Use monitor('on') to switch on monitoring"
+    return
+  print "WATCH OUT - make sure Teljoy is set to **Dome Tracking!**"
   focuser.Tcorrect()
   take(objname)
   ilen = status.exptime + status.readouttime + 3   #Loop time, in seconds
