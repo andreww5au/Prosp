@@ -39,7 +39,7 @@ def procfile(fname):
         print s
     print
     os.remove('test.cat')
-    return
+    return 0.0,0.0
   cmd += 'sort -n -k 3 test.cat | head -%d > %s' % (snum,catfname)
   sorstd,sorerr = Popen(cmd, shell=True, stdout=PIPE, stderr=PIPE, close_fds=True).communicate()
 #  print basefname + 'sort output: ' + sorstd + '\n---------\n' + sorerr
