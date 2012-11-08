@@ -145,6 +145,95 @@ def centerstar():
   teljoy.offset(x+1,y+1)
 
 
+def AndorBest(center = 50000, step = coarsestep, average = 1):
+  """Take images at 9 focus positions, from center-4*step to center+4*step
+     At each position, open the shutter and shift the readout 25 lines, then
+     read out the whole image at the end.
+  """
+#Do some custom stuff here
+  mode('bin2fast')
+  oname = '/tmp/focuspos.lst'
+  onamefit = '/tmp/focuspos.fit'
+  saveobject = Andor.status.object
+  sftp = 0.0
+  errftp = 0.0
+  AnCommands.object('FOCTEST: '+`center`+' '+`step`)
+  try:
+    f = open(oname,'a') #append, so we're fitting all values taken so far this focus run
+  except:
+    print "Error opening the file ",oname
+    return
+
+  for i in range(average):
+    tryagain = 0
+    while (tryagain <= 2):
+      for p in [4,3,2,1,0,-1,-2,-3]:
+        pos = center + p * step
+        focuser.Goto(pos)
+        time.sleep(1)
+	imgname = go()
+#       AnCommands.foclines(25)
+	try:
+            retlist,ftuple = Analyse_Ralph(imgname=imgname, center=center, step=step) # focus pos  focus error  i j 
+      	except:
+            print "Problem analysing the image."
+            tryagain = tryagain + 1
+            continue
+      focuser.Goto(center-4*step)
+#      imgname = AnCommands.foclines(-1)
+      
+      if (len(retlist) != 9.0):
+        print "Not enough stars in this image."
+        tryagain = tryagain + 1
+        continue
+      print "Saved to file retlist [0] & [1], i, j", retlist[0][0]
+      nmp = 0
+      for j in range(9):   # read stars pos only
+        nmp = nmp + 1
+        try:
+          print '%.4f %.4f %.4f %.4f' % (retlist[j][0], retlist[j][1], retlist[j][2], retlist[j][3])
+       	  s = '%.4f %.4f %.4f %.4f \n' % (retlist[j][0], retlist[j][1], retlist[j][2], retlist[j][3])
+      	  f.write(s)
+        except:
+          nmp = nmp - 1
+          print 'Problem writing to file focupos.lst.'
+          break
+      print "Number of focus stars found = ", nmp
+      break
+    else:
+      print "Tried %d times, Can't calculate focus fit." % (tryagain,)
+      return
+#   print "LSQ centre estimate is ",ftuple[0]," +/- ",ftuple[1]
+    sftp = sftp + ftuple[0]
+
+  f.close() # close the file oname
+  AnCommands.object(saveobject)
+
+  try:
+    echeck, stuff = commands.getstatusoutput(FOCUSSELCMD + ' ' + oname)
+    if (echeck != 0):
+      print "Problem analysing the sample on N images."
+      return
+  except:
+    print "There is an error in focussel -- called by FindBest in focus.py"
+    return
+
+  retlis = []
+  try:
+    f = open(onamefit,'r')
+  except:
+    print "There is an error opening file /tmp/focuspos.fit"
+    return
+  for ll in f.readlines():
+    s = ll.strip().split()
+    ftuple = [float(x) for x in s]     #This only returns the last line in the file - *check* AW
+  f.close()
+
+  fc = int(ftuple[0])
+  print 'Focus for this image = ',fc
+  return fc
+
+
 def FindBest(center = 1000, step = coarsestep, average = 1):
   """Take images at 9 focus positions, from center-4*step to center+4*step
      At each position, open the shutter and shift the readout 25 lines, then
@@ -312,6 +401,11 @@ def Analyse_Ralph(imgname='', center = 0, step = coarsestep):
 
 class FocObject(pipeline.dObject):
   def take(self):
+   #Save the existing camera state
+   oldmode = status.mode
+   oldfilename = status.filename
+   oldexptime = status.exptime
+
     "Carry out a full refocus using this object."
     self.errors = ""
     self.jump()
@@ -360,6 +454,10 @@ class FocObject(pipeline.dObject):
       if not done:
         print "****** Focus didn't converge at coarse level, shift focuser to the start position."
         focuser.Goto(startpos)
+	#Restore the original camera state
+	exptime(oldexptime)
+	filename(oldfilename)
+	mode(oldmode)
         return
       p = fnl #best estimate of coarse focus
       print "****** Focus has converged at the coarse level using %d sets of images, coarse focus is %d" % (tries, p)
@@ -376,7 +474,7 @@ class FocObject(pipeline.dObject):
           p = 2000-4*finestep
         try:
           q = FindBest(center=p, step=finestep, average=1)  #Try -4*finestep to +4*finestep
-#          q = best(center=p, step=finestep, average=2)
+#         q = best(center=p, step=finestep, average=2)
         except:
           print "Fine Focus was not determined -- object may not be centred or it is cloudy."
           focuser.Goto(bestcoarse)
@@ -400,6 +498,10 @@ class FocObject(pipeline.dObject):
         print " ****** Focus has NOT converged at the fine level, reverting to best coarse position."
         focuser.Goto(bestcoarse)
         service.LastFocusTime = time.time()
+	#Restore the original camera state
+	exptime(oldexptime)
+	filename(oldfilename)
+	mode(oldmode)
         return 
         
       p = fnl

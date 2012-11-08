@@ -37,8 +37,8 @@ if CHILLER:
 import focuser
 from focuser import Goto,getPos,Home
 
-import focus
-from focus import *
+#import focus
+#from focus import *
 
 backgrounds.append(teljoy._background)
 backgrounds.append(weather._background)
