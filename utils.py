@@ -591,8 +591,22 @@ def offset(x,y):
   teljoy.jumpoff(oh,od)
 
 
-def gof(n=1):
-  """Same as 'go' command, only send the image/s to DS9 in the old 8-bit format,
-    so IRAF can do an 'imexam' for focussing.
+def hammer(objname='', duration=0.0):
+  """Given an object name and an observing duration (in hours), slew
+     to that object, set up all the defaults, and observe is continuously
+     for approximately 'duration' hours, then exit. During this time, the
+     'Tcorrect() function will be called roughly once every half an hour, to
+     compensate for thermal contraction or expansion of the tube.
   """
-  go(n=n, iraf=True)
+  if (not objname) or (not duration):
+    logger.error("Invalid arguments to utils.hammer - need object name and duration in hours")
+    return
+  focuser.Tcorrect()
+  take(objname)
+  ilen = status.exptime + status.readouttime + 3   #Loop time, in seconds
+  focint = 1800/ilen
+  N = 3600*duration/ilen + 1
+  for i in range(N):
+    gord()
+    if divmod(i,focint)[1] == 0:
+      focuser.Tcorrect()      #do this roughly every half hour
