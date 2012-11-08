@@ -608,7 +608,10 @@ def _reducefile(fname=''):
 
   exptime = float(img.headers['EXPTIME'])
   filterid = img.headers['FILTERID'][1].strip()
-  secz = float(img.headers['SECZ'])
+  try:
+    secz = float(img.headers['SECZ'])
+  except KeyError:
+    secz = 0.0
   try:
     hjd = float(img.headers['HJD'])
     pjd = hjd-2450000.0
