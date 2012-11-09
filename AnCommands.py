@@ -67,6 +67,7 @@ class ExtendedCameraStatus(Andor.CameraStatus):
        etc) to a pickled file for access by the CGI scripts.
     """
     if not connected:
+      logger.info('Not connected.')
       return
     Andor.CameraStatus.update(self)
     m = os.umask(0)   #Open file with r/w permission for all, so that multiple clients as different users will work
@@ -421,7 +422,7 @@ def go(n=1, iraf=False):
   """Take N images - default to 1 if no argument.
      eg: go(2)
   """
-  timetot = (camera.status.exptime+25)*n   #Allow 25 seconds readout time per image
+  timetot = (camera.status.exptime + camera.status.readouttime + 1)*n   #Allow for readout overhead
   logger.info('Start time '+`time.asctime(time.localtime(time.time()))`+
          ' -  End at '+`time.asctime(time.localtime(time.time()+timetot))`)
   result = []
