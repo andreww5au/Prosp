@@ -164,7 +164,7 @@ def AndorBest(center = 50000, step = coarsestep, average = 1):
     print "Error opening the file ",oname
     return
 
-  for i in range(average):
+  for i in range(average):	# move the focuser take an image
     tryagain = 0
     while (tryagain <= 2):
       for p in [4,3,2,1,0,-1,-2,-3]:
@@ -174,7 +174,7 @@ def AndorBest(center = 50000, step = coarsestep, average = 1):
 	imgname = go()
 #       AnCommands.foclines(25)
 	try:
-            retlist,ftuple = Analyse_Ralph(imgname=imgname, center=center, step=step) # focus pos  focus error  i j 
+            retlist,ftuple = Analyse_Ralph(imgname=imgname, center=center, step=step) # name of fits start pos  step size 
       	except:
             print "Problem analysing the image."
             tryagain = tryagain + 1
