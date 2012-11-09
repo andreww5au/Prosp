@@ -109,6 +109,7 @@ class TABLE:
   """
   def __init__(self, fileob=None, tmode='list'):
     self.file = fileob
+    self.keylist = []
     self.headers={}
     self.comments={}
     self.finished=0
