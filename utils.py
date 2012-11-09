@@ -610,8 +610,8 @@ def hammer(objname='', duration=0.0):
   focuser.Tcorrect()
   take(objname)
   ilen = status.exptime + status.readouttime + 3   #Loop time, in seconds
-  focint = 1800/ilen
-  N = 3600*duration/ilen + 1
+  focint = int(1800/ilen)
+  N = int(3600*duration/ilen) + 1
   for i in range(N):
     gord()
     if divmod(i,focint)[1] == 0:

@@ -99,14 +99,12 @@ def _background():
         try:
           f()
         except:
-          print "Exception in background function: ", f
-          sys.excepthook(*sys.exc_info())
-          print "Continuing..."
+          logger.exception("Exception in background function: %s\n" % f)
+          logger.info("Continuing...")
 
     except:
-      print "Exception in main Prosp background thread"
-      sys.excepthook(*sys.exc_info())
-      print "Continuing..."
+      logger.exception("Exception in main Prosp background thread")
+      logger.info("Continuing...")
 
     time.sleep(6)            #Wait 6 seconds, then repeat
 
