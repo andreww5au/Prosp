@@ -124,13 +124,13 @@ def getflats(filt='R', n=1, et=None):
   if not et:
     autoexp = True
     filter(filtnum(filt))
-    exptime(0.1)
+    exptime(0.5)
     filename('testflat'+filt)
     flat('flat'+filt)
     tim = improc.FITS(go(),'r')
     tim.bias()
     testlevel = tim.median()
-    et = 20000*0.1/testlevel
+    et = 20000*0.5/testlevel
     if et < 1.0:
       print "Too bright, desired exposure time only %3.1f seconds." % (et,)
       filename(oldfn) #Restore filename to orig, stripping counter
