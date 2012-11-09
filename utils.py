@@ -12,8 +12,8 @@ import threading
 domeflatHA =  -2.68    #-2.68, -2.79, 
 domeflatDec = -20.9    #-20.9, -24.0, 
 #flatlist=[ ('V',5,13.0), ('R',7,4.0), ('I',7,2.0) ]
-#flatlist = [ ('B',5,None), ('V',7,None), ('R',7,None), ('I',7,None) ]
-flatlist = [ ('R',7,None), ('I',7,None) ]
+flatlist = [ ('B',7,None), ('V',7,None), ('R',7,None), ('I',7,None) ]
+#flatlist = [ ('R',7,None), ('I',7,None) ]
 
 status = None         #Overwritten with actual AnCommands.camera.status object by Prosp on startup
 
