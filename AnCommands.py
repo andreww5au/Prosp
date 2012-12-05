@@ -74,6 +74,7 @@ class ExtendedCameraStatus(Andor.CameraStatus):
     f = open('/tmp/prospstatus','w')
     cPickle.dump(self,f)
     f.close()
+    print ':',
     os.umask(m)       #restore original file creation permissions
 
 

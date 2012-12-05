@@ -93,6 +93,7 @@ def _background():
           status.MonitorActive=0
 
       status.isdark=ephemint.isdark()
+      print '.',
       status.update()    #Get new data from Pyro server, and save pickled status object.
   
       for f in backgrounds:    #Call all the registered background functions
@@ -108,6 +109,7 @@ def _background():
       sys.excepthook(*sys.exc_info())
       print "Continuing..."
 
+    print '-',
     time.sleep(6)            #Wait 6 seconds, then repeat
 
 
@@ -123,7 +125,7 @@ class Prompt:
                                   target=_background)
         BGThread.setDaemon(1)
         BGThread.start()
-        logger.warning("Dead background thread restarted.")
+        logger.error("Dead background thread restarted.")
     return ">>>"
 
 
