@@ -111,7 +111,10 @@ def _background():
       logger.info("Continuing...")
 
     logger.debug('5')
-    time.sleep(6)            #Wait 6 seconds, then repeat
+#    time.sleep(6)            #Wait 6 seconds, then repeat
+    b = 1.0
+    for i in range(10000000):
+      b *= 1.0000001
 
 
 class Prompt:
