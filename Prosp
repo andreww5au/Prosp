@@ -62,6 +62,7 @@ def help(func):
 def _background():
   "Call each of the registered background functions every 6 seconds"
   while 1:
+    logger.debug('1')
     try:
       if status.MonitorActive:
         if status.weather.clear and isdark() and (not teljoy.Active.isSet()):
@@ -92,12 +93,15 @@ def _background():
           teljoy.pause()
           status.MonitorActive=0
 
+      logger.debug('2')
       status.isdark=ephemint.isdark()
       status.update()    #Get new data from Pyro server, and save pickled status object.
-  
+      logger.debug('3')
+
       for f in backgrounds:    #Call all the registered background functions
         try:
           f()
+          logger.debug('4: %s' % f)
         except:
           logger.exception("Exception in background function: %s\n" % f)
           logger.info("Continuing...")
@@ -106,6 +110,7 @@ def _background():
       logger.exception("Exception in main Prosp background thread")
       logger.info("Continuing...")
 
+    logger.debug('5')
     time.sleep(6)            #Wait 6 seconds, then repeat
 
 
