@@ -93,7 +93,6 @@ def _background():
           status.MonitorActive=0
 
       status.isdark=ephemint.isdark()
-      print '.',
       status.update()    #Get new data from Pyro server, and save pickled status object.
   
       for f in backgrounds:    #Call all the registered background functions
@@ -107,7 +106,6 @@ def _background():
       logger.exception("Exception in main Prosp background thread")
       logger.info("Continuing...")
 
-    print '-',
     time.sleep(6)            #Wait 6 seconds, then repeat
 
 
