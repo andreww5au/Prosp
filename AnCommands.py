@@ -10,6 +10,7 @@ import Andor
 import opticalcoupler
 import xpa
 from globals import *
+import weather
 
 try:
   from fitstime import fitstime
@@ -387,6 +388,13 @@ def setheaders(f):
     f.headers['DARK'] = camera.status.object
   else:
     f.headers['OBJECT'] = camera.status.object
+  try:
+    skytemp = weather.status.skytemp
+    f.headers['SKYTEMP'] = "%4.1f" % skytemp
+    f.comments['SKYTEMP'] = "'Infrared sky temp in degC'"
+  except:
+    pass
+
   try:
     if camera.status.TJ.ObjRA:    #Position calibrated to epoch
       ra = camera.status.TJ.ObjRA
