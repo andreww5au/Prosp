@@ -179,16 +179,16 @@ def AndorBest(center = 50000, step = coarsestep, average = 1):
             print "Problem analysing the image."
             tryagain = tryagain + 1
             continue
-      focuser.Goto(center-4*step)
+        focuser.Goto(center-4*step)
 #      imgname = AnCommands.foclines(-1)
       
-      if (len(retlist) != 9.0):
-        print "Not enough stars in this image."
+      if (len(retlist) >= 1.0):
+        print "No stars from this run."
         tryagain = tryagain + 1
         continue
       print "Saved to file retlist [0] & [1], i, j", retlist[0][0]
       nmp = 0
-      for j in range(9):   # read stars pos only
+      for j in range(len(retlist)):   # read stars pos only
         nmp = nmp + 1
         try:
           print '%.4f %.4f %.4f %.4f' % (retlist[j][0], retlist[j][1], retlist[j][2], retlist[j][3])
@@ -210,12 +210,12 @@ def AndorBest(center = 50000, step = coarsestep, average = 1):
   AnCommands.object(saveobject)
 
   try:
-    echeck, stuff = commands.getstatusoutput(FOCUSSELCMD + ' ' + oname)
+    echeck, stuff = commands.getstatusoutput(FOCUSSELCMD + ' ' + oname)  # fit the data
     if (echeck != 0):
       print "Problem analysing the sample on N images."
       return
   except:
-    print "There is an error in focussel -- called by FindBest in focus.py"
+    print "There is an error in focussel -- called by AndorBest in focus.py"
     return
 
   retlis = []
@@ -310,7 +310,7 @@ def FindBest(center = 1000, step = coarsestep, average = 1):
     print "There is an error opening file /tmp/focuspos.fit"
     return
   for ll in f.readlines():
-    s = ll.strip().split()
+   .s = ll.strip().split()
     ftuple = [float(x) for x in s]     #This only returns the last line in the file - *check* AW
   f.close()
 
@@ -430,7 +430,7 @@ class FocObject(pipeline.dObject):
         elif (p+4*coarsestep) > 104000:
           p = 104000-4*coarsestep
         try:
-          q = FindBest(center=p, step=coarsestep, average=1)   #Try -4*step to +4*step
+          q = AndorBest(center=p, step=coarsestep, average=1)   #Try -4*step to +4*step
         except:
           print "Coarse Focus was NOT determined -- object may not be centred or it is cloudy."
           focuser.Goto(startpos)
@@ -473,7 +473,7 @@ class FocObject(pipeline.dObject):
         elif (p+4*finestep) > 2000:
           p = 2000-4*finestep
         try:
-          q = FindBest(center=p, step=finestep, average=1)  #Try -4*finestep to +4*finestep
+          q = AndorBest(center=p, step=finestep, average=1)  #Try -4*finestep to +4*finestep
 #         q = best(center=p, step=finestep, average=2)
         except:
           print "Fine Focus was not determined -- object may not be centred or it is cloudy."
