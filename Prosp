@@ -279,3 +279,21 @@ try:
   motd.close()
 except:
   pass
+
+#Some test code to debug wierd 'blocking background threads' issue
+import threading
+import os
+import time
+
+def touch(fname):
+  with file(fname,'a'):
+     os.utime(fname, None)
+
+def loop():
+  while True:
+    touch('/tmp/loop')
+    time.sleep(1)
+
+t = threading.Thread(target=loop)
+t.setDaemon(1)
+t.start()
