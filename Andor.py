@@ -30,19 +30,19 @@ from globals import *
 if __name__ == '__main__':
   globals.SERVER = True
   globals.CLIENT = False
-  filef = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s  %(message)s")
-  conf = logging.Formatter("%(name)s-%(levelname)s  %(message)s")
+  filef = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
+  conf = logging.Formatter("%(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
 
   try:
     sfh = logging.FileHandler(LOGFILES['Server'])
   except IOError:    #Can't open a logfile for writing, probably the wrong user
-    sfh = NullHandler()
+    sfh = logging.NullHandler()
 
   sfh.setLevel(LOGLEVELS['Server']['File'])
   sfh.setFormatter(filef)
 
   # create console handler with a different log level, and without timestamps
-  conh = logging.StreamHandler()
+  conh = logging.StreamHandler(sys.stdout)
   conh.setLevel(LOGLEVELS['Server']['Console'])
   conh.setFormatter(conf)
 

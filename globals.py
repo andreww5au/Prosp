@@ -23,13 +23,10 @@ CLIENT = False     #True if we are running inside a stand-alone Andor.py server
 SERVER = False     #True if we are running inside an instance of 'Prosp'
 #If neither of the above are true, we are running in some other state, eg manually imported module
 
-class NullHandler(logging.Handler):
-  def emit(self, record):
-    pass
 
 #Set up default logging, for cases where modules are imported manually.
 #Overridden in Andor.py (when started as server) and Prosp.
-conf = logging.Formatter("%(name)s-%(levelname)s  %(message)s")
+conf = logging.Formatter("%(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
 # create console handler
 conh = logging.StreamHandler()
 conh.setLevel(MLOGLEVEL)

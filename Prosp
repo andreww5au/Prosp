@@ -2,6 +2,7 @@
 
 backgrounds=[]
 
+import sys
 import globals
 from globals import *
 import Andor
@@ -9,17 +10,17 @@ import AnCommands
 
 globals.SERVER = False
 globals.CLIENT = True
-filef = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s  %(message)s")
-conf = logging.Formatter("%(name)s-%(levelname)s  %(message)s")
+filef = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
+conf = logging.Formatter("%(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
 try:
   sfh = logging.FileHandler(LOGFILES['Client'])
 except IOError:    #Can't open a logfile for writing, probably the wrong user
-  sfh = NullHandler()
+  sfh = logging.NullHandler()
 
 sfh.setLevel(LOGLEVELS['Server']['File'])
 sfh.setFormatter(filef)
 # create console handler with a different log level, and without timestamps
-conh = logging.StreamHandler()
+conh = logging.StreamHandler(sys.stdout)
 conh.setLevel(LOGLEVELS['Server']['Console'])
 conh.setFormatter(conf)
 # create global logger object
