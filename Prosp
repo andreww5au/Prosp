@@ -2,6 +2,7 @@
 
 backgrounds=[]
 
+import globals
 from globals import *
 import Andor
 import AnCommands

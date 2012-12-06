@@ -23,6 +23,7 @@ import logging
 import pyandor
 import fits
 import improc
+import globals
 from globals import *
 
 
