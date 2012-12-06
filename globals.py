@@ -26,15 +26,16 @@ SERVER = False     #True if we are running inside an instance of 'Prosp'
 
 #Set up default logging, for cases where modules are imported manually.
 #Overridden in Andor.py (when started as server) and Prosp.
-conf = logging.Formatter("%(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
+#conf = logging.Formatter("%(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
 # create console handler
-conh = logging.StreamHandler()
-conh.setLevel(MLOGLEVEL)
-conh.setFormatter(conf)
+#conh = logging.StreamHandler()
+#conh.setLevel(MLOGLEVEL)
+#conh.setFormatter(conf)
 # create global logger object
 logger = logging.getLogger("Default")
-logger.addHandler(conh)
-logger.setLevel(MLOGLEVEL)
+#logger.addHandler(conh)
+#logger.setLevel(MLOGLEVEL)
+logger.addHandler(logging.NullHandler)
 
 
 #filters=['Clear', 'Red', '4450', '9500', 'Visual', 'Infrared', 'Empty', '7260']

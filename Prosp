@@ -20,15 +20,15 @@ except IOError:    #Can't open a logfile for writing, probably the wrong user
 sfh.setLevel(LOGLEVELS['Server']['File'])
 sfh.setFormatter(filef)
 # create console handler with a different log level, and without timestamps
-conh = logging.StreamHandler(sys.stdout)
-conh.setLevel(LOGLEVELS['Server']['Console'])
-conh.setFormatter(conf)
+#conh = logging.StreamHandler(sys.stdout)
+#conh.setLevel(LOGLEVELS['Server']['Console'])
+#conh.setFormatter(conf)
 # create global logger object
 logger = logging.getLogger("Prosp")
 logger.setLevel(MLOGLEVEL)
 # add the handlers to the logger
 logger.addHandler(sfh)
-logger.addHandler(conh)
+#logger.addHandler(conh)
 #Make it the default logger for everything else in this process that imports 'globals'
 globals.logger = logger
 
