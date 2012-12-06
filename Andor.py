@@ -25,6 +25,38 @@ import fits
 import improc
 from globals import *
 
+
+if __name__ == '__main__':
+  globals.SERVER = True
+  globals.CLIENT = False
+  filef = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s  %(message)s")
+  conf = logging.Formatter("%(name)s-%(levelname)s  %(message)s")
+
+  try:
+    sfh = logging.FileHandler(LOGFILES['Server'])
+  except IOError:    #Can't open a logfile for writing, probably the wrong user
+    sfh = NullHandler()
+
+  sfh.setLevel(LOGLEVELS['Server']['File'])
+  sfh.setFormatter(filef)
+
+  # create console handler with a different log level, and without timestamps
+  conh = logging.StreamHandler()
+  conh.setLevel(LOGLEVELS['Server']['Console'])
+  conh.setFormatter(conf)
+
+  # create global logger object
+  logger = logging.getLogger("Andor")
+  logger.setLevel(MLOGLEVEL)
+
+  # add the handlers to the logger
+  logger.addHandler(sfh)
+  logger.addHandler(conh)
+
+  #Make it the default logger for everything else in this process that imports 'globals'
+  globals.logger = logger
+
+
 FITS = improc.FITS
 
 pyro_thread = None
@@ -885,10 +917,8 @@ def InitClient():
 
 
 def InitServer():
-  global camera, pyro_thread, ns_process, logger
-  logger = slogger
+  global camera, pyro_thread, ns_process
   camera = Camera()
-
   logger.info("Python Andor interface initialising")
   try:
     camera._Initialize()
@@ -971,6 +1001,8 @@ def cleanup():
 
 
 if __name__ == '__main__':
+  globals.SERVER = True
+  globals.CLIENT = False
   RegisterCleanup(cleanup)
   InitServer()
   while not exitnow:    #Exit the daemon if we are told to
