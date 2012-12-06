@@ -5,11 +5,11 @@ backgrounds=[]
 import sys
 import globals
 from globals import *
-import Andor
-import AnCommands
 
-globals.SERVER = False
-globals.CLIENT = True
+SERVER = False
+CLIENT = True
+globals.SERVER = SERVER
+globals.CLIENT = CLIENT
 filef = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
 conf = logging.Formatter("%(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
 try:
@@ -32,6 +32,8 @@ logger.addHandler(sfh)
 #Make it the default logger for everything else in this process that imports 'globals'
 globals.logger = logger
 
+import Andor
+import AnCommands
 
 try:
   import readline
