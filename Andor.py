@@ -951,14 +951,14 @@ def InitServer():
 
   logger.info("Getting camera details:")
   n = camera._GetAvailableCameras()
-  logger.info("%d Andor cameras installed" % n)
+  logger.info("%d Andor camera/s installed" % n)
   if n <> 1:
     logger.error("Can't cope with anything other than 1 camera, exiting.")
     return False
 
   logger.info("Getting handle for camera #0:")
   handle = camera._GetCameraHandle(0)
-  logger.info("--> %s" % handle.value())
+  logger.info("Handle = %s" % handle.value())
 
   logger.info("Setting current camera:")
   camera._SetCurrentCamera(handle)
