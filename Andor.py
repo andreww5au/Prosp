@@ -454,6 +454,35 @@ class Camera(object):
         logger.debug(mesg)
         return ''
 
+  def _GetAvailableCameras(self):
+    """This function returns the total number of Andor cameras currently installed. It's possible
+       to call this function before (the/a) camera has been initialised.
+    """
+    mesg = self._procret(pyandor.GetAvailableCameras(l1), 'GetAvailableCameras')
+    num = int(l1.value())
+    if mesg:
+      logger.error(mesg)
+    return num
+
+  def _GetCameraHandle(self, i):
+    """Return the 'handle' corresponding to the installed Andor camera with an index of
+       'i' (0 means the first installed camera, 1 is the second, etc).
+
+      Returns a 'long' object, to be passed directly to the 'SetCurrentCamera' function.
+    """
+    u1.assign(i)
+    mesg = self._procret(pyandor.GetCameraHandle(u1, l1), 'GetCameraHandle')
+    if mesg:
+      logger.error(mesg)
+    return l1
+
+  def _SetCurrentCamera(self, handle):
+    mesg = self._procret(pyandor.SetCurrentCamera(handle), 'SetCurrentCamera')
+    if mesg:
+      logger.error(mesg)
+    return mesg
+
+
   def _GetCapabilities(self):
     """Grab the current camera capabilities, and compare them to the values stored in
        record above. If there's a difference, it means the Andor driver has been updated,
@@ -920,6 +949,21 @@ def InitClient():
 def InitServer():
   global camera, pyro_thread, ns_process
   camera = Camera()
+
+  logger.info("Getting camera details:")
+  n = camera._GetAvailableCameras()
+  logger.info("%d Andor cameras installed" % n)
+  if n <> 1:
+    logger.error("Can't cope with anything other than 1 camera, exiting.")
+    return False
+
+  logger.info("Getting handle for camera #0:")
+  handle = camera._GetCameraHandle(0)
+  logger.info("--> %s" % handle.value())
+
+  logger.info("Setting current camera:")
+  camera._SetCurrentCamera(handle)
+
   logger.info("Python Andor interface initialising")
   try:
     camera._Initialize()
