@@ -264,9 +264,16 @@ print "Content-Type: text/html\n\n"
 print HTMLheader
 
 print "<!-- "
-f=open(statusfile,'r')
-frog=cPickle.load(f)
-f.close()
+try:
+  f=open(statusfile,'r')
+  frog=cPickle.load(f)
+  f.close()
+except IOError:
+  print " Error opening %s" % statusfile
+  print " --> \n"
+  print HTMLtrailer
+  sys.exit()
+
 frog.TJ=teljoy.status
 if time.time()-os.stat(statusfile)[stat.ST_MTIME]<30:
   frog.running=1
