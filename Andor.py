@@ -470,8 +470,7 @@ class Camera(object):
 
       Returns a 'long' object, to be passed directly to the 'SetCurrentCamera' function.
     """
-    u1.assign(i)
-    mesg = self._procret(pyandor.GetCameraHandle(u1, l1), 'GetCameraHandle')
+    mesg = self._procret(pyandor.GetCameraHandle(i, l1), 'GetCameraHandle')
     if mesg:
       logger.error(mesg)
     return l1
