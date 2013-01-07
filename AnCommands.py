@@ -73,7 +73,7 @@ class ExtendedCameraStatus(Andor.CameraStatus):
     Andor.CameraStatus.update(self)
     m = os.umask(0)   #Open file with r/w permission for all, so that multiple clients as different users will work
     f = open('/tmp/prospstatus','w')
-    cPickle.dump(self,f)
+    cPickle.dump(self.__dict__,f)
     f.close()
     os.umask(m)       #restore original file creation permissions
 
@@ -484,7 +484,8 @@ def init():
   #Get last saved Prosp status
   try:
     f = open('/tmp/prospstatus','r')
-    s = cPickle.load(f)
+    s = ExtendedCameraStatus()
+    s.__dict__.update(cPickle.load(f))
     f.close()
   except:
     s = None

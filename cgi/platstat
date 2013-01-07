@@ -2,6 +2,7 @@
 
 import cgi
 import sys
+import traceback
 import cPickle
 import time
 import os
@@ -258,6 +259,8 @@ def WeatherParams(self):
 def Exits():
   return '&nbsp; &nbsp; Go to <A href="al/aobjlist">Objects Database</A>'
 
+class Frog:
+  pass     #Dummy class used to load pickled camera status dict
 
 print "Content-Type: text/html\n\n"
 
@@ -266,10 +269,12 @@ print HTMLheader
 print "<!-- "
 try:
   f=open(statusfile,'r')
-  frog=cPickle.load(f)
+  frog = Frog()
+  frog.__dict__.update(cPickle.load(f))
   f.close()
-except IOError:
+except:
   print " Error opening %s" % statusfile
+  traceback.print_exc()
   print " --> \n"
   print HTMLtrailer
   sys.exit()
