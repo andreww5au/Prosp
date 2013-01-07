@@ -433,7 +433,7 @@ class FITS:
   def saveraw(self, fname=''):
     """Save the data section of the image (without headers) as a raw array of 32-bit floats.
     """
-    if self.data and fname:
+    if self.data != None and fname:
       f = open(fname,'w')
       f.write(self.data.astype(Float32).tostring())
       f.close()
