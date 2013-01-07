@@ -470,10 +470,10 @@ class Camera(object):
 
       Returns a 'long' object, to be passed directly to the 'SetCurrentCamera' function.
     """
-    mesg = self._procret(pyandor.GetCameraHandle(0, handle), 'GetCameraHandle')
+    mesg = self._procret(pyandor.GetCameraHandle(0, l1), 'GetCameraHandle')
     if mesg:
       logger.error(mesg)
-    return handle
+    return l1
 
   def _SetCurrentCamera(self, handle):
     mesg = self._procret(pyandor.SetCurrentCamera(handle), 'SetCurrentCamera')
@@ -956,7 +956,7 @@ def InitServer():
     return False
 
   logger.info("Getting handle for camera #0:")
-  handle = camera._GetCameraHandle(0)
+  handle = camera._GetCameraHandle0()
   logger.info("--> %s" % handle.value())
 
   logger.info("Setting current camera:")
