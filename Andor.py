@@ -464,23 +464,22 @@ class Camera(object):
       logger.error(mesg)
     return num
 
-  def _GetCameraHandle(self, i):
+  def _GetCameraHandle0(self):
     """Return the 'handle' corresponding to the installed Andor camera with an index of
-       'i' (0 means the first installed camera, 1 is the second, etc).
+       '0' (0 means the first installed camera, 1 is the second, etc).
 
       Returns a 'long' object, to be passed directly to the 'SetCurrentCamera' function.
     """
-    mesg = self._procret(pyandor.GetCameraHandle(i, l1), 'GetCameraHandle')
+    mesg = self._procret(pyandor.GetCameraHandle(0, handle), 'GetCameraHandle')
     if mesg:
       logger.error(mesg)
-    return l1
+    return handle
 
   def _SetCurrentCamera(self, handle):
     mesg = self._procret(pyandor.SetCurrentCamera(handle), 'SetCurrentCamera')
     if mesg:
       logger.error(mesg)
     return mesg
-
 
   def _GetCapabilities(self):
     """Grab the current camera capabilities, and compare them to the values stored in
