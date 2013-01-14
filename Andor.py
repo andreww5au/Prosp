@@ -946,7 +946,7 @@ def InitClient():
 
 
 def InitServer():
-  global camera, pyro_thread, ns_process
+  global camera, pyro_thread
   camera = Camera()
 
   logger.info("Getting camera details:")
