@@ -18,15 +18,16 @@ else:
 
 import Andor
 import AnCommands
-
+import fits
 import improc
 import focuser
 import pipeline
+from pipeline import dObject
 import teljoy
 import service
 
-FOCUSATCMD = '/home/observer/PyDevel/AP72/focusat/focusat'    #Path and filename
-FOCUSSELCMD = '/home/observer/PyDevel/AP72/focussel/focussel'
+FOCUSATCMD = '/home/observer/PyDevel/Prosp/focusat/focusat'    #Path and filename
+FOCUSSELCMD = '/home/observer/PyDevel/Prosp/focussel/focussel'
 
 coarsestep = 4000
 finestep = 1000
@@ -151,74 +152,67 @@ def AndorBest(center = 50000, step = coarsestep, average = 1):
      read out the whole image at the end.
   """
 #Do some custom stuff here
-  mode('bin2fast')
+  print "Openning the file ",center,step,average
   oname = '/tmp/focuspos.lst'
   onamefit = '/tmp/focuspos.fit'
-  saveobject = Andor.status.object
+  print "Openning the file ",onamefit
+  saveobject = AnCommands.object
   sftp = 0.0
   errftp = 0.0
-  AnCommands.object('FOCTEST: '+`center`+' '+`step`)
+  print "Openning the file ",oname
   try:
     f = open(oname,'a') #append, so we're fitting all values taken so far this focus run
+    print "Openning the file ",oname, onamefit
   except:
     print "Error opening the file ",oname
     return
-
-  for i in range(average):	# move the focuser take an image
+  
+  nmp=0
+  for i in range(average):      # move the focuser take an image
     tryagain = 0
     while (tryagain <= 2):
       for p in [4,3,2,1,0,-1,-2,-3]:
-        pos = center + p * step
+        pos = center + p*step
         focuser.Goto(pos)
         time.sleep(1)
-	imgname = go()
+	imgname = AnCommands.go()
 #       AnCommands.foclines(25)
+#       AnCommands.object('FOCTEST: '+`pos`+' '+`step`)
 	try:
-            retlist,ftuple = Analyse_Ralph(imgname=imgname, center=center, step=step) # name of fits start pos  step size 
+          print 'calling analyse_ralph',imgname
+	  retlist = []
+          retlist = Analyse_Ralph(imgname=imgname, center=pos, step=step)
+          print 'returned from Analyse-Ralph'
+          try:
+             print 'list %.4f %.4f %.4f %.4f' % (retlist[0], retlist[1], retlist[2], retlist[3])
+       	     s = '%.4f %.4f %.4f %.4f \n' % (retlist[0], retlist[1], retlist[2], retlist[3])
+      	     f.write(s)
+             nmp=nmp+1
+          except:
+             print 'Problem writing to file focupos.lst.'
       	except:
-            print "Problem analysing the image."
+            print "Problem analysing the sample(Andorbest)."
+            print 'retlist %.4f %.4f %.4f %.4f' % (retlist[0][0], retlist[0][1], retlist[0][2], retlist[0][3])
             tryagain = tryagain + 1
-            continue
-      focuser.Goto(center-4*step)
-#      imgname = AnCommands.foclines(-1)
-      
-      if (len(retlist) != 9.0):
-        print "Not enough stars in this image."
-        tryagain = tryagain + 1
         continue
-      print "Saved to file retlist [0] & [1], i, j", retlist[0][0]
-      nmp = 0
-      for j in range(9):   # read stars pos only
-        nmp = nmp + 1
-        try:
-          print '%.4f %.4f %.4f %.4f' % (retlist[j][0], retlist[j][1], retlist[j][2], retlist[j][3])
-       	  s = '%.4f %.4f %.4f %.4f \n' % (retlist[j][0], retlist[j][1], retlist[j][2], retlist[j][3])
-      	  f.write(s)
-        except:
-          nmp = nmp - 1
-          print 'Problem writing to file focupos.lst.'
-          break
-      print "Number of focus stars found = ", nmp
-      break
+#       focuser.Goto(center-4*step)     
     else:
       print "Tried %d times, Can't calculate focus fit." % (tryagain,)
       return
 #   print "LSQ centre estimate is ",ftuple[0]," +/- ",ftuple[1]
-    sftp = sftp + ftuple[0]
+#    sftp = sftp + ftuple[0]
 
-  f.close() # close the file oname
-  AnCommands.object(saveobject)
+    f.close() # close the file oname
+    AnCommands.object(saveobject)
 
-  try:
-    echeck, stuff = commands.getstatusoutput(FOCUSSELCMD + ' ' + oname)
-    if (echeck != 0):
-      print "Problem analysing the sample on N images."
-      return
-  except:
-    print "There is an error in focussel -- called by FindBest in focus.py"
-    return
-
-  retlis = []
+    try:
+      echeck, stuff = commands.getstatusoutput(FOCUSSELCMD + ' ' + oname)  # fit the data
+      if (echeck != 0):
+        print "Problem analysing the sample on N images."
+        return
+    except:
+       print "There is an error in focussel -- called by AndorBest in focus.py"
+       return
   try:
     f = open(onamefit,'r')
   except:
@@ -230,7 +224,7 @@ def AndorBest(center = 50000, step = coarsestep, average = 1):
   f.close()
 
   fc = int(ftuple[0])
-  print 'Focus for this image = ',fc
+  print 'Focus for this set of images is = ',fc
   return fc
 
 
@@ -262,16 +256,17 @@ def FindBest(center = 1000, step = coarsestep, average = 1):
       focuser.Goto(center-4*step)
       imgname = AnCommands.foclines(-1)
       try:
-        retlist,ftuple = Analyse_Ralph(imgname=imgname, center=center, step=step)
+        retlist = Analyse_Ralph(imgname=imgname, center=center, step=step)
       except:
         print "Problem analysing the sample."
         tryagain = tryagain + 1
         continue
-      if (len(retlist) != 9.0):
-        print "Not enough stars in this image."
-        tryagain = tryagain + 1
-        continue
-      print "Saved to file retlist [0] & [1], i, j", retlist[0][0]
+      print "retlist  =",retlist
+#      if (len(retlist) != 9.0):
+#        print "Not enough stars in this image."
+#        tryagain = tryagain + 1
+#        continue
+#      print "Saved to file retlist [0] & [1], i, j", retlist[0][0]
       nmp = 0
       for j in range(9):   # read stars pos only
         nmp = nmp + 1
@@ -346,24 +341,28 @@ def Analyse_IRAF(imgname='', center = 0, step = coarsestep):
 
 
 def Analyse_Ralph(imgname='', center = 0, step = coarsestep):
-  """Analyse an existing image on disk, assumed to have 9 star images at different 
-     focus positions. If the image was taken with the 'best' funtion (above), extract
+  """Analyse an existing image on disk, assumed to have 1 star images at different. 
+     If the image was taken with the 'Andorbest' funtion (above), extract
      the focus positions from the header, otherwise use the arguments passed to the 
      function. Pass the image to focusat for analysis, parse the output, and return
      the best focus position.
   """
+  print ' imagename ',imgname  #debug
   totres=[]
   retlist=[]
-  f = improc.FITS(imgname,'r')
+  f = fits.FITS(imgname,'r')
   obname = f.headers['OBJECT'][1:-1].strip().split()
   if len(obname) == 3:
     onm,cen,stp = tuple(obname)
     if onm == 'FOCTEST:':
-      center = int(float(cen))
+      center = int(float(cen)) #  focuser's position
       step = int(stp)
-  f.bias()
+    print 'center step',onm,center,step,obname
+#  f.bias()
   oname = tempfile.mktemp(suffix='.raw')
-  f.saveraw(fname=oname)
+  print ' name of raw image ',oname #debug
+  fits.FITS.saveraw(f,fname=oname)
+  print 'file name',  oname
   try:
     echeck,stuff = commands.getstatusoutput(FOCUSATCMD + ' ' + oname)
     if echeck != 0:
@@ -372,41 +371,51 @@ def Analyse_Ralph(imgname='', center = 0, step = coarsestep):
     print "Can't open fits file from focus.Analyse_Ralph ",oname
     return
   oname = oname.replace('.raw','.dat')
-
+  print ' name of dat image ',oname #debug
   try:
     f = open(oname,'r')      # open .dat file
   except:
     print "Can't open results file ",oname
     return
-  nmb = 0
-  for ll in f.readlines():
-    s = ll.strip().split()
-    print s
-    retlist = [float(x) for x in s]
-    if retlist[0] != retlist[3]:	# vertex written in both columns
-      nmb = nmb + 1
-      totres.append(retlist)
-  f.close() #close .dat file
+#  nmb = 0
+  ll = f.readline()
+  s = ll.strip().split()
+  print s
+  retlist = [float(x) for x in s]
+  retlist[0] = center
+  totres.append(retlist)
+  print "totres,retlist=",totres,retlist
+  f.close()
+#  for ll in f.readlines():
+#    s = ll.strip().split()
+#    print s
+#    retlist = [float(x) for x in s]
+#    if retlist[0] != retlist[3]:	# vertex written in both columns
+#      nmb = nmb + 1
+#      totres.append(retlist)
+#  f.close() #close .dat file
 
-  ftuple = float(retlist[0]), float(retlist[1])
-  pos = center + ((ftuple[0]-totres[4][0])/25.0)*step    # check the sign on this
-  epos = step*ftuple[1]/25.0
-  ftuple = pos,epos	# position and error position
-  fpos = totres[4][0]
-  for i in range(nmb):
-    totres[i][0] = center+step*round((totres[i][0]-fpos)/25.0)
+#  ftuple = float(retlist[0]), float(retlist[1])
+#  pos = center + ((ftuple[0]-totres[4][0])/25.0)*step    # check the sign on this
+#  epos = step*ftuple[1]/25.0
+#  ftuple = pos,epos	# position and error position
+#  fpos = totres[4][0]
+#  for i in range(nmb):
+#    totres[i][0] = center+step*round((totres[i][0]-fpos)/25.0)
 # print "Focus estimate is: ",ftuple[0]," +/- ", ftuple[1]
-  return totres,ftuple
+  return totres
 
 
 class FocObject(pipeline.dObject):
   def take(self):
-   #Save the existing camera state
-   oldmode = status.mode
-   oldfilename = status.filename
-   oldexptime = status.exptime
+    """Carry out a full refocus using this object."""
 
-    "Carry out a full refocus using this object."
+   #Save the existing camera state
+    oldmode = Andor.camera.status.mode
+    oldfilename = Andor.camera.status.filename
+    oldexptime = Andor.camera.status.exptime
+    AnCommands.mode('bin2fast')
+
     self.errors = ""
     self.jump()
 
@@ -430,10 +439,14 @@ class FocObject(pipeline.dObject):
         elif (p+4*coarsestep) > 104000:
           p = 104000-4*coarsestep
         try:
-          q = FindBest(center=p, step=coarsestep, average=1)   #Try -4*step to +4*step
+          print "Calling andorbest @ coarsestep."
+          q = AndorBest(center=p, step=coarsestep, average=1)   #Try -4*step to +4*step
         except:
           print "Coarse Focus was NOT determined -- object may not be centred or it is cloudy."
           focuser.Goto(startpos)
+ 	  AnCommands.exptime(oldexptime)
+	  AnCommands.filename(oldfilename)
+	  AnCommands.mode(oldmode)
           return
           
         print "Latest coarse position is %d for try number %d" % (q,tries)
@@ -455,9 +468,9 @@ class FocObject(pipeline.dObject):
         print "****** Focus didn't converge at coarse level, shift focuser to the start position."
         focuser.Goto(startpos)
 	#Restore the original camera state
-	exptime(oldexptime)
-	filename(oldfilename)
-	mode(oldmode)
+	AnCommands.exptime(oldexptime)
+	AnCommands.filename(oldfilename)
+	AnCommands.mode(oldmode)
         return
       p = fnl #best estimate of coarse focus
       print "****** Focus has converged at the coarse level using %d sets of images, coarse focus is %d" % (tries, p)
@@ -473,11 +486,15 @@ class FocObject(pipeline.dObject):
         elif (p+4*finestep) > 2000:
           p = 2000-4*finestep
         try:
-          q = FindBest(center=p, step=finestep, average=1)  #Try -4*finestep to +4*finestep
+          print "Calling andorbest @ coarsestep."
+          q = AndorBest(center=p, step=finestep, average=1)  #Try -4*finestep to +4*finestep
 #         q = best(center=p, step=finestep, average=2)
         except:
           print "Fine Focus was not determined -- object may not be centred or it is cloudy."
           focuser.Goto(bestcoarse)
+	  AnCommands.exptime(oldexptime)
+	  AnCommands.filename(oldfilename)
+	  AnCommands.mode(oldmode)
           return
            
         foclist.append(q)
@@ -499,23 +516,44 @@ class FocObject(pipeline.dObject):
         focuser.Goto(bestcoarse)
         service.LastFocusTime = time.time()
 	#Restore the original camera state
-	exptime(oldexptime)
-	filename(oldfilename)
-	mode(oldmode)
+	AnCommands.exptime(oldexptime)
+	AnCommands.filename(oldfilename)
+	AnCommands.mode(oldmode)
         return 
         
       p = fnl
       print " ****** Focus has converged using 2 sets of images, best focus is ",p
       focuser.Goto(p+20)
       service.LastFocusTime = time.time()
+      AnCommands.exptime(oldexptime)
+      AnCommands.filename(oldfilename)
+      AnCommands.mode(oldmode)
+
     else:
       print "Errors: " + self.errors
+      AnCommands.exptime(oldexptime)
+      AnCommands.filename(oldfilename)
+      AnCommand.mode(oldmode)
       return self.errors
 
 tempfile.tmpdir = '/tmp'       #Set up temp file name structure
 tempfile.template = 'foctemp'
 
 pipeline.Pipelines['FOCUS'] = FocObject
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

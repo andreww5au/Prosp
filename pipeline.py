@@ -114,11 +114,11 @@ class dObject(objects.Object):
 
   def reduce(self):
     "Carry out full reduction on the preprocessed image (override with actual code)"
-    print "No reduction to do."
+    print "No reduction to do!"
 
   def log(self):
     "Log the results of the current observation (override with actual code)"
-    print "No result logging to do."
+    print "No result logging to do!"
 
   def take(self):
     "Carry out a full observation and reduction for this object."

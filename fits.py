@@ -109,6 +109,7 @@ class TABLE:
   """
   def __init__(self, fileob=None, tmode='list'):
     self.file = fileob
+    self.keylist = []
     self.headers={}
     self.comments={}
     self.finished=0
@@ -185,6 +186,7 @@ class FITS:
   def __init__(self, filename='', mode='r', tmode='list'): 
                                   #mode is 'h' (headers) or 'r' (data+headers)
     self.filename=filename
+    self.keylist = []
     if mode=='h':          #Mode h opens file, reads headers, closes the file
       self.data = None
       if not filename:
@@ -211,7 +213,7 @@ class FITS:
           self.data=zeros((512,512),Float)
         else:
           self.data = None
-          print "Numeric library not present, can't create data section."
+          print "numpy/numarray/Numeric library not present, can't create data section."
       else:
         self.file=open(self.filename,'r')
         self.headers={}
@@ -287,10 +289,13 @@ class FITS:
       f = open(fname,'w')
       for h in hfirst:            #Write the initial header cards
         f.write(_fh(self, h))
+      for h in self.keylist:           #Write most of the header cards, sorted
+        if (h in self.headers.keys()) and (h not in hfirst) and (h not in hlast):
+          f.write(_fh(self, h))
       tmplist = self.headers.keys()
       tmplist.sort()
       for h in tmplist:           #Write most of the header cards, sorted
-        if (h not in hfirst) and (h not in hlast):
+        if (h not in hfirst) and (h not in hlast) and (h not in self.keylist):
           f.write(_fh(self, h))
       for h in hlast:             #Write the final header cards
         f.write(_fh(self, h))
@@ -405,10 +410,13 @@ class FITS:
 
     for h in hfirst:            #Write the initial header cards
       f.write(_fh(self, h))
+    for h in self.keylist:           #Write most of the header cards, sorted
+      if (h in self.headers.keys()) and (h not in hfirst) and (h not in hlast):
+        f.write(_fh(self, h))
     tmplist = self.headers.keys()
     tmplist.sort()
     for h in tmplist:           #Write most of the header cards, sorted
-      if (h not in hfirst) and (h not in hlast):
+      if (h not in hfirst) and (h not in hlast) and (h not in self.keylist):
         f.write(_fh(self, h))
     for h in hlast:             #Write the final header cards
       f.write(_fh(self, h))
@@ -425,7 +433,7 @@ class FITS:
   def saveraw(self, fname=''):
     """Save the data section of the image (without headers) as a raw array of 32-bit floats.
     """
-    if self.data and fname:
+    if self.data != None and fname:
       f = open(fname,'w')
       f.write(self.data.astype(Float32).tostring())
       f.close()
@@ -550,6 +558,8 @@ def _parseline(ob,line):
         value=string.strip(value[:slash])
         
 #Add dictionary entries for the key value, and key comment if it exists
+    if key not in ob.headers.keys():
+      ob.keylist.append(key)
     ob.headers[key]=value
     if comment<>'':
       ob.comments[key]=comment

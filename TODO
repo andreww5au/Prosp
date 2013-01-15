@@ -4,15 +4,15 @@ filter() command broken  - done
 offset() needs calibration  - done
 Use fittstime code to add HJD header - done
 IRAF - done
-
+Save path and filename across Prosp restarts (in Andor.py?) - done
+Reconnect to optical coupler instead of initialising every time - done
 Fix WCS stuff
-Save path and filename across Prosp restarts (in Andor.py?)
-Move optical coupler to Andor.py server
+
 Move fitstime.coords.py into Prosp (or use it externally) to add JD header in Andor.py
 Use async call to GetFits so the status file doesn't go for long periods without being updated.
 reduce crashes if imsex doesn't return a fwhm,sky tuple
-Prosp fails due to comms missing for long exposures
-gord() never exits
+Teljoy fails due to comms missing for long exposures
+gord() never exits - test.
 Multiple instance of Prosp fails if one is taking an image - getFits returns None?
 
 Add cancel exposure method so server doesn't keep taking long images

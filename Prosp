@@ -2,7 +2,36 @@
 
 backgrounds=[]
 
+import sys
+import globals
 from globals import *
+
+SERVER = False
+CLIENT = True
+globals.SERVER = SERVER
+globals.CLIENT = CLIENT
+filef = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
+conf = logging.Formatter("%(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
+try:
+  sfh = logging.FileHandler(LOGFILES['Client'])
+except IOError:    #Can't open a logfile for writing, probably the wrong user
+  sfh = logging.NullHandler()
+
+sfh.setLevel(LOGLEVELS['Server']['File'])
+sfh.setFormatter(filef)
+# create console handler with a different log level, and without timestamps
+#conh = logging.StreamHandler(sys.stdout)
+#conh.setLevel(LOGLEVELS['Server']['Console'])
+#conh.setFormatter(conf)
+# create global logger object
+logger = logging.getLogger("Prosp")
+logger.setLevel(MLOGLEVEL)
+# add the handlers to the logger
+logger.addHandler(sfh)
+#logger.addHandler(conh)
+#Make it the default logger for everything else in this process that imports 'globals'
+globals.logger = logger
+
 import Andor
 import AnCommands
 
@@ -37,8 +66,8 @@ if CHILLER:
 import focuser
 from focuser import Goto,getPos,Home,Tzero,Tcorrect
 
-#import focus
-#from focus import *
+import focus
+from focus import *
 
 backgrounds.append(teljoy._background)
 backgrounds.append(weather._background)
@@ -94,19 +123,17 @@ def _background():
 
       status.isdark=ephemint.isdark()
       status.update()    #Get new data from Pyro server, and save pickled status object.
-  
+
       for f in backgrounds:    #Call all the registered background functions
         try:
           f()
         except:
-          print "Exception in background function: ", f
-          sys.excepthook(*sys.exc_info())
-          print "Continuing..."
+          logger.exception("Exception in background function: %s\n" % f)
+          logger.info("Continuing...")
 
     except:
-      print "Exception in main Prosp background thread"
-      sys.excepthook(*sys.exc_info())
-      print "Continuing..."
+      logger.exception("Exception in main Prosp background thread")
+      logger.info("Continuing...")
 
     time.sleep(6)            #Wait 6 seconds, then repeat
 
@@ -123,7 +150,7 @@ class Prompt:
                                   target=_background)
         BGThread.setDaemon(1)
         BGThread.start()
-        logger.warning("Dead background thread restarted.")
+        logger.error("Dead background thread restarted.")
     return ">>>"
 
 
@@ -252,3 +279,21 @@ try:
   motd.close()
 except:
   pass
+
+#Some test code to debug wierd 'blocking background threads' issue
+import threading
+import os
+import time
+
+def touch(fname):
+  with file(fname,'a'):
+     os.utime(fname, None)
+
+def loop():
+  while True:
+    touch('/tmp/loop')
+    time.sleep(1)
+
+t = threading.Thread(target=loop)
+t.setDaemon(1)
+t.start()

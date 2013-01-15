@@ -12,7 +12,7 @@ import threading
 domeflatHA =  -2.68    #-2.68, -2.79, 
 domeflatDec = -20.9    #-20.9, -24.0, 
 #flatlist=[ ('V',5,13.0), ('R',7,4.0), ('I',7,2.0) ]
-#flatlist = [ ('B',5,None), ('V',7,None), ('R',7,None), ('I',7,None) ]
+#flatlist = [ ('B',7,None), ('V',7,None), ('R',7,None), ('I',7,None) ]
 flatlist = [ ('R',7,None), ('I',7,None) ]
 
 status = None         #Overwritten with actual AnCommands.camera.status object by Prosp on startup
@@ -124,13 +124,13 @@ def getflats(filt='R', n=1, et=None):
   if not et:
     autoexp = True
     filter(filtnum(filt))
-    exptime(0.1)
+    exptime(0.5)
     filename('testflat'+filt)
     flat('flat'+filt)
     tim = improc.FITS(go(),'r')
     tim.bias()
     testlevel = tim.median()
-    et = 20000*0.1/testlevel
+    et = 20000*0.5/testlevel
     if et < 1.0:
       print "Too bright, desired exposure time only %3.1f seconds." % (et,)
       filename(oldfn) #Restore filename to orig, stripping counter
@@ -138,7 +138,7 @@ def getflats(filt='R', n=1, et=None):
       exptime(oet)  #restore original exposure time
       return 0
     elif et > 120.0:
-      print "Too dark, clipping exposure time %3.1f seconds." % (et,)
+      print "Too dark, clipping exposure time from %3.1f to 120 seconds." % (et,)
       et = 120
   else:
     autoexp = False
@@ -610,9 +610,10 @@ def hammer(objname='', duration=0.0):
   focuser.Tcorrect()
   take(objname)
   ilen = status.exptime + status.readouttime + 3   #Loop time, in seconds
-  focint = 1800/ilen
-  N = 3600*duration/ilen + 1
+  focint = int(1800/ilen)
+  N = int(3600*duration/ilen) + 1
   for i in range(N):
     gord()
     if divmod(i,focint)[1] == 0:
       focuser.Tcorrect()      #do this roughly every half hour
+

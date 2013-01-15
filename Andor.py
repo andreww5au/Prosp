@@ -23,12 +23,45 @@ import logging
 import pyandor
 import fits
 import improc
+import globals
 from globals import *
+
+
+if __name__ == '__main__':
+  globals.SERVER = True
+  globals.CLIENT = False
+  filef = logging.Formatter("%(asctime)s: %(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
+  conf = logging.Formatter("%(name)s-%(levelname)s (%(threadName)-10s) %(message)s")
+
+  try:
+    sfh = logging.FileHandler(LOGFILES['Server'])
+  except IOError:    #Can't open a logfile for writing, probably the wrong user
+    sfh = logging.NullHandler()
+
+  sfh.setLevel(LOGLEVELS['Server']['File'])
+  sfh.setFormatter(filef)
+
+  # create console handler with a different log level, and without timestamps
+  conh = logging.StreamHandler(sys.stdout)
+  conh.setLevel(LOGLEVELS['Server']['Console'])
+  conh.setFormatter(conf)
+
+  # create global logger object
+  logger = logging.getLogger("Andor")
+  logger.setLevel(MLOGLEVEL)
+
+  # add the handlers to the logger
+  logger.addHandler(sfh)
+  logger.addHandler(conh)
+
+  #Make it the default logger for everything else in this process that imports 'globals'
+  globals.logger = logger
+
 
 FITS = improc.FITS
 
 pyro_thread = None
-ns_process = None
+#ns_process = None
 
 SIGNAL_HANDLERS = {}
 CLEANUP_FUNCTION = None
@@ -279,10 +312,11 @@ defcomments = {'OBSERVAT':"'Observatory name'",
 
 
 # Create re-usable pointers to floats, ints, uints and longs for the C-library to return values
-f1,f2,f3 = pyandor.floatp(), pyandor.floatp(), pyandor.floatp()
+f1,f2,f3,f4 = pyandor.floatp(), pyandor.floatp(), pyandor.floatp(), pyandor.floatp()
 f1.assign(0.0)
 f2.assign(0.0)
 f3.assign(0.0)
+f4.assign(0.0)
 
 i1,i2,i3,i4,i5,i6 = pyandor.intp(), pyandor.intp(), pyandor.intp(), pyandor.intp(), pyandor.intp(), pyandor.intp()
 i1.assign(0)
@@ -421,6 +455,34 @@ class Camera(object):
         logger.debug(mesg)
         return ''
 
+  def _GetAvailableCameras(self):
+    """This function returns the total number of Andor cameras currently installed. It's possible
+       to call this function before (the/a) camera has been initialised.
+    """
+    mesg = self._procret(pyandor.GetAvailableCameras(l1), 'GetAvailableCameras')
+    num = int(l1.value())
+    if mesg:
+      logger.error(mesg)
+    return num
+
+  def _GetCameraHandle(self, i):
+    """Return the 'handle' corresponding to the installed Andor camera with an index of
+       '0' (0 means the first installed camera, 1 is the second, etc).
+
+      Returns a 'long' object, to be passed directly to the 'SetCurrentCamera' function.
+    """
+    l1.assign(i)
+    mesg = self._procret(pyandor.GetCameraHandle(l1.value(), l2), 'GetCameraHandle')
+    if mesg:
+      logger.error(mesg)
+    return l2
+
+  def _SetCurrentCamera(self, handle):
+    mesg = self._procret(pyandor.SetCurrentCamera(handle.value()), 'SetCurrentCamera')
+    if mesg:
+      logger.error(mesg)
+    return mesg
+
   def _GetCapabilities(self):
     """Grab the current camera capabilities, and compare them to the values stored in
        record above. If there's a difference, it means the Andor driver has been updated,
@@ -436,6 +498,14 @@ class Camera(object):
     if mesg:
       logger.error(mesg)
     return mesg
+
+  def GetTemperatureStatus(self):
+    """Call the undocumented, reserved function to get TEC diagnostics
+    """
+    mesg = self._procret(pyandor.GetTemperatureStatus(f1,f2,f3,f4), 'GetTemperatureStatus')
+    if mesg:
+      logger.error(mesg)
+    return mesg, f1.value(), f2.value(), f3.value(), f4.value()
 
   def _SetHSSpeed(self, n=2):
     if n in HSSpeeds.keys():
@@ -885,9 +955,22 @@ def InitClient():
 
 
 def InitServer():
-  global camera, pyro_thread, ns_process, logger
-  logger = slogger
+  global camera, pyro_thread
   camera = Camera()
+
+  logger.info("Getting camera details:")
+  n = camera._GetAvailableCameras()
+  logger.info("%d Andor camera/s installed" % n)
+  if n <> 1:
+    logger.error("Can't cope with anything other than 1 camera, exiting.")
+    return False
+
+  logger.info("Getting handle for camera #0:")
+  handle = camera._GetCameraHandle(0)
+  logger.info("Handle = %s" % handle.value())
+
+  logger.info("Setting current camera:")
+  camera._SetCurrentCamera(handle)
 
   logger.info("Python Andor interface initialising")
   try:
@@ -900,8 +983,9 @@ def InitServer():
 
   logger.info(camera.status)
 
-  ns_process = Popen(shlex.split("python -Wignore -m Pyro4.naming --host=0.0.0.0"))
-  logger.info("Started Pyro4 nameserver daemon")
+#  Using Pyro4 name server process running on 'chef' now.
+#  ns_process = Popen(shlex.split("python -Wignore -m Pyro4.naming --host=0.0.0.0"))
+#  logger.info("Started Pyro4 nameserver daemon")
 
   #Start the Pyro4 daemon thread listening for status requests and receiver 'putState's:
   pyro_thread = threading.Thread(target=camera._servePyroRequests, name='PyroDaemon')
@@ -951,10 +1035,10 @@ def cleanup():
   """
   logger.info("Exiting Andor.py program - here's why: %s" % traceback.print_exc())
   try:
-    ns_process.poll()
-    if ns_process.returncode is None:
-      ns_process.terminate()
-      logger.info("Pyro4 name server shut down")
+#    ns_process.poll()
+#    if ns_process.returncode is None:
+#      ns_process.terminate()
+#      logger.info("Pyro4 name server shut down")
     if camera.status.initialized:
       logger.info("Acquiring lock on camera to prepare for shutdown")
       camera.Lock()   #Make sure clients don't use the camera while we are shutting down.
@@ -971,6 +1055,8 @@ def cleanup():
 
 
 if __name__ == '__main__':
+  globals.SERVER = True
+  globals.CLIENT = False
   RegisterCleanup(cleanup)
   InitServer()
   while not exitnow:    #Exit the daemon if we are told to
