@@ -312,10 +312,11 @@ defcomments = {'OBSERVAT':"'Observatory name'",
 
 
 # Create re-usable pointers to floats, ints, uints and longs for the C-library to return values
-f1,f2,f3 = pyandor.floatp(), pyandor.floatp(), pyandor.floatp()
+f1,f2,f3,f4 = pyandor.floatp(), pyandor.floatp(), pyandor.floatp(), pyandor.floatp()
 f1.assign(0.0)
 f2.assign(0.0)
 f3.assign(0.0)
+f4.assign(0.0)
 
 i1,i2,i3,i4,i5,i6 = pyandor.intp(), pyandor.intp(), pyandor.intp(), pyandor.intp(), pyandor.intp(), pyandor.intp()
 i1.assign(0)
@@ -497,6 +498,14 @@ class Camera(object):
     if mesg:
       logger.error(mesg)
     return mesg
+
+  def GetTemperatureStatus(self):
+    """Call the undocumented, reserved function to get TEC diagnostics
+    """
+    mesg = self._procret(pyandor.GetTemperatureStatus(f1,f2,f3,f4), 'GetTemperatureStatus')
+    if mesg:
+      logger.error(mesg)
+    return mesg, f1.value(), f2.value(), f3.value(), f4.value()
 
   def _SetHSSpeed(self, n=2):
     if n in HSSpeeds.keys():
