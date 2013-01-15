@@ -61,7 +61,7 @@ if __name__ == '__main__':
 FITS = improc.FITS
 
 pyro_thread = None
-ns_process = None
+#ns_process = None
 
 SIGNAL_HANDLERS = {}
 CLEANUP_FUNCTION = None
@@ -955,7 +955,7 @@ def InitClient():
 
 
 def InitServer():
-  global camera, pyro_thread, ns_process
+  global camera, pyro_thread
   camera = Camera()
 
   logger.info("Getting camera details:")
@@ -983,8 +983,9 @@ def InitServer():
 
   logger.info(camera.status)
 
-  ns_process = Popen(shlex.split("python -Wignore -m Pyro4.naming --host=0.0.0.0"))
-  logger.info("Started Pyro4 nameserver daemon")
+#  Using Pyro4 name server process running on 'chef' now.
+#  ns_process = Popen(shlex.split("python -Wignore -m Pyro4.naming --host=0.0.0.0"))
+#  logger.info("Started Pyro4 nameserver daemon")
 
   #Start the Pyro4 daemon thread listening for status requests and receiver 'putState's:
   pyro_thread = threading.Thread(target=camera._servePyroRequests, name='PyroDaemon')
@@ -1034,10 +1035,10 @@ def cleanup():
   """
   logger.info("Exiting Andor.py program - here's why: %s" % traceback.print_exc())
   try:
-    ns_process.poll()
-    if ns_process.returncode is None:
-      ns_process.terminate()
-      logger.info("Pyro4 name server shut down")
+#    ns_process.poll()
+#    if ns_process.returncode is None:
+#      ns_process.terminate()
+#      logger.info("Pyro4 name server shut down")
     if camera.status.initialized:
       logger.info("Acquiring lock on camera to prepare for shutdown")
       camera.Lock()   #Make sure clients don't use the camera while we are shutting down.
