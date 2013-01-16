@@ -128,8 +128,8 @@ class TJstatus(object):
     self.current.Ra = c['ObjRA']*15*3600
     self.current.Dec = c['ObjDec']*3600
     self.current.Epoch = c['ObjEpoch']
-    self.current.RaC = c['RawRA']
-    self.current.DecC = c['RawDec']
+    self.current.RaC = c['RawRA']*15*3600
+    self.current.DecC = c['RawDec']*3600
     self.current.Alt = c['Alt']
     self.current.Azi = c['Azi']
     self.current.Time.LST = c['LST']
