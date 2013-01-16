@@ -13,6 +13,9 @@ FOCUSER = True    #True if focuser unit connected.
 OPTICALCOUPLER = True
 #OPTICALCOUPLER = False
 
+#DTABLE = 'ncurrent'      #Table to use for current position updates - 'ncurrent' for dummy, 'current' for real telescope.
+DTABLE = 'current'      #Table to use for current position updates - 'ncurrent' for dummy, 'current' for real telescope.
+
 MLOGLEVEL = logging.DEBUG           #Master log level - messages below this will be ignored.
 LOGLEVELS = {'Server':{'Console':logging.DEBUG, 'File':logging.DEBUG},
              'Client':{'Console':logging.INFO,  'File':logging.INFO} }

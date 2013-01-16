@@ -122,7 +122,7 @@ class TJstatus(object):
                    'DomeTracking,Frozen,AutoRunning,NumRead,CurNum,' +
                    'RA_GuideAcc,DEC_GuideAcc,LastError,' +
                    'unix_timestamp(now())-unix_timestamp(LastMod) as lastmod ' +
-                   'from current')
+                   'from %s' % DTABLE)
 
     c = u_curs.fetchallDict()[0]
 
