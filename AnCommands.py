@@ -395,16 +395,16 @@ def setheaders(f):
     pass
 
   try:
-    if camera.status.TJ.ObjRA:    #Position calibrated to epoch
-      ra = camera.status.TJ.ObjRA
-      dec = camera.status.TJ.ObjDec
-      epoch = camera.status.TJ.ObjEpoch
-      alt = camera.status.TJ.Alt
+    if not camera.status.TJ.current.posviolate:    #Position calibrated to epoch
+      ra = camera.status.TJ.current.Ra/15/3600
+      dec = camera.status.TJ.current.Dec/3600
+      epoch = camera.status.TJ.current.Epoch
+      alt = camera.status.TJ.current.Alt
       GotTJ = True
-    elif camera.status.TJ.RawRA:
-      ra = camera.status.TJ.RawRA
-      dec = camera.status.TJ.RawDec
-      alt = camera.status.TJ.Alt
+    elif camera.status.TJ.current.RaC:
+      ra = camera.status.TJ.current.RaC
+      dec = camera.status.TJ.current.DecC
+      alt = camera.status.TJ.current.Alt
       t = time.gmtime()
       epoch = t.tm_year + (t.tm_yday/366.0)
       GotTJ = True

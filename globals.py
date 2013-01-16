@@ -133,7 +133,7 @@ def sexstring(value=0,sp=':'):
   """Convert the floating point 'value' into a sexagecimal string.
      The character in 'sp' is used as a spacer between components. Useful for
      within functions, not on its own.
-     eg: sexstring(status.TJ.ObjRA,' ')
+     eg: sexstring(status.TJ.curren.Ra/15/3600,' ')
   """
   try:
     aval=abs(value)

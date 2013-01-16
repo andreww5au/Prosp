@@ -187,7 +187,7 @@ def set(obj=''):
          set('sn99ee')
   """
   if not obj:
-    obj = status.TJ.name
+    obj = status.TJ.current.ObjID
   res = pipeline.getobject(obj)
   res.set()
 
@@ -437,11 +437,11 @@ def skyview(posn='', equinox=2000):
   if posn:
     skyviewint.skyview(posn, equinox)
   else:
-    if status.TJ.ObjRA:
-      posn = sexstring(status.TJ.ObjRA,' ') + ', ' + sexstring(status.TJ.ObjDec,' ')
-      equinox = status.TJ.ObjEpoch
-    elif status.TJ.RawRA:
-      posn = sexstring(status.TJ.RawRA,' ') + ', ' + sexstring(status.TJ.RawDec,' ')
+    if not status.TJ.current.posviolate:
+      posn = sexstring(status.TJ.current.Ra/15/3600,' ') + ', ' + sexstring(status.TJ.current.Dec/3600,' ')
+      equinox = status.TJ.current.Epoch
+    elif status.TJ.current.RaC:
+      posn = sexstring(status.TJ.current.RaC/15/3600,' ') + ', ' + sexstring(status.TJ.current.DecC/3600,' ')
       t = time.localtime(time.time())
       equinox = t[0] + t[7]/365.246      #Raw coords are epoch-of-date
     else:
