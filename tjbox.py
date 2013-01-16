@@ -95,7 +95,6 @@ class TJstatus(object):
     print 'ObjEpoch=', self.current.Epoch
     print 'RawRA=', sexstring(self.current.RaC/15/3600)
     print 'RawDec=', sexstring(self.current.DecC/3600)
-    print 'RawHourAngle=', sexstring(self.current.RaC/15/3600-self.current.Time.LST)
     print 'Alt=', sexstring(self.current.Alt)
     print 'Azi=', sexstring(self.current.Azi)
     print 'LST=', sexstring(self.current.Time.LST)
@@ -117,10 +116,9 @@ class TJstatus(object):
     if not u_curs:
       u_curs = db.cursor()
     u_curs.execute('select name,ObjRA,ObjDec,ObjEpoch,RawRA,RawDec,' +
-                   'RawHourAngle,Alt,Azi,LST,UTDec,posviolate,moving,' +
-                   'EastOfPier,NonSidOn,DomeInUse,ShutterInUse,ShutterOpen,' +
-                   'DomeTracking,Frozen,AutoRunning,NumRead,CurNum,' +
-                   'RA_GuideAcc,DEC_GuideAcc,LastError,' +
+                   'Alt,Azi,LST,UTDec,posviolate,moving,' +
+                   'EastOfPier,DomeInUse,ShutterInUse,ShutterOpen,' +
+                   'DomeTracking,Frozen,' +
                    'unix_timestamp(now())-unix_timestamp(LastMod) as lastmod ' +
                    'from %s' % DTABLE)
 
