@@ -155,11 +155,10 @@ def existsTJbox(curs):
      database connection to use for the query.
   """
   curs.execute('select * from teljoy.tjbox')
-
   if curs.rowcount:
-    return 1
+    return True
   else:
-    return 0
+    return False
 
 
 def jump(id='', ra='', dec='', epoch=0):
@@ -241,10 +240,7 @@ def freeze(action=True):
             freeze(0)
   """
   global FreezeAction
-  if action:
-    FreezeAction = 1
-  else:
-    FreezeAction = 0
+  FreezeAction = bool(action)
 
 
 def unfreeze():
@@ -262,9 +258,9 @@ def _dshutter(action='CLOSE'):
   global ShutterAction
   action = action.strip().upper()
   if action == "OPEN":
-    ShutterAction = 1
+    ShutterAction = True
   elif action == "CLOSE":
-    ShutterAction = 0
+    ShutterAction = False
   else:
     logger.error("teljoy.shutter: Argument must be 'OPEN' or 'CLOSE'")
 
@@ -294,7 +290,6 @@ def _background():
     else:
       if not existsTJbox(b_curs):
         b_curs.execute("insert into tjbox (Action) values ('none')")
-
   except KeyboardInterrupt:
     print "a keyboard interrupt in tjbox._background()"
 
