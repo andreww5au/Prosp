@@ -18,7 +18,7 @@ import time
 import sys
 
 import objects
-import teljoy
+import telescope
 
 from globals import *
 import AnCommands
@@ -54,19 +54,19 @@ class dObject(objects.Object):
   def jump(self):
     "Move the telescope to the object coordinates"
     self.errors=""
-    while teljoy.status.paused:
+    while telescope.status.paused:
       print "Waiting for weather to clear"
       time.sleep(60)
     logger.info("Moving to object ... "+self.ObjID)
-    teljoy.jump(id=self.ObjID, ra=self.ObjRA, dec=self.ObjDec,
+    telescope.jump(id=self.ObjID, ra=self.ObjRA, dec=self.ObjDec,
                 epoch=self.ObjEpoch)
     time.sleep(3)
-    teljoy.status.update()
-    while teljoy.status.moving or teljoy.status.DomeInUse:
+    telescope.status.update()
+    while telescope.status.motors.Moving or telescope.status.dome.DomeInUse:
       time.sleep(1)
-      teljoy.status.update()
-    logger.info("Teljoy has jumped to "+self.ObjID+": "+teljoy.status.name)
-    if string.upper(teljoy.status.name)[:8] <> string.upper(self.ObjID)[:8]:   #Teljoy hasn't jumped to this object
+      telescope.status.update()
+    logger.info("Teljoy has jumped to "+self.ObjID+": "+telescope.status.current.ObjID)
+    if string.upper(telescope.status.current.ObjID)[:8] <> string.upper(self.ObjID)[:8]:   #Teljoy hasn't jumped to this object
       logger.error("Teljoy hasn't jumped to "+self.ObjID+" - possibly too low")
       self.errors=self.errors+"Teljoy hasn't jumped to "+self.ObjID+" - possibly too low\n"
 

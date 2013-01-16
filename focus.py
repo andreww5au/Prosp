@@ -23,7 +23,7 @@ import improc
 import focuser
 import pipeline
 from pipeline import dObject
-import teljoy
+import telescope
 import service
 
 FOCUSATCMD = '/home/observer/PyDevel/Prosp/focusat/focusat'    #Path and filename
@@ -143,7 +143,7 @@ def centerstar():
   imgname = AnCommands.go()
   f = improc.FITS(imgname,'r')
   y,x = improc.findstar(f)[0]
-  teljoy.offset(x+1,y+1)
+  telescope.offset(x+1,y+1)
 
 
 def AndorBest(center = 50000, step = coarsestep, average = 1):

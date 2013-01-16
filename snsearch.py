@@ -17,7 +17,7 @@ from ftplib import FTP     #Import the FTP object class
 
 from globals import *
 import pipeline
-import teljoy
+import telescope
 dObject=pipeline.dObject
 
 
@@ -67,8 +67,8 @@ class SNObject(dObject):
     f.write('UT:      '+time.strftime("%H %M %S",time.gmtime())+"\r\n")
     f.write('UT_Date: '+time.strftime("%d %m %Y",time.gmtime())+"\r\n")
     f.write('JulDay:  '+`julday()`+"\r\n")
-    f.write('Alt:     '+`teljoy.status.Alt`+"\r\n")
-    f.write('Azi:     '+`teljoy.status.Azi`+"\r\n")
+    f.write('Alt:     '+`telescope.status.current.Alt`+"\r\n")
+    f.write('Azi:     '+`telescope.status.current.Azi`+"\r\n")
     f.write('RAtrk:   0\r\n')
     f.write('DECtrk:  0\r\n')
     f.write('XYpos:   '+`self.XYpos[0]`+" "+`self.XYpos[1]`+"\r\n")
@@ -92,8 +92,8 @@ class SNObject(dObject):
          `self.ObjEpoch`+", "+
          "'"+time.strftime("%Y-%m-%d %H:%M:%S",time.gmtime())+"', "+
          `julday()`+", "+
-         `teljoy.status.Alt`+", "+
-         `teljoy.status.Azi`+", "+
+         `telescope.status.current.Alt`+", "+
+         `telescope.status.current.Azi`+", "+
          "0, 0, "+
          `self.XYpos[0]`+", "+
          `self.XYpos[1]`+", "+

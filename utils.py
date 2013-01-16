@@ -25,7 +25,7 @@ from improc import reduce,dobias,dodark,doflat
 import planet
 from planet import *
 from pipeline import dObject, getobject
-import teljoy
+import telescope
 from xpa import display
 from globals import *
 import ephemint
@@ -409,7 +409,7 @@ def ephemjump(ob=None):
   """
   try:
     id,ra,dec = ephemint.ephempos(ob)
-    teljoy.jump(id=id, ra=ra, dec=dec, epoch=2000)
+    telescope.jump(id=id, ra=ra, dec=dec, epoch=2000)
   except:
     print "Problem with the object - use 'elements' to create an object."
   
@@ -526,34 +526,34 @@ def domeflats():
   """Move the telescope and dome to the correct position for dome flats, and take
      V,R, and I images with appropriate exposure times, then reduce them.
   """
-  teljoy.jump(id='flats', ra=sexstring(teljoy.status.LST+domeflatHA), dec=sexstring(domeflatDec) )
+  telescope.jump(id='flats', ra=sexstring(telescope.status.LST+domeflatHA), dec=sexstring(domeflatDec) )
   exptime(0.1)
   filename('junk')
-  while (teljoy.status.moving or teljoy.status.DomeInUse):
+  while (telescope.status.motors.Moving or telescope.status.dome.DomeInUse):
     print "Waiting for telescope slew..."
     time.sleep(5)
-  teljoy.freeze(1)
+  telescope.freeze(1)
   try:
-    teljoy.dome(90)
-    while (teljoy.status.DomeInUse):
+    telescope.dome(90)
+    while (telescope.status.dome.DomeInUse):
       print "Waiting for Dome slew..."
       time.sleep(5)
     for filt,n,expt in flatlist:
       getflats(filt,n,expt)
   finally:
-    teljoy.freeze(0)
+    telescope.unfreeze()
 
 
 def gpos(ra=None, dec=None):
   """For the current telescope position, request a guide star position in RA and Dec, 
      then return the X/Y guider coordinates for that position.
   """
-  if (teljoy.status.RawRA is None) or (teljoy.status.RawDec is None):
+  if (telescope.status.current.RaC is None) or (telescope.status.current.DecC is None):
     print "Current telescope coordinates undefined - enter centre position:"
     cra,cdec = stringsex(raw_input("RA:  ")), stringsex(raw_input("Dec: "))
     cen = guidestar.xyglobs.Coord(cdec,cra)
   else:
-    cen = guidestar.xyglobs.Coord(teljoy.status.RawDec,teljoy.status.RawRA)
+    cen = guidestar.xyglobs.Coord(telescope.status.current.DecC/3600,telescope.status.RaC/15/3600)
 
   if (ra is None) or (dec is None):
     print "Enter guide star coordinates:"
@@ -589,7 +589,7 @@ def offset(x,y):
   oh = -dy * yscale
   logger.info("Offset - Del RA =  "+`oh`+"arcsec\nDel Dec = "+`od`+"arcsec")
   print "Moving telescope - remember to do a reset position after this."
-  teljoy.jumpoff(oh,od)
+  telescope.jumpoff(oh,od)
 
 
 def hammer(objname='', duration=0.0):

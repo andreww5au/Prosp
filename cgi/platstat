@@ -10,7 +10,7 @@ import stat
 sys.path.append('/home/observer/PyDevel/Prosp')
 from globals import *
 import weather
-import teljoy
+import telescope
 
 statusfile="/tmp/prospstatus"    #Location of pickled status file
 
@@ -279,7 +279,7 @@ except:
   print HTMLtrailer
   sys.exit()
 
-frog.TJ=teljoy.status
+frog.TJ=telescope.status
 if time.time()-os.stat(statusfile)[stat.ST_MTIME]<30:
   frog.running=1
 else:
@@ -294,8 +294,8 @@ print trow(data("\n"+ObsParams(frog))+data("<br>")+ #Camera observing params
            data(WeatherParams(frog)) )              #Weather status
 print "</table> \n"    #End of outer borderless table
 
-if teljoy.status.LastError:
-  print "Last Teljoy Error: " + teljoy.status.LastError + "<br>\n"
+if telescope.status.LastError:
+  print "Last Teljoy Error: " + telescope.status.LastError + "<br>\n"
 
 print "<br>\n"
 

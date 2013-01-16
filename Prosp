@@ -51,8 +51,8 @@ import improc
 from improc import reduce
 import planet
 from planet import *
-import teljoy
-from teljoy import *
+import telescope
+from telescope import *
 from snlists import *
 import weather
 import pipeline
@@ -69,7 +69,7 @@ from focuser import Goto,getPos,Home,Tzero,Tcorrect
 import focus
 from focus import *
 
-backgrounds.append(teljoy._background)
+backgrounds.append(telescope._background)
 backgrounds.append(weather._background)
 if CHILLER:
   backgrounds.append(chiller._background)
@@ -93,18 +93,18 @@ def _background():
   while 1:
     try:
       if status.MonitorActive:
-        if status.weather.clear and isdark() and (not teljoy.Active.isSet()):
+        if status.weather.clear and isdark() and (not telescope.Active.isSet()):
           logger.info("Conditions clear, resuming observing.")
-          teljoy.unpause()
+          telescope.unpause()
           status.lastact=time.time()   #Reset the last image time so we don't
                                        #trip the inactivity timeout right away
-        if (not status.weather.clear) and teljoy.Active.isSet():
+        if (not status.weather.clear) and telescope.Active.isSet():
           logger.warning("Conditions Cloudy, pausing observing.")
-          teljoy.pause()
-        if (not ephemint.isdark()) and teljoy.Active.isSet():
+          telescope.pause()
+        if (not ephemint.isdark()) and telescope.Active.isSet():
           logger.warning("End of the night, pausing forever. To resume "+
                  "and open dome, type 'teljoy.unpause()'")
-          teljoy.pause()
+          telescope.pause()
           status.MonitorActive=0
         try:
           Alt=float(status.TJ.Alt)
@@ -115,10 +115,10 @@ def _background():
         if ( ((not status.imaging) and (time.time()-status.lastact > 3600)) or
              ((not status.imaging) and (time.time()-status.lastact > 300) and (Alt<20)) or
              ((not status.imaging) and (Alt<15)) or
-             (Alt<12) ) and teljoy.Active.isSet():
+             (Alt<12) ) and telescope.Active.isSet():
           logger.warning("System Inactive or below Alt limits, pausing forever. To "+
                  "resume and open dome, type 'teljoy.unpause()'")
-          teljoy.pause()
+          telescope.pause()
           status.MonitorActive=0
 
       status.isdark=ephemint.isdark()
@@ -235,7 +235,7 @@ AnCommands.init()        #Call the init() function in the library to open
 from AnCommands import *
 
 status = AnCommands.camera.status  #Define a status variable using the new class
-status.TJ = teljoy.status
+status.TJ = telescope.status
 status.weather = weather.status
 status.MonitorActive = 0
 status.isdark = 1

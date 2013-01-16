@@ -8,7 +8,7 @@ from globals import *
 
 import pipeline
 import ephemint
-import teljoy
+import telescope
 
 import MySQLdb
 import safecursor
@@ -41,9 +41,9 @@ def Ptest1(o):
      value (higher is better).
   """
   try:
-    moveangle=max( anglediff(teljoy.status.Azi, o.AZ), 
-                   anglediff(teljoy.status.RawRA*15, o.RA*15),
-                   anglediff(teljoy.status.RawDec, o.DEC) )
+    moveangle=max( anglediff(telescope.status.current.Azi, o.AZ),
+                   anglediff(telescope.status.current.RaC/3600, o.RA*15),
+                   anglediff(telescope.status.current.DecC/3600, o.DEC) )
   except TypeError:
     moveangle = 0              #Teljoy appears inactive, ignore moveangle factor for testing
   movefactor = abs(math.cos(moveangle/360*math.pi))            #Cos(moveangle/2) in degrees
@@ -63,9 +63,9 @@ def Ptest2(o):
      value (higher is better).
   """
   try:
-    moveangle=max( anglediff(teljoy.status.Azi, o.AZ), 
-                   anglediff(teljoy.status.RawRA*15, o.RA*15),
-                   anglediff(teljoy.status.RawDec, o.DEC) )
+    moveangle=max( anglediff(telescope.status.current.Azi, o.AZ),
+                   anglediff(telescope.status.current.RaC/3600, o.RA*15),
+                   anglediff(telescope.status.current.DecC/3600, o.DEC) )
   except TypeError:
     moveangle = 0              #Teljoy appears inactive, ignore moveangle factor for testing
   movefactor = abs(math.cos(moveangle/540*math.pi))     #=1 for zero shift, 0.5 for 180 degrees
@@ -77,7 +77,7 @@ def Ptest2(o):
   else:
     altfactor = 1.0
 
-  ha=o.RA - teljoy.status.LST
+  ha=o.RA - telescope.status.Time.LST
   if abs(ha) > 5:
     hafactor = 0.0           #Don't allow any jumps outside -5 < HA < +5 hours 
   else:                      #No matter what the altitude
@@ -121,7 +121,7 @@ def Ptest3(o):
     altfactor = 1.0  
 
   try:
-    ha=o.RA - teljoy.status.LST
+    ha=o.RA - telescope.status.Time.LST
   except TypeError:
     ha = None   #Teljoy appears inactive, ignore LST and HA for now
 
@@ -138,8 +138,8 @@ def Ptest3(o):
       hafactor = 1.0
 
   try:
-    moveangle=min( anglediff(teljoy.status.Azi, o.AZ), 
-                   anglediff(teljoy.status.RawRA*15, o.RA*15))
+    moveangle=min( anglediff(telescope.status.Azi, o.AZ),
+                   anglediff(telescope.status.current.RaC/3600, o.RA*15))
 
   except TypeError:
     moveangle = 0       #Teljoy appears inactive, ignore moveangle factor for testing
