@@ -123,7 +123,7 @@ class TJstatus(object):
                    'from %s' % DTABLE)
 
     c = u_curs.fetchallDict()[0]
-
+    print c
     self.current.ObjID = c['name']
     self.current.Ra = c['ObjRa']*15*3600
     self.current.Dec = c['ObjDec']*3600
