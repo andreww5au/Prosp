@@ -1,24 +1,34 @@
 
 
 import time
+import threading
+
+from globals import *
 import tjbox
 from teljoy.extras import tjclient
 
-from globals import *
+Active = threading.Event()
+Active.set()
 
 USEPYRO = False
 
 pausetime = 0
 
 if USEPYRO:
-  pass
+  tjclient.Init()
+  status = tjclient.status
+  jump = tjclient.jump
+  jumpoff = tjclient.jumpoff
+  offset = tjclient.jumpoff
+  dome = tjclient.dome
+  freeze = tjclient.freeze
+  unfreeze = tjclient.unfreeze
 else:
+  tjbox.Init()
   status = tjbox.status
-  status.update()
-  _background = tjbox._background   #Function to be called regularly, from Prosp
-  Active = tjbox.Active
   jump = tjbox.jump
   jumpoff = tjbox.jumpoff
+  offset = tjclient.jumpoff
   dome = tjbox.dome
   freeze = tjbox.freeze
   unfreeze = tjbox.unfreeze

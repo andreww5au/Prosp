@@ -11,9 +11,6 @@ DictCursor = safecursor.SafeCursor
 ShutterAction = None
 FreezeAction = None
 
-Active = threading.Event()
-Active.set()
-
 status = None
 
 def _yn(arg=0):
@@ -315,3 +312,4 @@ def Init():
 
   curs = db.cursor()
   status = TJstatus()
+  status.update()
