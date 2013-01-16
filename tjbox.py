@@ -8,10 +8,10 @@ from globals import *
 
 DictCursor = safecursor.SafeCursor
 
+status = None
 ShutterAction = None
 FreezeAction = None
 
-status = None
 
 def _yn(arg=0):
   if arg:
