@@ -42,7 +42,6 @@ def pause():
     logger.error("Teljoy already paused, can't pause() again")
   else:
     logger.info("Teljoy Paused due to bad weather.")
-    status.paused = True
     pausetime = time.time()     #Record when we've paused
     Active.clear()
     freeze(True)
@@ -61,7 +60,6 @@ def unpause():
     dome('OPEN')
     freeze(False)
     Active.set()
-    status.paused = False
 
 
 def _background():
@@ -69,7 +67,7 @@ def _background():
   """
   try:
     sincepause = time.time() - pausetime
-    if status.paused and (sincepause > 300) and (sincepause < 480):
+    if (not Active.isSet()) and (sincepause > 300) and (sincepause < 480):
       dome('CLOSE')             #If it's been 5-6 minutes since pausing,
       #close the shutter again to be safe
 

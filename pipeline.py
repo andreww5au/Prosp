@@ -54,7 +54,7 @@ class dObject(objects.Object):
   def jump(self):
     "Move the telescope to the object coordinates"
     self.errors=""
-    while telescope.status.paused:
+    while not telescope.Active.isSet():
       print "Waiting for weather to clear"
       time.sleep(60)
     logger.info("Moving to object ... "+self.ObjID)

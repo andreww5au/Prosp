@@ -79,7 +79,6 @@ class TJstatus(object):
   """Telescope position and object info
   """
   def __init__(self):
-    self.paused = False
     self.dome = DomeStatus()
     self.current = CurrentStatus()
     self.motors = MotorsStatus()
@@ -108,7 +107,6 @@ class TJstatus(object):
     print 'DomeTracking=', _yn(self.dome.DomeTracking)
     print 'Frozen=', _yn(self.motors.Frozen)
     print 'lastmod=', self.lastmod
-    print 'paused=', self.paused
 
   def update(self, u_curs=None):
     "Connect to the database to update fields"
