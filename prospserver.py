@@ -86,7 +86,7 @@ class Prosp(object):
 
 def InitServer():
   global prosp, pyro_thread
-  plat = Prosp()
+  prosp = Prosp()
 
   #Start the Pyro4 daemon thread listening for status requests and receiver 'putState's:
   pyro_thread = threading.Thread(target=prosp._servePyroRequests, name='PyroDaemon')
