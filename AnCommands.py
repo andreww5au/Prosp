@@ -112,7 +112,7 @@ class ExtendedCameraStatus(Andor.CameraStatus):
     for n in ['imgtype', 'object', 'path', 'filename', 'nextfile', 'lastfile', 'filectr', 'observer', 'filter', 'filterid',
               'guider', 'mirror', 'lastact', 'initialized', 'errors', 'highcap', 'preamp', 'hsspeed', 'vsspeed', 'cycletime',
               'readouttime', 'mode', 'cool', 'tset', 'settemp', 'temp', 'tempstatus', 'imaging', 'shuttermode', 'exptime',
-              'xmin', 'xmax', 'ymin', 'ymax', 'roi', 'xbin', 'ybin', 'isdark', 'MonitorActive', 'lastact']:
+              'xmin', 'xmax', 'ymin', 'ymax', 'roi', 'xbin', 'ybin', 'isdark', 'MonitorActive', 'lastact', 'weather']:
       d[n] = self.__dict__.get(n)
     return d
 
