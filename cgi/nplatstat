@@ -276,7 +276,7 @@ if __name__ == '__main__':
   frog.TJ = tjclient.status
 
   #print "<h3>Observing Parameters</h3>\n"
-    print "<table border=0> \n "   #borderless outer table
+  print "<table border=0> \n "   #borderless outer table
   print trow(data("\n"+ObsParams(frog))+data("<br>")+ #Camera observing params
              data(TJParams(frog))+                    #Teljoy parameters
              data(WeatherParams(frog)) )              #Weather status
