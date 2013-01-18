@@ -272,7 +272,7 @@ if __name__ == '__main__':
     frog.__dict__.update(prosp.GetState())
   except Pyro4.errors.PyroError:
     frog.connected = False
-  tjclient.init()
+  tjclient.Init()
   frog.TJ = tjclient.status
 
   #print "<h3>Observing Parameters</h3>\n"
