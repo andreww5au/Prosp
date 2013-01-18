@@ -3,14 +3,13 @@
 import cgi
 import sys
 import traceback
-import Pyro4
 import time
 import os
 import stat
 
 sys.path.append('/home/observer/PyDevel')
 from Prosp.globals import *
-from Prosp import weather
+from Prosp.extras import prospclient
 from teljoy.extras import tjclient
 
 
@@ -257,29 +256,20 @@ def Exits():
   return '&nbsp; &nbsp; Go to <A href="al/aobjlist">Objects Database</A>'
 
 
-class Frog:
-  pass     #Dummy class used to load pickled camera status dict
-
 
 if __name__ == '__main__':
   print "Content-Type: text/html\n\n"
   print HTMLheader
 
-  status = Frog()
-  status.connected = False
-  try:
-    status.proxy = Pyro4.Proxy('PYRONAME:Prosp')
-    status.connected = True
-  except Pyro4.errors.PyroError:
-    print "Can't connect to Teljoy server - run teljoy.py to start the server"
-  try:
-    status.__dict__.update(status.proxy.GetState())
-    status.weather = Frog()
-    status.weather.__dict__.update(status.WeatherDict)
-  except Pyro4.errors.PyroError:
-    status.connected = False
+  prospclient.Init()
+  status = prospclient.status
+  if not status.connected:
+    print "Can't connect to Prosp server - run Prosp to start the server"
+
   tjclient.Init()
   status.TJ = tjclient.status
+  if not status.connected:
+    print "Can't connect to Teljoy server - run teljoy.py to start the server"
 
   #print "<h3>Observing Parameters</h3>\n"
   print "<table border=0> \n "   #borderless outer table
