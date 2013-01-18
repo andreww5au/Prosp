@@ -104,7 +104,7 @@ class ExtendedCameraStatus(Andor.CameraStatus):
         logger.error("Exception in Prosp Pyro4 server. Restarting in 10 sec: %s" % (traceback.format_exc(),))
         time.sleep(10)
 
-  def GetState__(self):
+  def GetState(self):
     """Can't pickle the __setattr__ function when saving state
     """
     self.update()
@@ -112,7 +112,7 @@ class ExtendedCameraStatus(Andor.CameraStatus):
     for n in ['imgtype', 'object', 'path', 'filename', 'nextfile', 'lastfile', 'filectr', 'observer', 'filter', 'filterid',
               'guider', 'mirror', 'lastact', 'initialized', 'errors', 'highcap', 'preamp', 'hsspeed', 'vsspeed', 'cycletime',
               'readouttime', 'mode', 'cool', 'tset', 'settemp', 'temp', 'tempstatus', 'imaging', 'shuttermode', 'exptime',
-              'xmin', 'xmax', 'ymin', 'ymax', 'roi', 'xbin', 'ybin']:
+              'xmin', 'xmax', 'ymin', 'ymax', 'roi', 'xbin', 'ybin', 'isdark', 'MonitorActive', 'lastact']:
       d[n] = self.__dict__.get(n)
     return d
 
