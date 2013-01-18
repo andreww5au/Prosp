@@ -274,9 +274,8 @@ if __name__ == '__main__':
     print "Can't connect to Teljoy server - run teljoy.py to start the server"
   try:
     status.__dict__.update(status.proxy.GetState())
-    foo = status.weather
     status.weather = Frog()
-    status.weather.__dict__.update(foo.GetState())
+    status.weather.__dict__.update(status.WeatherDict)
   except Pyro4.errors.PyroError:
     status.connected = False
   tjclient.Init()
