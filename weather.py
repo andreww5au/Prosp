@@ -75,7 +75,7 @@ class _Weather:
     for n in ['lastmod','skytemp','cloudf','windf','rainf','dayf','rain','temp','windspeed','humidity','dewpoint',
               'skylight','rainhit','wethead','senstemp','weathererror','SkyCloseTemp','SkyOpenTemp','WeatherOpenDelay',
               'CloudCloseDelay','OKforsec','CloudyForSec','clear']:
-      d[n] == self.__dict__.get(n)
+      d[n] = self.__dict__.get(n)
     return d
 
   def display(self):
