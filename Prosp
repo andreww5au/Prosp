@@ -59,9 +59,8 @@ import pipeline
 import service
 import snsearch
 import scheduler
-
-if CHILLER:
-  import chiller
+import prospserver
+import chiller
 
 import focuser
 from focuser import Goto,getPos,Home,Tzero,Tcorrect
@@ -241,21 +240,20 @@ status.MonitorActive = 0
 status.isdark = 1
 status.lastact = time.time()
 utils.status = status       #And the utility commands module
+prospserver.status = status
 
 sys.path = sys.path + ['.']   #Allow user-written modules in current dir to load
+
+status.chiller = chiller.status
+status.focuser = focuser.status
 
 if status.initialized:
   GotCamera = 1
   logger.info("Contact established with Andor camera server.")
   if CHILLER:
     chiller.init()
-    status.chiller = chiller.status
-    status.chiller.CCDsettemp = status.settemp    #Make CCD settemp available to chiller module
-  else:
-    status.chiller = None
   if FOCUSER:
     focuser.init()
-  status.focuser = focuser.status
 else:
   GotCamera = 0
   logger.error("Camera init failed.")
@@ -271,6 +269,9 @@ if GotCamera:
                      target=_background)
   BGThread.setDaemon(1)
   BGThread.start()
+
+#Move this up so it's only started if we're actually connected to a camera.
+prospserver.InitServer()
 
 try:
   motd=open('/tmp/ariel.motd','r')

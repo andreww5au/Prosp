@@ -21,7 +21,7 @@ class _Focusser:
   def __init__(self):
     """Set initial attributes
     """
-    self.initialized = False
+    self.connected = False
     self.pos = 0
     self.remaining = 0
     self.filename = ''
@@ -33,6 +33,12 @@ class _Focusser:
     self.Texternal = 0
     self.datumT = None
     self.datumP = None
+  def GetState(self):
+    d = {}
+    for n in ['connected','pos','remaining','modelname','retval','extent','Tinternal',
+              'Texternal','datumT','datumP']:
+      d[n] = self.__dict__.get(n)
+    return d
   def procret(self, val=0, fname="<not set>"):
     """Given a return value and function name, do something with them...
        Save return value in self.retval.
@@ -40,7 +46,7 @@ class _Focusser:
     self.retval = val
     if val:
       print 'Error in function %s:-> %d' % (fname, val)
-  def retok():
+  def retok(self):
     """Returns true if the contents of self.retval
        indicate that the last function call was successful.
     """
@@ -69,6 +75,7 @@ class _Focusser:
     self.dev = l1.value()
     self.GetFocuserExtent()
     self.update()
+    self.connected = True
   def GetFocuserExtent(self):
     """Get the maximum travel position for the focuser.
        Note that long slews finishing near this maximum value are truncated
