@@ -236,7 +236,7 @@ def WeatherParams(self):
                                    ' D=' + unyv(weather.status.dayf)))
   
 
-  if self.running:
+  if self.connected:
     tmp += trow(head("Dark") + data(ny(self.isdark)))
     tmp += trow(head("Monitoring") +
                 data(monitoring(self.MonitorActive)))
