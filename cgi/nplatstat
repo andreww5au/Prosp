@@ -133,10 +133,14 @@ def TJParams(status):
     tmp += trow(head("RA") + data(sexstring(status.TJ.current.Ra/15/3600)))
     tmp += trow(head("Dec") + data(sexstring(status.TJ.current.Dec/3600)))
     tmp += trow(head("Epoch") + data(str(status.TJ.current.Epoch)))
-  else:
+  elif status.TJ.current.RaC and status.TJ.current.DecC:
     tmp += trow(head("RA") + data(sexstring(status.TJ.current.RaC/15/3600)))
     tmp += trow(head("Dec") + data(sexstring(status.TJ.current.DecC/3600)))
     tmp += trow(head("Epoch") + data("Raw"))
+  else:
+    tmp += trow(head("RA") + data('--'))
+    tmp += trow(head("Dec") + data('--'))
+    tmp += trow(head("Epoch") + data('--'))
 
   tmp += trow(head("Alt") + data(sexstring(status.TJ.current.Alt)))
   tmp += trow(head("Azi") + data(sexstring(status.TJ.current.Azi)))
