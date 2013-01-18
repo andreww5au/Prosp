@@ -9,7 +9,7 @@ import stat
 
 sys.path.append('/home/observer/PyDevel')
 from Prosp.globals import *
-import weather
+from Prosp import weather
 from Prosp.extras import prospclient
 from teljoy.extras import tjclient
 
