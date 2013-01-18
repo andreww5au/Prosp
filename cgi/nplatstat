@@ -32,7 +32,7 @@ HTMLtrailer="""
 
 def AddObjURL(status):
   "Return a URL pointing to the 'Add Object' CGI"
-  if not status.TJ.current.posviolate:
+  if status.TJ.current.Ra and status.TJ.current.Dec and (not status.TJ.current.posviolate):
     return 'Click <A href="secure/nobjedit?new=1&'+ \
            'ObjID='+status.TJ.current.ObjID+'&'+ \
            'ObjRA='+sexstring(status.TJ.current.Ra/15/3600)+'&'+ \
@@ -129,7 +129,7 @@ def TJParams(status):
   tmp="<B>Teljoy Status</B>\n <table border=1>\n"
   tmp += trow(data("") + head("Value"))
   tmp += trow(head("Object ID") + data(status.TJ.current.ObjID))
-  if not status.TJ.current.posviolate:
+  if status.TJ.current.Ra and status.TJ.current.Dec and (not status.TJ.current.posviolate):
     tmp += trow(head("RA") + data(sexstring(status.TJ.current.Ra/15/3600)))
     tmp += trow(head("Dec") + data(sexstring(status.TJ.current.Dec/3600)))
     tmp += trow(head("Epoch") + data(str(status.TJ.current.Epoch)))
