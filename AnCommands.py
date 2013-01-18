@@ -75,6 +75,7 @@ class ExtendedCameraStatus(Andor.CameraStatus):
               'readouttime', 'mode', 'cool', 'tset', 'settemp', 'temp', 'tempstatus', 'imaging', 'shuttermode', 'exptime',
               'xmin', 'xmax', 'ymin', 'ymax', 'roi', 'xbin', 'ybin', 'isdark', 'MonitorActive', 'lastact']:
       d[n] = self.__dict__.get(n)
+    return d
 
   def update(self):
     """Called to grab fresh status data from the real status object (on the server), and
