@@ -179,7 +179,7 @@ def TJParams(status):
   else:
     flags += '.'
   tmp += trow(head("Flags") + data(flags))
-  tmp += trow(head("UT") + str(status.TJ.Time.UT))
+  tmp += trow(head("UT") + str(status.TJ.current.Time.UT))
   tmp += "</table> \n"
   return tmp
 
