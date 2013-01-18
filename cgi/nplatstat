@@ -265,30 +265,33 @@ if __name__ == '__main__':
   print "Content-Type: text/html\n\n"
   print HTMLheader
 
-  frog = Frog()
-  frog.connected = False
+  status = Frog()
+  status.connected = False
   try:
-    prosp = Pyro4.Proxy('PYRONAME:Prosp')
-    frog.connected = True
+    status.proxy = Pyro4.Proxy('PYRONAME:Prosp')
+    status.connected = True
   except Pyro4.errors.PyroError:
-    logger.error("Can't connect to Teljoy server - run teljoy.py to start the server")
+    print "Can't connect to Teljoy server - run teljoy.py to start the server"
   try:
-    frog.__dict__.update(prosp.GetState())
+    status.__dict__.update(status.proxy.GetState())
+    foo = status.weather
+    status.weather = Frog()
+    status.weather.__dict__.update(foo.GetState())
   except Pyro4.errors.PyroError:
-    frog.connected = False
+    status.connected = False
   tjclient.Init()
-  frog.TJ = tjclient.status
+  status.TJ = tjclient.status
 
   #print "<h3>Observing Parameters</h3>\n"
   print "<table border=0> \n "   #borderless outer table
-  print trow(data("\n"+ObsParams(frog))+data("<br>")+ #Camera observing params
-             data(TJParams(frog))+                    #Teljoy parameters
-             data(WeatherParams(frog)) )              #Weather status
+  print trow(data("\n"+ObsParams(status))+data("<br>")+ #Camera observing params
+             data(TJParams(status))+                    #Teljoy parameters
+             data(WeatherParams(status)) )              #Weather status
   print "</table> \n"    #End of outer borderless table
   print "<br>\n"
   #print "<h3>CCD and Chiller Parameters</h3>\n"
-  print InstParams(frog)
-  print AddObjURL(frog)
+  print InstParams(status)
+  print AddObjURL(status)
   print Exits()
   print HTMLtrailer
 

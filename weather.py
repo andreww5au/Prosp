@@ -70,6 +70,14 @@ class _Weather:
     self.empty()
     self.update()
 
+  def GetState(self):
+    d = {}
+    for n in ['lastmod','skytemp','cloudf','windf','rainf','dayf','rain','temp','windspeed','humidity','dewpoint',
+              'skylight','rainhit','wethead','senstemp','weathererror','SkyCloseTemp','SkyOpenTemp','WeatherOpenDelay',
+              'CloudCloseDelay','OKforsec','CloudyForSec','clear']:
+      d[n] == self.__dict__.get(n)
+    return d
+
   def display(self):
     "Tells the status object to display itself"
     print "Sky Temp:  ", self.skytemp
