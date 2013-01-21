@@ -77,6 +77,7 @@ def ObsParams(status):
   tmp += trow(head("Next File") + data(status.nextfile))
   tmp += trow(head("Last File") + data(status.lastfile))
   tmp += trow(head("Image Type") + data(status.imgtype))
+  tmp += trow(head("Observer") + data(status.observer))
   tmp += "</table>\n"
   return tmp
 
@@ -180,7 +181,8 @@ def TJParams(status):
   else:
     flags += '.'
   tmp += trow(head("Flags") + data(flags))
-  tmp += trow(head("UT") + str(status.TJ.current.Time.UT))
+  tmp += trow(head("UT Date") + data(str(status.TJ.current.Time.UT)[:10]))
+  tmp += trow(head("UT Time") + data(str(status.TJ.current.Time.UT)[11:-7]))
   tmp += "</table> \n"
   return tmp
 
