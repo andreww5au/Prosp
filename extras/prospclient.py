@@ -1,6 +1,5 @@
 """Pyro4 RPC client library for Teljoy
 """
-
 import Pyro4
 
 status = None
@@ -94,10 +93,10 @@ class ProspClient(StatusObj):
     self.roi = (self.xmin,self.xmax,self.ymin,self.ymax)
     self.xbin = 1             #Horizontal (X) binning factor, 1-2048
     self.ybin = 1             #Vertical (Y) binning factor, 1-2048
-    self.imgtype = 'OBJECT'  #or 'BIAS', 'DARK', or 'FLAT'
+    self.imgtype = ''  #or 'BIAS', 'DARK', or 'FLAT'
     self.object = ''         #Object name
-    self.path = '/data'
-    self.filename = 'andor'
+    self.path = ''
+    self.filename = ''
     self.nextfile = ''
     self.lastfile = ''
     self.filectr = 0
@@ -106,9 +105,9 @@ class ProspClient(StatusObj):
     self.filter = -1
     self.filterid = 'X'
     self.guider = (9999, 9999)
-    self.mirror = 'IN'
+    self.mirror = ''
     #Housekeeping parameters
-    self.lastact = time.time()
+    self.lastact = 0
 
   def update(self):
     if status.connected:
