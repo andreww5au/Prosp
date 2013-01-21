@@ -64,6 +64,49 @@ class ProspClient(StatusObj):
     self.chiller = ChillerStatus()
     self.weather = WeatherStatus()
     self.focuser = FocuserStatus()
+    self.initialized = False
+    self.errors = []         #List of (time,message) tuples containting all error messages, as they occurred.
+    #Amplifier and readout parameters - unique to Andor camera
+    self.highcap = None      #Is HighCapacity mode on?
+    self.preamp = None       #PreAmp gain index
+    self.hsspeed = None      #Horizontal shift speed index
+    self.vsspeed = None      #Vertical shift speed index
+    self.cycletime = None    #minimum time between successive exposures, allowing for exposure and readout
+    self.readouttime = None  #Time taken to read out an image using the current readout settings
+    self.mode = None         #Parameter mode set name (unbinned-slow, binned-fast, etc)
+    #Temperature and regulation parameters
+    self.cool = False        #Is Cooler on?
+    self.tset = False        #Has temperature stabilised at setpoint?
+    self.settemp = 999       #Regulated setpoint
+    self.temp = 999          #Latest CCD temperature
+    self.tempstatus = ''     #Latest CCD temperature regulation status - unique to Andor
+    #Shutter and image type parameters
+    self.imaging = False     #True if an image is being acquired, False otherwise.
+    self.shuttermode = 0     #0 for auto, 1 for open, 2 for close - unique to Andor
+    self.exptime = 0.0
+    #Cropping boundaries - note boundaries are INDEPENDENT of binning, so 2048x2048 is always
+    #  the full image, no matter what the binning factors are. However, these values must be
+    #  exactly divisible by the binning factor for the given axis.
+    self.xmin,self.xmax = 1,XSIZE   #Cropping boundaries for X
+    self.ymin,self.ymax = 1,YSIZE   #Cropping boundaries for Y
+    self.roi = (self.xmin,self.xmax,self.ymin,self.ymax)
+    self.xbin = 1             #Horizontal (X) binning factor, 1-2048
+    self.ybin = 1             #Vertical (Y) binning factor, 1-2048
+    self.imgtype = 'OBJECT'  #or 'BIAS', 'DARK', or 'FLAT'
+    self.object = ''         #Object name
+    self.path = '/data'
+    self.filename = 'andor'
+    self.nextfile = ''
+    self.lastfile = ''
+    self.filectr = 0
+    self.observer = ''
+    #Optical coupler setting parameters
+    self.filter = -1
+    self.filterid = 'X'
+    self.guider = (9999, 9999)
+    self.mirror = 'IN'
+    #Housekeeping parameters
+    self.lastact = time.time()
 
   def update(self):
     if status.connected:
