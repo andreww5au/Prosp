@@ -5,6 +5,8 @@ import Pyro4
 
 status = None
 
+XSIZE, YSIZE = 2048, 2048
+
 class StatusObj(object):
   def __repr__(self):
     return str(self.__dict__)
