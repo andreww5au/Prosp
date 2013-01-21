@@ -15,7 +15,7 @@ from teljoy.extras import tjclient
 
 
 HTMLheader="""
-<META HTTP-EQUIV="Refresh" CONTENT="5;URL=platstat">
+<META HTTP-EQUIV="Refresh" CONTENT="5;URL=nplatstat">
 <html>
 <head>
 <title>PLAT Telescope and Camera Status</title>
