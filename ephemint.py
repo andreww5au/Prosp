@@ -74,19 +74,17 @@ def isdark():
   sun = ephem.Sun()
   sun.compute(h)
   if (float(sun.alt)*180/pi) > -12:
-    return 0
+    return False
   else:
-    return 1
+    return True
 
 
 def isday():
   h = herenow()
   sun = ephem.Sun()
   sun.compute(h)
-  if float(sun.alt) > 0:
-    return 1
-  else:
-    return 0
+  return float(sun.alt) > 0
+
 
 def isdarkat(att=2000):
 # written by Ralph Martin July 2009
@@ -95,10 +93,7 @@ def isdarkat(att=2000):
   h.epoch=att
   sun = ephem.Sun()
   sun.compute(h)
-  if (float(sun.alt)*180/pi) < -9:   # civil/naughtical twilight
-    return 1
-  else:
-    return 0
+  return (float(sun.alt)*180/pi) < -9   # civil/nautical twilight
 
 
 def precess(ra=0.0, dec=-0.5587):
@@ -117,6 +112,7 @@ def altaz(ra=0.0, dec=-32.0, epoch=2000):
   obj.compute(herenow())
   return float(obj.alt)*180/pi, float(obj.az)*180/pi
 
+
 def altazat(ra=0.0, dec=-32.0, att=2000):
 # written by Ralph Martin July 2009
   obj=ephem.FixedBody()
@@ -128,6 +124,7 @@ def altazat(ra=0.0, dec=-32.0, att=2000):
   bickley.epoch=att
   obj.compute(bickley)
   return float(obj.alt)*180/pi, float(obj.az)*180/pi
+
 
 def alaz(ra=0.0,dec=-0.5587):
 # written by Ralph Martin April 2003

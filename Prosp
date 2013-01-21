@@ -104,7 +104,7 @@ def _background():
           logger.warning("End of the night, pausing forever. To resume "+
                  "and open dome, type 'teljoy.unpause()'")
           telescope.pause()
-          status.MonitorActive=0
+          status.MonitorActive = False
         try:
           Alt=float(status.TJ.Alt)
           if status.TJ.RawHourAngle>0:
@@ -118,9 +118,9 @@ def _background():
           logger.warning("System Inactive or below Alt limits, pausing forever. To "+
                  "resume and open dome, type 'teljoy.unpause()'")
           telescope.pause()
-          status.MonitorActive=0
+          status.MonitorActive = False
 
-      status.isdark=ephemint.isdark()
+      status.isdark = ephemint.isdark()
       status.update()    #Get new data from Pyro server, and save pickled status object.
 
       for f in backgrounds:    #Call all the registered background functions
@@ -180,7 +180,7 @@ def monitor(arg=None, close=None, open=None, delay=None):
     arg = string.upper(arg)
   if arg == 'OFF':
     print "Monitoring OFF."
-    status.MonitorActive=0
+    status.MonitorActive = False
 
     if type(close)==types.FloatType or type(close)==types.IntType:
       status.weather.SkyCloseTemp = float(close)
@@ -196,7 +196,7 @@ def monitor(arg=None, close=None, open=None, delay=None):
     while (not ephemint.isdark()):
       print 'waiting for it to get dark:'
       time.sleep(90)
-    status.isdark=ephemint.isdark
+    status.isdark = ephemint.isdark()
     status.weather.__init__()
     status.lastact = time.time()   #In case it's been a while since an image
     if type(close)==types.FloatType or type(close)==types.IntType:
@@ -205,7 +205,7 @@ def monitor(arg=None, close=None, open=None, delay=None):
       status.weather.SkyOpenTemp = float(open)
     if type(delay)==types.FloatType or type(delay)==types.IntType:
       status.weather.WeatherOpenDelay = int(delay)
-    if not isdark():
+    if not status.isdark:
       print "It's not dark yet, monitoring mode would pause immediately."
       print "Monitor mode aborted."
       return 0
@@ -218,7 +218,7 @@ def monitor(arg=None, close=None, open=None, delay=None):
       status.weather.display()
       return 0
 
-    status.MonitorActive=1
+    status.MonitorActive = True
     print "Monitoring ON, 'clear' delay reset to force immediate unpausing\n"
     status.weather.display()
   else:   #Arg not on or off
@@ -236,8 +236,8 @@ from AnCommands import *
 status = AnCommands.camera.status  #Define a status variable using the new class
 status.TJ = telescope.status
 status.weather = weather.status
-status.MonitorActive = 0
-status.isdark = 1
+status.MonitorActive = False
+status.isdark = ephemint.isdark()
 status.lastact = time.time()
 utils.status = status       #And the utility commands module
 prospserver.status = status
@@ -248,53 +248,33 @@ status.chiller = chiller.status
 status.focuser = focuser.status
 
 if status.initialized:
-  GotCamera = 1
+  GotCamera = True
   logger.info("Contact established with Andor camera server.")
   if CHILLER:
     chiller.init()
   if FOCUSER:
     focuser.init()
 else:
-  GotCamera = 0
+  GotCamera = False
   logger.error("Camera init failed.")
-  logger.error("Another program is using the hardware interface to control the camera.")
-  print "Continuing without access to the camera hardware - to connect to the "
-  print "camera, quit this program, quit from or kill the other instance of"
-  print "Prosp, and restart. Use 'ps -a' to find other instances of the"
-  print "program."
+  logger.error("Can't connect to the Andor server program to control the camera.")
+  print "Continuing without access to the camera hardware."
 
 
 if GotCamera:
   BGThread=threading.Thread(group=None,
                      target=_background)
-  BGThread.setDaemon(1)
+  BGThread.setDaemon(True)
   BGThread.start()
 
 #Move this up so it's only started if we're actually connected to a camera.
 prospserver.InitServer()
 
 try:
-  motd=open('/tmp/ariel.motd','r')
+  motd = open('/tmp/andor.motd','r')
   print "\nMessage of the Day:\n"
   print motd.read()+"\n\n"
   motd.close()
 except:
   pass
 
-#Some test code to debug wierd 'blocking background threads' issue
-import threading
-import os
-import time
-
-def touch(fname):
-  with file(fname,'a'):
-     os.utime(fname, None)
-
-def loop():
-  while True:
-    touch('/tmp/loop')
-    time.sleep(1)
-
-t = threading.Thread(target=loop)
-t.setDaemon(1)
-t.start()

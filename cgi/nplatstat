@@ -86,6 +86,7 @@ def since(tm):
   """
   return `int(time.time()-tm)`+' sec'
 
+
 def InstParams(status):
   "Return an HTML table with the current instrument parameters"
   tmp = "<B>CCD and Chiller Parameters</B>\n <table border=1> \n"
@@ -269,7 +270,7 @@ if __name__ == '__main__':
 
   tjclient.Init()
   status.TJ = tjclient.status
-  if not status.connected:
+  if not status.TJ.connected:
     print "Can't connect to Teljoy server - run teljoy.py to start the server"
 
   #print "<h3>Observing Parameters</h3>\n"
