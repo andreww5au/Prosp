@@ -7,8 +7,6 @@ from Prosp.extras import prospclient
 from teljoy.extras import tjclient
 
 from visual import *
-from visual.text import *
-from math import *
 
 LATDEG = -32.0
 LATRAD = LATDEG * pi / 180.0
@@ -143,7 +141,8 @@ class Plat(object):
             depth=0.02,
             color=color.black,
             string="HA " + sexstring(val),
-            justify='center')
+            justify='center',
+            twosided=False)
 
   def setdecstring(self, val):
     if self.decstring:
@@ -155,7 +154,8 @@ class Plat(object):
              depth=0.02,
              color=color.black,
              string="DEC " + sexstring(val),
-             justify='center')
+             justify='center',
+             twosided=False)
 
   def setposr(self, har, decr):
     self.har = har
@@ -172,7 +172,7 @@ class Plat(object):
     self.scope.axis = r
 
   def setpos(self, ha, dec):
-    self.setposr(har=ha*math.pi/12, decr=dec*math.pi/180)
+    self.setposr(har=ha*pi/12, decr=dec*pi/180)
     self.sethastring(ha)
     self.setdecstring(dec)
 
