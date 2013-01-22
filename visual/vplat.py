@@ -135,6 +135,7 @@ class Plat(object):
 
   def sethastring(self, val):
     if self.hastring:
+      self.hastring.visible = False
       del self.hastring
     self.hastring = text(pos=(0.81, -1.7, 0),
             axis=(0, 0, -1),
@@ -146,6 +147,7 @@ class Plat(object):
 
   def setdecstring(self, val):
     if self.decstring:
+      self.decstring.visible = False
       del self.decstring
     self.decstring = text(pos=(0.81, -1.9, 0),
              axis=(0, 0, -1),
@@ -196,7 +198,8 @@ def FollowLoop(plat=None):
     rate(1 / dt)
     tjclient.status.update()
     if not tjclient.status.motors.Moving:
-      lastHA = tjclient.status.current.RaC/15.0/3600-tjclient.status.current.Time.LST
+      lastLST = tjclient.status.current.Time.LST
+      lastHA = tjclient.status.current.RaC/15.0/3600 - lastLST
       lastDec = tjclient.status.current.DecC/3600.0
       plat.setpos(lastHA,lastDec)
       #     mount.setra(status.RawRA)
@@ -205,7 +208,7 @@ def FollowLoop(plat=None):
       dt = 1.0
     else:
       dt = 0.2
-      hslewlen = ((tjclient.status.current.RaC/15.0/3600-tjclient.status.current.Time.LST) - lastHA)
+      hslewlen = ((tjclient.status.current.RaC/15.0/3600-lastLST) - lastHA)
       dslewlen = (tjclient.status.current.DecC/3600.0 - lastDec)
       htime = abs(hslewlen / slewvel)
       dtime = abs(dslewlen / slewvel)
