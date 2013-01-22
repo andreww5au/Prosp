@@ -195,7 +195,7 @@ def FollowLoop(plat=None):
   while 1:
     rate(1 / dt)
     tjclient.status.update()
-    if not tjclient.status.Moving:
+    if not tjclient.status.motors.Moving:
       lastHA = tjclient.status.current.RaC/15.0/3600-tjclient.status.current.Time.LST
       lastDec = tjclient.status.current.DecC/3600.0
       plat.setpos(lastHA,lastDec)
