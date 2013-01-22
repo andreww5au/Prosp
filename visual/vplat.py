@@ -155,27 +155,25 @@ class Plat(object):
 
   def setrastring(self, val):
     if self.rastring:
-      self.rastring.string = "RA " + sexstring(val)
-    else:
-      self.rastring = text(pos=(0.81, -1.7, 0),
-              axis=(0, 0, -1),
-              height=0.15,
-              depth=0.02,
-              color=color.black,
-              string="RA " + sexstring(val),
-              justify='center')
+      del self.rastring
+    self.rastring = text(pos=(0.81, -1.7, 0),
+            axis=(0, 0, -1),
+            height=0.15,
+            depth=0.02,
+            color=color.black,
+            string="RA " + sexstring(val),
+            justify='center')
 
   def setdecstring(self, val):
     if self.decstring:
-      self.decstring.string = "DEC " + sexstring(val)
-    else:
-      self.decstring = text(pos=(0.81, -1.9, 0),
-               axis=(0, 0, -1),
-               height=0.15,
-               depth=0.02,
-               color=color.black,
-               string="DEC " + sexstring(val),
-               justify='center')
+      del self.decstring
+    self.decstring = text(pos=(0.81, -1.9, 0),
+             axis=(0, 0, -1),
+             height=0.15,
+             depth=0.02,
+             color=color.black,
+             string="DEC " + sexstring(val),
+             justify='center')
 
   def setdecr(self, d):
     self.decr = d
