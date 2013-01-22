@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import sys
 sys.path.append('/home/observer/PyDevel')
 from Prosp.globals import *
 from Prosp import weather
