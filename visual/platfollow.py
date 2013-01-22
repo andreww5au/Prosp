@@ -1,8 +1,14 @@
 #!/usr/bin/python
+
+sys.path.append('/home/observer/PyDevel')
+from Prosp.globals import *
+from Prosp import weather
+from Prosp.extras import prospclient
+from teljoy.extras import tjclient
+
 from visual import *
 from math import *
 import string
-import teljoy
 
 lat=-32*pi/180
 han=0

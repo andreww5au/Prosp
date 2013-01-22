@@ -3,6 +3,7 @@ from visual import *
 from math import *
 import string
 
+
 lat=-32*pi/180
 han=0
 decl=-32
