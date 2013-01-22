@@ -3,7 +3,6 @@
 import sys
 sys.path.append('/home/observer/PyDevel')
 from Prosp.globals import *
-from Prosp import weather
 from Prosp.extras import prospclient
 from teljoy.extras import tjclient
 
@@ -15,25 +14,6 @@ LATDEG = -32.0
 LATRAD = LATDEG * pi / 180.0
 
 SAXIS = vector(cos(LATRAD), -sin(LATRAD), 0)
-
-def sexstring(value=0, sp=':'):
-  """Usage: sexstring(value=0,sp=':')
-     Convert the floating point 'value' into a sexagecimal string, using
-     'sp' as a spacer between components
-  """
-  try:
-    aval = abs(value)
-  except:
-    aval = 0.0
-  if value < 0:
-    outs = '-'
-  else:
-    outs = ''
-  D = int(aval)
-  M = int((aval - float(D)) * 60)
-  S = float(int((aval - float(D) - float(M) / 60.0) * 36000)) / 10.0
-  outs = outs + `D` + sp + `M` + sp + `S`
-  return outs
 
 
 class Plat(object):
@@ -153,15 +133,15 @@ class Plat(object):
                         color=(108.0 / 256, 123.0 / 256, 139.0 / 256))
     self.setpos(ha=0.0, dec=LATDEG)
 
-  def setrastring(self, val):
-    if self.rastring:
-      del self.rastring
-    self.rastring = text(pos=(0.81, -1.7, 0),
+  def sethastring(self, val):
+    if self.hastring:
+      del self.hastring
+    self.hastring = text(pos=(0.81, -1.7, 0),
             axis=(0, 0, -1),
             height=0.15,
             depth=0.02,
             color=color.black,
-            string="RA " + sexstring(val),
+            string="HA " + sexstring(val),
             justify='center')
 
   def setdecstring(self, val):
@@ -174,23 +154,6 @@ class Plat(object):
              color=color.black,
              string="DEC " + sexstring(val),
              justify='center')
-
-  def setdecr(self, d):
-    self.decr = d
-    p = (0, 1, 0)
-    q = rotate(p, angle=self.decr - LATRAD, axis=(0, 0, 1))
-    r = rotate(q, angle=-self.har, axis=SAXIS)
-    self.scope.up = SAXIS
-    self.scope.axis = r
-
-  def sethar(self, h):
-    self.har = h
-    self.mount.up = (0, cos(-self.har), sin(-self.har))
-    self.scope.up = (0, cos(-self.har), sin(-self.har))
-    p = (0, 0, 0.65)
-    q = rotate(p, angle=-self.har, axis=SAXIS)
-    self.scope.pos = vector(1.7, 1, 0) + q
-    self.setdec(self.decr)
 
   def setposr(self, har, decr):
     self.har = har
@@ -208,3 +171,49 @@ class Plat(object):
 
   def setpos(self, ha, dec):
     self.setposr(har=ha*math.pi/12, decr=dec*math.pi/180)
+    self.sethastring(ha)
+    self.setdecstring(dec)
+
+
+def FollowLoop(plat=None):
+  """Given a visual telescope object (a subclass of vplat.Plat), run
+     continuously, updating the position of the virtual telescope to match
+     the real coordinates obtained via RPC from teljoy.
+
+     Returns immediately if teljoy can't be contacted.
+  """
+  connected = tjclient.Init()
+  if not connected:
+    return
+
+  dt = 1.0
+  slewvel = tjclient.status.prefs.SlewRate/20.0/3600/15  #convert from steps/sec to hours/sec
+  slewtime = 0
+  lastHA = tjclient.status.current.RaC/15.0/3600-tjclient.status.current.Time.LST
+  lastDec = tjclient.status.current.DecC/3600.0
+
+  while 1:
+    rate(1 / dt)
+    tjclient.status.update()
+    if not tjclient.status.Moving:
+      lastHA = tjclient.status.current.RaC/15.0/3600-tjclient.status.current.Time.LST
+      lastDec = tjclient.status.current.DecC/3600.0
+      plat.setpos(lastHA,lastDec)
+      #     mount.setra(status.RawRA)
+      #     mount.setdec(status.RawDec)
+      slewtime = 0
+      dt = 1.0
+    else:
+      dt = 0.2
+      hslewlen = ((tjclient.status.current.RaC/15.0/3600-tjclient.status.current.Time.LST) - lastHA)
+      dslewlen = (tjclient.status.current.DecC/3600.0 - lastDec)
+      htime = abs(hslewlen / slewvel)
+      dtime = abs(dslewlen / slewvel)
+      slewtime = slewtime + dt
+      hpos = lastHA
+      dpos = lastDec
+      if htime > 0.0:
+        hpos = lastHA + hslewlen*(dt/htime)
+      if dtime > 0.0:
+        dpos = lastDec + dslewlen*(dt/dtime)
+      plat.setpos(hpos, dpos)
