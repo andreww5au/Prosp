@@ -18,7 +18,7 @@ SAXIS = vector(cos(LATRAD), -sin(LATRAD), 0)
 
 class Plat(object):
   def __init__(self):
-    self.rastring = None
+    self.hastring = None
     self.decstring = None
     self.ha = 0.0
     self.dec = LATDEG
