@@ -176,7 +176,7 @@ class Plat(object):
                  string="DEC " + sexstring(val),
                  justify='center')
 
-    def setdecr(d):
+    def setdecr(self, d):
       self.decr = d
       p = (0, 1, 0)
       q = rotate(p, angle=self.decr - LATRAD, axis=(0, 0, 1))
@@ -184,7 +184,7 @@ class Plat(object):
       self.scope.up = SAXIS
       self.scope.axis = r
 
-    def sethar(h):
+    def sethar(self, h):
       self.har = h
       self.mount.up = (0, cos(-self.har), sin(-self.har))
       self.scope.up = (0, cos(-self.har), sin(-self.har))
@@ -193,3 +193,19 @@ class Plat(object):
       self.scope.pos = vector(1.7, 1, 0) + q
       self.setdec(self.decr)
 
+    def setposr(self, har, decr):
+      self.har = har
+      self.decr = decr
+      self.mount.up = (0, cos(-self.har), sin(-self.har))
+      self.scope.up = (0, cos(-self.har), sin(-self.har))
+      p = (0, 0, 0.65)
+      q = rotate(p, angle=-self.har, axis=SAXIS)
+      self.scope.pos = vector(1.7, 1, 0) + q
+      p = (0, 1, 0)
+      q = rotate(p, angle=self.decr - LATRAD, axis=(0, 0, 1))
+      r = rotate(q, angle=-self.har, axis=SAXIS)
+      self.scope.up = SAXIS
+      self.scope.axis = r
+
+    def setpos(self, ha, dec):
+      self.setpos(har=ha*math.pi/12, decr=dec*math.pi/180)
