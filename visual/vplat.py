@@ -7,6 +7,7 @@ from Prosp.extras import prospclient
 from teljoy.extras import tjclient
 
 from visual import *
+from visual.text import text
 
 LATDEG = -32.0
 LATRAD = LATDEG * pi / 180.0
