@@ -209,4 +209,4 @@ class Plat(object):
     self.scope.axis = r
 
   def setpos(self, ha, dec):
-    self.setpos(har=ha*math.pi/12, decr=dec*math.pi/180)
+    self.setposr(har=ha*math.pi/12, decr=dec*math.pi/180)
