@@ -227,4 +227,4 @@ def FollowLoop(plat=None):
       lbl.visible = False
       del lbl
     if p in [plat.mount.radial]:
-      lbl = label(pos=plat.mount._frame_to_world(p.pos), text=sexstring(tjclient.status.current.RaC/15.0/3600)
+      lbl = label(pos=plat.mount._frame_to_world(p.pos), text=sexstring(tjclient.status.current.RaC/15.0/3600))
