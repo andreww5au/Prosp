@@ -227,5 +227,5 @@ def FollowLoop(plat=None):
     p = scene.mouse.pick
     if lbl and (p is None):
       lbl.visible = False
-    if p in [plat.mount.radial]:
-      lbl = label(pos=plat.mount._frame_to_world(p.pos), text=sexstring(tjclient.status.current.RaC/15.0/3600))
+    if p in [plat.radial]:
+      lbl = label(pos=plat.mount.frame_to_world(p.pos), text=sexstring(tjclient.status.current.RaC/15.0/3600))
