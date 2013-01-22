@@ -212,10 +212,12 @@ def FollowLoop(plat=None):
       htime = abs(hslewlen*15 / slewvel)
       dtime = abs(dslewlen / slewvel)
       slewtime = slewtime + dt
-      hpos = lastHA
-      dpos = lastDec
-      if htime > 0.0:
+      if slewtime < htime:
         hpos = lastHA + hslewlen*(slewtime/htime)
-      if dtime > 0.0:
+      else:
+        hpos = tjclient.status.current.RaC/15.0/3600 - tjclient.status.current.Time.LST
+      if slewtime < dtime:
         dpos = lastDec + dslewlen*(slewtime/dtime)
+      else:
+        dpos = tjclient.status.current.DecC/3600.0
       plat.setpos(hpos, dpos)
