@@ -151,61 +151,62 @@ class Plat(object):
                         radius=0.08,
                         length=0.16,
                         color=(108.0 / 256, 123.0 / 256, 139.0 / 256))
+    self.setpos(ha=0.0, dec=LATDEG)
 
-    def setrastring(self, val):
-      if self.rastring:
-        self.rastring.string = "RA " + sexstring(val)
-      else:
-        self.rastring = text(pos=(0.81, -1.7, 0),
-                axis=(0, 0, -1),
-                height=0.15,
-                depth=0.02,
-                color=color.black,
-                string="RA " + sexstring(val),
-                justify='center')
+  def setrastring(self, val):
+    if self.rastring:
+      self.rastring.string = "RA " + sexstring(val)
+    else:
+      self.rastring = text(pos=(0.81, -1.7, 0),
+              axis=(0, 0, -1),
+              height=0.15,
+              depth=0.02,
+              color=color.black,
+              string="RA " + sexstring(val),
+              justify='center')
 
-    def setdecstring(self, val):
-      if self.decstring:
-        self.decstring.string = "DEC " + sexstring(val)
-      else:
-        self.decstring = text(pos=(0.81, -1.9, 0),
-                 axis=(0, 0, -1),
-                 height=0.15,
-                 depth=0.02,
-                 color=color.black,
-                 string="DEC " + sexstring(val),
-                 justify='center')
+  def setdecstring(self, val):
+    if self.decstring:
+      self.decstring.string = "DEC " + sexstring(val)
+    else:
+      self.decstring = text(pos=(0.81, -1.9, 0),
+               axis=(0, 0, -1),
+               height=0.15,
+               depth=0.02,
+               color=color.black,
+               string="DEC " + sexstring(val),
+               justify='center')
 
-    def setdecr(self, d):
-      self.decr = d
-      p = (0, 1, 0)
-      q = rotate(p, angle=self.decr - LATRAD, axis=(0, 0, 1))
-      r = rotate(q, angle=-self.har, axis=SAXIS)
-      self.scope.up = SAXIS
-      self.scope.axis = r
+  def setdecr(self, d):
+    self.decr = d
+    p = (0, 1, 0)
+    q = rotate(p, angle=self.decr - LATRAD, axis=(0, 0, 1))
+    r = rotate(q, angle=-self.har, axis=SAXIS)
+    self.scope.up = SAXIS
+    self.scope.axis = r
 
-    def sethar(self, h):
-      self.har = h
-      self.mount.up = (0, cos(-self.har), sin(-self.har))
-      self.scope.up = (0, cos(-self.har), sin(-self.har))
-      p = (0, 0, 0.65)
-      q = rotate(p, angle=-self.har, axis=SAXIS)
-      self.scope.pos = vector(1.7, 1, 0) + q
-      self.setdec(self.decr)
+  def sethar(self, h):
+    self.har = h
+    self.mount.up = (0, cos(-self.har), sin(-self.har))
+    self.scope.up = (0, cos(-self.har), sin(-self.har))
+    p = (0, 0, 0.65)
+    q = rotate(p, angle=-self.har, axis=SAXIS)
+    self.scope.pos = vector(1.7, 1, 0) + q
+    self.setdec(self.decr)
 
-    def setposr(self, har, decr):
-      self.har = har
-      self.decr = decr
-      self.mount.up = (0, cos(-self.har), sin(-self.har))
-      self.scope.up = (0, cos(-self.har), sin(-self.har))
-      p = (0, 0, 0.65)
-      q = rotate(p, angle=-self.har, axis=SAXIS)
-      self.scope.pos = vector(1.7, 1, 0) + q
-      p = (0, 1, 0)
-      q = rotate(p, angle=self.decr - LATRAD, axis=(0, 0, 1))
-      r = rotate(q, angle=-self.har, axis=SAXIS)
-      self.scope.up = SAXIS
-      self.scope.axis = r
+  def setposr(self, har, decr):
+    self.har = har
+    self.decr = decr
+    self.mount.up = (0, cos(-self.har), sin(-self.har))
+    self.scope.up = (0, cos(-self.har), sin(-self.har))
+    p = (0, 0, 0.65)
+    q = rotate(p, angle=-self.har, axis=SAXIS)
+    self.scope.pos = vector(1.7, 1, 0) + q
+    p = (0, 1, 0)
+    q = rotate(p, angle=self.decr - LATRAD, axis=(0, 0, 1))
+    r = rotate(q, angle=-self.har, axis=SAXIS)
+    self.scope.up = SAXIS
+    self.scope.axis = r
 
-    def setpos(self, ha, dec):
-      self.setpos(har=ha*math.pi/12, decr=dec*math.pi/180)
+  def setpos(self, ha, dec):
+    self.setpos(har=ha*math.pi/12, decr=dec*math.pi/180)
