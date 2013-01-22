@@ -189,7 +189,7 @@ def FollowLoop(plat=None):
     return
 
   dt = 1.0
-  slewvel = tjclient.status.prefs.SlewRate/20.0/3600/15  #convert from steps/sec to hours/sec
+  slewvel = tjclient.status.prefs.SlewRate/20.0/3600  #convert from steps/sec to deg/sec
   slewtime = 0
   lastHA = tjclient.status.current.RaC/15.0/3600-tjclient.status.current.Time.LST
   lastDec = tjclient.status.current.DecC/3600.0
@@ -198,25 +198,24 @@ def FollowLoop(plat=None):
     rate(1 / dt)
     tjclient.status.update()
     if not tjclient.status.motors.Moving:
-      lastLST = tjclient.status.current.Time.LST
-      lastHA = tjclient.status.current.RaC/15.0/3600 - lastLST
+      lastHA = tjclient.status.current.RaC/15.0/3600 - tjclient.status.current.Time.LST
       lastDec = tjclient.status.current.DecC/3600.0
       plat.setpos(lastHA,lastDec)
       #     mount.setra(status.RawRA)
       #     mount.setdec(status.RawDec)
-      slewtime = 0
+      slewtime = 0.0
       dt = 1.0
     else:
       dt = 0.2
-      hslewlen = ((tjclient.status.current.RaC/15.0/3600-lastLST) - lastHA)
+      hslewlen = ((tjclient.status.current.RaC/15.0/3600-tjclient.status.current.Time.LST) - lastHA)
       dslewlen = (tjclient.status.current.DecC/3600.0 - lastDec)
-      htime = abs(hslewlen / slewvel)
+      htime = abs(hslewlen*15 / slewvel)
       dtime = abs(dslewlen / slewvel)
       slewtime = slewtime + dt
       hpos = lastHA
       dpos = lastDec
       if htime > 0.0:
-        hpos = lastHA + hslewlen*(dt/htime)
+        hpos = lastHA + hslewlen*(slewtime/htime)
       if dtime > 0.0:
-        dpos = lastDec + dslewlen*(dt/dtime)
+        dpos = lastDec + dslewlen*(slewtime/dtime)
       plat.setpos(hpos, dpos)
