@@ -189,6 +189,7 @@ def FollowLoop(plat=None):
   if not connected:
     return
 
+  lbl = None
   dt = 1.0
   slewvel = tjclient.status.prefs.SlewRate/20.0/3600  #convert from steps/sec to deg/sec
   slewtime = 0
@@ -226,6 +227,5 @@ def FollowLoop(plat=None):
     p = scene.mouse.pick
     if lbl and (p is None):
       lbl.visible = False
-      del lbl
     if p in [plat.mount.radial]:
       lbl = label(pos=plat.mount._frame_to_world(p.pos), text=sexstring(tjclient.status.current.RaC/15.0/3600))
