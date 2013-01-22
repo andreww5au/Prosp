@@ -11,11 +11,10 @@ from visual import *
 from visual.text import *
 from math import *
 
-lat = -32.0 * pi / 180.0
-han=0
-decl=-32
+LATDEG = -32.0
+LATRAD = LATDEG * pi / 180.0
 
-SAXIS = vector(cos(lat), -sin(lat), 0)
+SAXIS = vector(cos(LATRAD), -sin(LATRAD), 0)
 
 def sexstring(value=0, sp=':'):
   """Usage: sexstring(value=0,sp=':')
@@ -37,10 +36,12 @@ def sexstring(value=0, sp=':'):
   return outs
 
 
-class PLAT(object):
+class Plat(object):
   def __init__(self):
     self.rastring = None
     self.decstring = None
+    self.ha = 0.0
+    self.dec = LATDEG
     self.mount = frame()
     self.sector = cylinder(frame=self.mount,
                            pos=(0, 0, 0),
@@ -175,21 +176,20 @@ class PLAT(object):
                  string="DEC " + sexstring(val),
                  justify='center')
 
-    def setdec(d):
-      self.decl = d
-      dr = d * pi / 180
+    def setdecr(d):
+      self.decr = d
       p = (0, 1, 0)
-      q = rotate(p, angle=dr - lat, axis=(0, 0, 1))
-      r = rotate(q, angle=han, axis=SAXIS)
-      self.scope.scope.up = SAXIS
-      self.scope.scope.axis = r
+      q = rotate(p, angle=self.decr - LATRAD, axis=(0, 0, 1))
+      r = rotate(q, angle=-self.har, axis=SAXIS)
+      self.scope.up = SAXIS
+      self.scope.axis = r
 
-    def ha(h):
-      self.han = -h * pi / 12
-      self.mount.mount.up = (0, cos(han), sin(han))
-      self.scope.scope.up = (0, cos(han), sin(han))
+    def sethar(h):
+      self.har = h
+      self.mount.up = (0, cos(-self.har), sin(-self.har))
+      self.scope.up = (0, cos(-self.har), sin(-self.har))
       p = (0, 0, 0.65)
-      q = rotate(p, angle=han, axis=SAXIS)
-      self.scope.scope.pos = vector(1.7, 1, 0) + q
-      self.dec(decl)
+      q = rotate(p, angle=-self.har, axis=SAXIS)
+      self.scope.pos = vector(1.7, 1, 0) + q
+      self.setdec(self.decr)
 
