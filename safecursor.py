@@ -16,11 +16,11 @@ class SafeCursor(DictCursor):
     try:
       return DictCursor.execute(self, query, args)
     except MySQLdb.OperationalError:
-      logger.error("One OperationalError exception in MySQL call")
+      logger.exception("One OperationalError exception in MySQL call")
     try:
       return DictCursor.execute(self, query, args)
     except MySQLdb.OperationalError:
-      logger.error("Two OperationalError exceptions in MySQL call, giving up")
+      logger.exception("Two OperationalError exceptions in MySQL call, giving up")
       raise
 
   def __del__(self):

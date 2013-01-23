@@ -5,6 +5,8 @@ DictCursor=safecursor.SafeCursor
 
 from globals import *
 
+weather = None
+
 #These are the initial defaults, copied to the status object on module init.
 _SkyOpenTemp = -26  #Open if skytemp < this for more than WeatherOpenDelay sec
 _SkyCloseTemp = -25  #Close is skytemp > this or raining
@@ -41,7 +43,8 @@ def render(v,dig,dp):
   else:
     return ('%'+`dig`+'.'+`dp`+'f') % v
 
-class _Weather:
+
+class Weather:
   "Cloud and rain detector status"
 
   def empty(self):
@@ -78,7 +81,7 @@ class _Weather:
       d[n] = self.__dict__.get(n)
     return d
 
-  def display(self):
+  def __str__(self):
     "Tells the status object to display itself"
     print "Sky Temp:  ", self.skytemp
     print "Cloudy:    ", _unyv(self.cloudf)
@@ -105,7 +108,6 @@ class _Weather:
       print "\nCurrent Status: Not Clear, conditions have been acceptable for ",
       print self.OKforsec, "seconds."
 
-
   def checkweather(self):
     "Monitor Cloud and Rain data, and take action if necessary"
     if self.rainf <> 1:  #0 is unknown, 1 is not raining, 2 is 'wet', 3 is raining.
@@ -131,7 +133,6 @@ class _Weather:
         if (self.CloudyForSec > self.CloudCloseDelay) or self.rain:
           self.clear = False
           self.OKforsec = 0
-
 
   def update(self, u_curs=None):
     "Connect to the database to update fields"
@@ -167,11 +168,12 @@ def _background():
     print "a weather exception"
 
 
-
-db = MySQLdb.Connection(host='mysql', user='honcho', passwd='',
-                      db='misc', cursorclass=DictCursor)
-b_db = MySQLdb.Connection(host='mysql', user='honcho', passwd='',
-                        db='misc', cursorclass=DictCursor)
-status = _Weather()
-status.update()
+def Init():
+  global db, b_db, status
+  db = MySQLdb.Connection(host='mysql', user='honcho', passwd='',
+                          db='misc', cursorclass=DictCursor)
+  b_db = MySQLdb.Connection(host='mysql', user='honcho', passwd='',
+                            db='misc', cursorclass=DictCursor)
+  status = Weather()
+  status.update()
 
