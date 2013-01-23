@@ -1,7 +1,5 @@
 
 import MySQLdb
-import safecursor
-DictCursor=safecursor.SafeCursor
 
 from globals import *
 
@@ -148,7 +146,21 @@ class Weather:
                                        #Read the contents of the
                                        #'weather status' table to find
                                        #cloud voltage and rain status
-      self.__dict__.update(u_curs.fetchallDict()[0])
+      row = u_curs.fetchall()[0]
+      self.lastmod = row[0]
+      self.skytemp = row[1]
+      self.cloudf = row[2]
+      self.windf = row[3]
+      self.rainf = row[4]
+      self.dayf = row[5]
+      self.temp = row[6]
+      self.windspeed = row[7]
+      self.humidity = row[8]
+      self.dewpoint = row[9]
+      self.skylight = row[10]
+      self.rainhit = row[11]
+      self.wethead = row[12]
+      self.senstemp = row[13]
     except:
       self.weathererror = "Weather database not OK, can't get current values"
     if self.lastmod > 540:
@@ -170,10 +182,8 @@ def _background():
 
 def Init():
   global db, b_db, status
-  db = MySQLdb.Connection(host='mysql', user='honcho', passwd='',
-                          db='misc', cursorclass=DictCursor)
-  b_db = MySQLdb.Connection(host='mysql', user='honcho', passwd='',
-                            db='misc', cursorclass=DictCursor)
+  db = MySQLdb.Connection(host='mysql', user='honcho', passwd='', db='misc')
+  b_db = MySQLdb.Connection(host='mysql', user='honcho', passwd='', db='misc')
   status = Weather()
   status.update()
 
