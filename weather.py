@@ -81,30 +81,33 @@ class Weather:
 
   def __str__(self):
     "Tells the status object to display itself"
-    print "Sky Temp:  ", self.skytemp
-    print "Cloudy:    ", _unyv(self.cloudf)
-    print "Windy:     ", _unyv(self.windf)
-    print "Raining:   ", _unyv(self.rainf)
-    print "Daylight:  ", _unyv(self.dayf)
-    print "Last weather entry: ", self.lastmod,"seconds ago."
-    print "Air temp:  ", render(self.temp,4,1)
-    print "Avg wind:  ", render(self.windspeed,3,0)
-    print "Humidity:  ", render(self.humidity,2,0)
-    print "Dew point: ", render(self.dewpoint,4,1)
-    print "Raindrops: ", _yn(self.rainhit)
-    print "Wet sensor:", _yn(self.wethead)
-    print "Sens. Temp:", render(self.senstemp,4,1)
-    print
-    print "Becomes 'not clear' if skytemp warmer than:", self.SkyCloseTemp
-    print "Becomes 'clear' if skytemp colder than", self.SkyOpenTemp, "for",
-    print self.WeatherOpenDelay, "seconds or more."
+    mesg = []
+    mesg.append("Sky Temp:  %s" % self.skytemp)
+    mesg.append("Cloudy:    %s" % _unyv(self.cloudf))
+    mesg.append("Windy:     %s" % _unyv(self.windf))
+    mesg.append("Raining:   %s" % _unyv(self.rainf))
+    mesg.append("Daylight:  %s" % _unyv(self.dayf))
+    mesg.append("Last weather entry: %s seconds ago." % self.lastmod)
+    mesg.append("Air temp:  %s" % render(self.temp,4,1))
+    mesg.append("Avg wind:  %s" % render(self.windspeed,3,0))
+    mesg.append("Humidity:  %s" % render(self.humidity,2,0))
+    mesg.append("Dew point: %s" % render(self.dewpoint,4,1))
+    mesg.append("Raindrops: %s" % _yn(self.rainhit))
+    mesg.append("Wet sensor:%s" % _yn(self.wethead))
+    mesg.append("Sens. Temp:%s" % render(self.senstemp,4,1))
+    mesg.append("\nBecomes 'not clear' if skytemp warmer than %d C" % self.SkyCloseTemp)
+    mesg.append("Becomes 'clear' if skytemp colder than %d C for %d seconds or more" %
+                (self.SkyOpenTemp, self.WeatherOpenDelay))
     if self.weathererror:
-      print "Error: ", self.weathererror
+      mesg.append("Error: %s" % self.weathererror)
     if self.clear:
-      print "\nCurrent Status: Clear"
+      mesg.append("\nCurrent Status: Clear")
     else:
-      print "\nCurrent Status: Not Clear, conditions have been acceptable for ",
-      print self.OKforsec, "seconds."
+      mesg.append("\nCurrent Status: Not Clear, conditions have been acceptable for %d seconds." % self.OKforsec)
+    return '\n'.join(mesg) + '\n'
+
+  def __repr__(self):
+    return self.__str__()
 
   def checkweather(self):
     "Monitor Cloud and Rain data, and take action if necessary"
