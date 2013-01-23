@@ -1,8 +1,6 @@
 
 import MySQLdb
 
-#from globals import *
-
 weather = None
 
 #These are the initial defaults, copied to the status object on module init.
