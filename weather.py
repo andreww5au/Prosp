@@ -1,7 +1,7 @@
 
 import MySQLdb
 
-from globals import *
+#from globals import *
 
 weather = None
 
