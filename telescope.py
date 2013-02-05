@@ -10,7 +10,7 @@ from teljoy.extras import tjclient
 Active = threading.Event()
 Active.set()
 
-USEPYRO = False
+USEPYRO = True
 
 pausetime = 0
 
