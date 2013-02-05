@@ -15,7 +15,7 @@ USEPYRO = True
 pausetime = 0
 
 if USEPYRO:
-  tjclient.Init()
+  print tjclient.Init()
   status = tjclient.status
   jump = tjclient.jump
   jumpoff = tjclient.jumpoff

@@ -235,6 +235,8 @@ from AnCommands import *
 
 status = AnCommands.camera.status  #Define a status variable using the new class
 status.TJ = telescope.status
+
+weather.Init()
 status.weather = weather.status
 status.MonitorActive = False
 status.isdark = ephemint.isdark()

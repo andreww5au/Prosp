@@ -1,9 +1,7 @@
 
 import MySQLdb
-import safecursor
-DictCursor=safecursor.SafeCursor
 
-from globals import *
+weather = None
 
 #These are the initial defaults, copied to the status object on module init.
 _SkyOpenTemp = -26  #Open if skytemp < this for more than WeatherOpenDelay sec
@@ -41,7 +39,8 @@ def render(v,dig,dp):
   else:
     return ('%'+`dig`+'.'+`dp`+'f') % v
 
-class _Weather:
+
+class Weather:
   "Cloud and rain detector status"
 
   def empty(self):
@@ -78,33 +77,35 @@ class _Weather:
       d[n] = self.__dict__.get(n)
     return d
 
-  def display(self):
+  def __str__(self):
     "Tells the status object to display itself"
-    print "Sky Temp:  ", self.skytemp
-    print "Cloudy:    ", _unyv(self.cloudf)
-    print "Windy:     ", _unyv(self.windf)
-    print "Raining:   ", _unyv(self.rainf)
-    print "Daylight:  ", _unyv(self.dayf)
-    print "Last weather entry: ", self.lastmod,"seconds ago."
-    print "Air temp:  ", render(self.temp,4,1)
-    print "Avg wind:  ", render(self.windspeed,3,0)
-    print "Humidity:  ", render(self.humidity,2,0)
-    print "Dew point: ", render(self.dewpoint,4,1)
-    print "Raindrops: ", _yn(self.rainhit)
-    print "Wet sensor:", _yn(self.wethead)
-    print "Sens. Temp:", render(self.senstemp,4,1)
-    print
-    print "Becomes 'not clear' if skytemp warmer than:", self.SkyCloseTemp
-    print "Becomes 'clear' if skytemp colder than", self.SkyOpenTemp, "for",
-    print self.WeatherOpenDelay, "seconds or more."
+    mesg = []
+    mesg.append("Sky Temp:  %s" % self.skytemp)
+    mesg.append("Cloudy:    %s" % _unyv(self.cloudf))
+    mesg.append("Windy:     %s" % _unyv(self.windf))
+    mesg.append("Raining:   %s" % _unyv(self.rainf))
+    mesg.append("Daylight:  %s" % _unyv(self.dayf))
+    mesg.append("Last weather entry: %s seconds ago." % self.lastmod)
+    mesg.append("Air temp:  %s" % render(self.temp,4,1))
+    mesg.append("Avg wind:  %s" % render(self.windspeed,3,0))
+    mesg.append("Humidity:  %s" % render(self.humidity,2,0))
+    mesg.append("Dew point: %s" % render(self.dewpoint,4,1))
+    mesg.append("Raindrops: %s" % _yn(self.rainhit))
+    mesg.append("Wet sensor:%s" % _yn(self.wethead))
+    mesg.append("Sens. Temp:%s" % render(self.senstemp,4,1))
+    mesg.append("\nBecomes 'not clear' if skytemp warmer than %d C" % self.SkyCloseTemp)
+    mesg.append("Becomes 'clear' if skytemp colder than %d C for %d seconds or more" %
+                (self.SkyOpenTemp, self.WeatherOpenDelay))
     if self.weathererror:
-      print "Error: ", self.weathererror
+      mesg.append("Error: %s" % self.weathererror)
     if self.clear:
-      print "\nCurrent Status: Clear"
+      mesg.append("\nCurrent Status: Clear")
     else:
-      print "\nCurrent Status: Not Clear, conditions have been acceptable for ",
-      print self.OKforsec, "seconds."
+      mesg.append("\nCurrent Status: Not Clear, conditions have been acceptable for %d seconds." % self.OKforsec)
+    return '\n'.join(mesg) + '\n'
 
+  def __repr__(self):
+    return self.__str__()
 
   def checkweather(self):
     "Monitor Cloud and Rain data, and take action if necessary"
@@ -132,7 +133,6 @@ class _Weather:
           self.clear = False
           self.OKforsec = 0
 
-
   def update(self, u_curs=None):
     "Connect to the database to update fields"
     self.weathererror = ""
@@ -147,7 +147,21 @@ class _Weather:
                                        #Read the contents of the
                                        #'weather status' table to find
                                        #cloud voltage and rain status
-      self.__dict__.update(u_curs.fetchallDict()[0])
+      row = u_curs.fetchall()[0]
+      self.lastmod = row[0]
+      self.skytemp = row[1]
+      self.cloudf = row[2]
+      self.windf = row[3]
+      self.rainf = row[4]
+      self.dayf = row[5]
+      self.temp = row[6]
+      self.windspeed = row[7]
+      self.humidity = row[8]
+      self.dewpoint = row[9]
+      self.skylight = row[10]
+      self.rainhit = row[11]
+      self.wethead = row[12]
+      self.senstemp = row[13]
     except:
       self.weathererror = "Weather database not OK, can't get current values"
     if self.lastmod > 540:
@@ -167,11 +181,10 @@ def _background():
     print "a weather exception"
 
 
-
-db = MySQLdb.Connection(host='mysql', user='honcho', passwd='',
-                      db='misc', cursorclass=DictCursor)
-b_db = MySQLdb.Connection(host='mysql', user='honcho', passwd='',
-                        db='misc', cursorclass=DictCursor)
-status = _Weather()
-status.update()
+def Init():
+  global db, b_db, status
+  db = MySQLdb.Connection(host='mysql', user='honcho', passwd='', db='misc')
+  b_db = MySQLdb.Connection(host='mysql', user='honcho', passwd='', db='misc')
+  status = Weather()
+  status.update()
 

@@ -3,44 +3,24 @@
 import sys
 sys.path.append('/home/observer/PyDevel')
 from Prosp.globals import *
-from Prosp import weather
 from Prosp.extras import prospclient
 from teljoy.extras import tjclient
 
 from visual import *
-from visual.text import *
-from math import *
+from visual.text import text
 
-lat = -32.0 * pi / 180.0
-han=0
-decl=-32
+LATDEG = -32.0
+LATRAD = LATDEG * pi / 180.0
 
-SAXIS = vector(cos(lat), -sin(lat), 0)
-
-def sexstring(value=0, sp=':'):
-  """Usage: sexstring(value=0,sp=':')
-     Convert the floating point 'value' into a sexagecimal string, using
-     'sp' as a spacer between components
-  """
-  try:
-    aval = abs(value)
-  except:
-    aval = 0.0
-  if value < 0:
-    outs = '-'
-  else:
-    outs = ''
-  D = int(aval)
-  M = int((aval - float(D)) * 60)
-  S = float(int((aval - float(D) - float(M) / 60.0) * 36000)) / 10.0
-  outs = outs + `D` + sp + `M` + sp + `S`
-  return outs
+SAXIS = vector(cos(LATRAD), -sin(LATRAD), 0)
 
 
-class PLAT(object):
+class Plat(object):
   def __init__(self):
-    self.rastring = None
+    self.hastring = None
     self.decstring = None
+    self.ha = 0.0
+    self.dec = LATDEG
     self.mount = frame()
     self.sector = cylinder(frame=self.mount,
                            pos=(0, 0, 0),
@@ -150,46 +130,102 @@ class PLAT(object):
                         radius=0.08,
                         length=0.16,
                         color=(108.0 / 256, 123.0 / 256, 139.0 / 256))
+    self.setpos(ha=0.0, dec=LATDEG)
 
-    def setrastring(self, val):
-      if self.rastring:
-        self.rastring.string = "RA " + sexstring(val)
+  def sethastring(self, val):
+    if self.hastring:
+      self.hastring.visible = False
+      del self.hastring
+    self.hastring = text(pos=(0.81, -1.7, 0),
+            axis=(0, 0, -1),
+            height=0.15,
+            depth=0.02,
+            color=color.black,
+            string="HA " + sexstring(val),
+            justify='center',
+            twosided=False)
+
+  def setdecstring(self, val):
+    if self.decstring:
+      self.decstring.visible = False
+      del self.decstring
+    self.decstring = text(pos=(0.81, -1.9, 0),
+             axis=(0, 0, -1),
+             height=0.15,
+             depth=0.02,
+             color=color.black,
+             string="DEC " + sexstring(val),
+             justify='center',
+             twosided=False)
+
+  def setposr(self, har, decr):
+    self.har = har
+    self.decr = decr
+    self.mount.up = (0, cos(-self.har), sin(-self.har))
+    self.scope.up = (0, cos(-self.har), sin(-self.har))
+    p = (0, 0, 0.65)
+    q = rotate(p, angle=-self.har, axis=SAXIS)
+    self.scope.pos = vector(1.7, 1, 0) + q
+    p = (0, 1, 0)
+    q = rotate(p, angle=self.decr - LATRAD, axis=(0, 0, 1))
+    r = rotate(q, angle=-self.har, axis=SAXIS)
+    self.scope.up = SAXIS
+    self.scope.axis = r
+
+  def setpos(self, ha, dec):
+    self.setposr(har=ha*pi/12, decr=dec*pi/180)
+    self.sethastring(ha)
+    self.setdecstring(dec)
+
+
+def FollowLoop(plat=None):
+  """Given a visual telescope object (a subclass of vplat.Plat), run
+     continuously, updating the position of the virtual telescope to match
+     the real coordinates obtained via RPC from teljoy.
+
+     Returns immediately if teljoy can't be contacted.
+  """
+  connected = tjclient.Init()
+  if not connected:
+    return
+
+  lbl = None
+  dt = 1.0
+  slewvel = tjclient.status.prefs.SlewRate/20.0/3600  #convert from steps/sec to deg/sec
+  slewtime = 0
+  lastHA = tjclient.status.current.RaC/15.0/3600-tjclient.status.current.Time.LST
+  lastDec = tjclient.status.current.DecC/3600.0
+
+  while 1:
+    rate(1 / dt)
+    tjclient.status.update()
+    if not tjclient.status.motors.Moving:
+      lastHA = tjclient.status.current.RaC/15.0/3600 - tjclient.status.current.Time.LST
+      lastDec = tjclient.status.current.DecC/3600.0
+      plat.setpos(lastHA,lastDec)
+      #     mount.setra(status.RawRA)
+      #     mount.setdec(status.RawDec)
+      slewtime = 0.0
+      dt = 1.0
+    else:
+      dt = 0.2
+      hslewlen = ((tjclient.status.current.RaC/15.0/3600-tjclient.status.current.Time.LST) - lastHA)
+      dslewlen = (tjclient.status.current.DecC/3600.0 - lastDec)
+      htime = abs(hslewlen*15 / slewvel)
+      dtime = abs(dslewlen / slewvel)
+      slewtime = slewtime + dt
+      if slewtime < htime:
+        hpos = lastHA + hslewlen*(slewtime/htime)
       else:
-        self.rastring = text(pos=(0.81, -1.7, 0),
-                axis=(0, 0, -1),
-                height=0.15,
-                depth=0.02,
-                color=color.black,
-                string="RA " + sexstring(val),
-                justify='center')
-
-    def setdecstring(self, val):
-      if self.decstring:
-        self.decstring.string = "DEC " + sexstring(val)
+        hpos = tjclient.status.current.RaC/15.0/3600 - tjclient.status.current.Time.LST
+      if slewtime < dtime:
+        dpos = lastDec + dslewlen*(slewtime/dtime)
       else:
-        self.decstring = text(pos=(0.81, -1.9, 0),
-                 axis=(0, 0, -1),
-                 height=0.15,
-                 depth=0.02,
-                 color=color.black,
-                 string="DEC " + sexstring(val),
-                 justify='center')
+        dpos = tjclient.status.current.DecC/3600.0
+      plat.setpos(hpos, dpos)
 
-    def setdec(d):
-      self.decl = d
-      dr = d * pi / 180
-      p = (0, 1, 0)
-      q = rotate(p, angle=dr - lat, axis=(0, 0, 1))
-      r = rotate(q, angle=han, axis=SAXIS)
-      self.scope.scope.up = SAXIS
-      self.scope.scope.axis = r
-
-    def ha(h):
-      self.han = -h * pi / 12
-      self.mount.mount.up = (0, cos(han), sin(han))
-      self.scope.scope.up = (0, cos(han), sin(han))
-      p = (0, 0, 0.65)
-      q = rotate(p, angle=han, axis=SAXIS)
-      self.scope.scope.pos = vector(1.7, 1, 0) + q
-      self.dec(decl)
-
+    p = scene.mouse.pick
+    if lbl and (p is None):
+      lbl.visible = False
+    if p in [plat.radial]:
+      lbl = label(pos=plat.mount.frame_to_world(p.pos), text=sexstring(tjclient.status.current.RaC/15.0/3600))
