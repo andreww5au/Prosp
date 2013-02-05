@@ -265,15 +265,15 @@ if __name__ == '__main__':
   print "Content-Type: text/html\n\n"
   print HTMLheader
 
-  prospclient.Init()
+  msg = prospclient.Init()
   status = prospclient.status
   if not status.connected:
-    print "Can't connect to Prosp server - run Prosp to start the server"
+    print "Error message from Prosp client: %s" % msg
 
-  tjclient.Init()
+  msg = tjclient.Init()
   status.TJ = tjclient.status
   if not status.TJ.connected:
-    print "Can't connect to Teljoy server - run teljoy.py to start the server"
+    print "Error message from Teljoy client: %s" % msg
 
   #print "<h3>Observing Parameters</h3>\n"
   print "<table border=0> \n "   #borderless outer table

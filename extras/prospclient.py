@@ -110,11 +110,29 @@ class ProspClient(StatusObj):
     self.lastact = 0
 
   def update(self):
-    if status.connected:
+    with self.proxy:
       self.__dict__.update(self.proxy.GetStatus())
       self.chiller.__dict__.update(self.proxy.GetChiller())
       self.weather.__dict__.update(self.proxy.GetWeather())
       self.focuser.__dict__.update(self.proxy.GetFocuser())
+
+  def connect(self):
+    self.connected = False
+    ok = False
+    if self.proxy is not None:
+      self.proxy._pyroRelease()
+    try:
+      self.proxy = Pyro4.Proxy('PYRONAME:Prosp')
+      ok = True
+    except Pyro4.errors.PyroError:
+      self.proxy = None
+      return "Can't find Prosp service in nameserver"
+    if ok:
+      try:
+        self.update()
+        self.connected = True
+      except Pyro4.errors.PyroError:
+        return "Can't connect to Prosp Pyro4 service - is Prosp running?"
 
 
 def _background():
@@ -124,22 +142,13 @@ def _background():
     try:
       status.update()
     except KeyboardInterrupt:
-      print "a keyboard interrupt in tjclient._background()"
+      print "a keyboard interrupt in prospclient._background()"
     except Pyro4.errors.PyroError:
-      Connect(status)
+      msg = status.connect()
+      if msg:
+        print msg
 
 
-def Connect(s):
-  s.connected = False
-  try:
-    s.proxy = Pyro4.Proxy('PYRONAME:Prosp')
-    s.connected = True
-  except Pyro4.errors.PyroError:
-    print "Can't connect to Prosp server - run Prosp to start the server"
-  try:
-    s.update()
-  except Pyro4.errors.PyroError:
-    s.connected = False
 
 
 def Init():
@@ -148,5 +157,4 @@ def Init():
   """
   global status
   status = ProspClient()
-  Connect(status)
-  return status.connected   #True if we have a valid, working proxy
+  return status.connect()   #Returns None for no errors, or an error message
