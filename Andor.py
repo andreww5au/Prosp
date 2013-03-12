@@ -499,14 +499,6 @@ class Camera(object):
       logger.error(mesg)
     return mesg
 
-  def GetTemperatureStatus(self):
-    """Call the undocumented, reserved function to get TEC diagnostics
-    """
-    mesg = self._procret(pyandor.GetTemperatureStatus(f1,f2,f3,f4), 'GetTemperatureStatus')
-    if mesg:
-      logger.error(mesg)
-    return mesg, f1.value(), f2.value(), f3.value(), f4.value()
-
   def _SetHSSpeed(self, n=2):
     if n in HSSpeeds.keys():
       mesg = self._procret(pyandor.SetHSSpeed(0,n), 'SetHSSpeed')
@@ -845,6 +837,22 @@ class Camera(object):
         mesg = "Exposure time set to %6.3f seconds" % self.status.exptime
         logger.info(mesg)
     return mesg
+
+  def GetTemperatureStatus(self):
+    """Call the undocumented, reserved function to get TEC diagnostics
+    """
+    mesg = self._procret(pyandor.GetTemperatureStatus(f1, f2, f3, f4), 'GetTemperatureStatus')
+    if mesg:
+      logger.error(mesg)
+    return mesg, f1.value(), f2.value(), f3.value(), f4.value()
+
+  def GetTECStatus(self):
+    """Call the GetTECStatus() function to get a flag indicating whether the TEC has 'tripped'
+    """
+    mesg = self._procret(pyandor.GetTECStatus(i1))
+    if mesg:
+      logger.error(mesg)
+    return mesg, i1.value()
 
   def GetFits(self):
     logger.info("Starting image acquisition, exposure time = %8.3f" % self.status.exptime)

@@ -336,11 +336,18 @@ def warmup():
 
 
 def ccdtemp(n=2):
-  """Update and return CCD temperature.
+  """Update and return CCD temperature. Parameter 'n' kept for compatibility, but no longer used.
   """
   temp = camera.GetTemperature()
   camera.status.update()
+  mesg, f1, f2, f3, f4 = camera.GetTemperatureStatus()
+  print "Sensor Temp=%6.1f, TargetTemp=%6.1f, AmbientTemp=%6.1f, CoolerVolts=%6.2f" % (f1,f2,f3,f4)
   return temp
+
+
+def tecstatus():
+  mesg,flag = camera.GetTECStatus()
+  print "Tripped: %s" % flag
 
 
 def foclines(n=-1):
