@@ -1,0 +1,9 @@
+#!/bin/sh
+#
+#Link to the static libfli.a in the current directory, compiled from the fli distribution source code
+#
+rm pyfli.py pyfli.o _pyfli.so
+swig -python -module pyfli -I/usr/local/include -o pyfli.c -I/usr/include/python2.7 fli.i
+gcc -c -O2 -fpic -I/usr/include/python2.7 -include libfli.h pyfli.c 
+gcc -shared pyfli.o libfli.a -L/usr/local/lib -o _pyfli.so
+

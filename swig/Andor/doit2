@@ -1,0 +1,6 @@
+#!/bin/sh
+rm pyandor.py pyandor.o _pyandor.so
+swig -python -c++ -module pyandor -outdir pyfiles -I/usr/local/include -o pyandor.cpp -I/usr/include/python2.7 andor++.i
+c++ -c -O2 -fpic -I/usr/include/python2.7 -include atmcdLXd.h pyandor.cpp
+c++ -shared pyandor.o -L/usr/local/lib -landor -o _pyandor.so
+cp pyfiles/pyandor.py .
