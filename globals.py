@@ -9,12 +9,15 @@ CAMERA = 'Andor'
 #CAMERA =  'Apogee'
 
 CHILLER = False    #True if chiller unit connected.
-FOCUSER = True    #True if focuser unit connected.
-OPTICALCOUPLER = True
-#OPTICALCOUPLER = False
 
-#DTABLE = 'ncurrent'      #Table to use for current position updates - 'ncurrent' for dummy, 'current' for real telescope.
-DTABLE = 'current'      #Table to use for current position updates - 'ncurrent' for dummy, 'current' for real telescope.
+#FOCUSER = True    #True if focuser unit connected.
+FOCUSER = False
+
+#OPTICALCOUPLER = True    #True of optical coupler unit connected
+OPTICALCOUPLER = False
+
+DTABLE = 'ncurrent'      #Table to use for current position updates - 'ncurrent' for dummy, 'current' for real telescope.
+#DTABLE = 'current'      #Table to use for current position updates - 'ncurrent' for dummy, 'current' for real telescope.
 
 MLOGLEVEL = logging.DEBUG           #Master log level - messages below this will be ignored.
 LOGLEVELS = {'Server':{'Console':logging.DEBUG, 'File':logging.DEBUG},
